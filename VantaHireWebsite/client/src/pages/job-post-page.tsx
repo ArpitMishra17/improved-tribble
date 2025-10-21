@@ -326,7 +326,7 @@ export default function JobPostPage() {
           />
         </div>
       </div>
-      </div>
+    </div>
     </Layout>
   );
 }
