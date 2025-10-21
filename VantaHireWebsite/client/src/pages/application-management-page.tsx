@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
 import {
@@ -21,7 +21,9 @@ import {
   Target,
   Mail,
   Star,
-  History
+  History,
+  ArrowLeft,
+  FileDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Job, Application, PipelineStage, EmailTemplate } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
+import { ApplicationBreadcrumb } from "@/components/Breadcrumb";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +52,7 @@ export default function ApplicationManagementPage() {
   const [match, params] = useRoute("/jobs/:id/applications");
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkNotes, setBulkNotes] = useState("");
@@ -609,8 +613,52 @@ export default function ApplicationManagementPage() {
         
         <div className={`container mx-auto px-4 py-8 relative z-10 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className="max-w-6xl mx-auto">
+            {/* Breadcrumb and Quick Actions Toolbar */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+              <ApplicationBreadcrumb jobTitle={job.title} />
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-white hover:bg-white/10"
+                  onClick={() => alert("Bulk email feature - Select candidates first")}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Bulk Email
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-white hover:bg-white/10"
+                  onClick={() => alert("Batch interview feature - Select candidates first")}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Batch Interview
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 text-white hover:bg-white/10"
+                  onClick={() => alert("Export feature coming soon")}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Export CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/recruiter-dashboard")}
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </div>
+            </div>
+
             {/* Premium Header */}
-            <div className="mb-12 pt-16">
+            <div className="mb-12">
               <div className="w-20 h-1.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] rounded-full mb-6 animate-slide-right"></div>
               <div className="flex items-center gap-3 mb-4">
                 <Users className="h-8 w-8 text-[#7B38FB]" />

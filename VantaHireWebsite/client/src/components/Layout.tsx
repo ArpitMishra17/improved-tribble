@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { Menu, X, User, LogOut, Briefcase, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
+import QuickAccessBar from "@/components/QuickAccessBar";
+import FloatingActionButton from "@/components/FloatingActionButton";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -37,12 +39,16 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 transition-all duration-500 z-50 
-        ${scrollPosition > 50 
-          ? 'bg-gradient-to-r from-[#1E0B40]/90 to-[#2D1B69]/90 backdrop-blur-lg shadow-lg py-3 border-b border-white/5' 
-          : 'py-6'}`}
-      >
+      {/* Quick Access Bar for authenticated users */}
+      {user && <QuickAccessBar />}
+
+      {/* Header (for public pages or as fallback) */}
+      {!user && (
+        <header className={`fixed top-0 left-0 right-0 transition-all duration-500 z-50
+          ${scrollPosition > 50
+            ? 'bg-gradient-to-r from-[#1E0B40]/90 to-[#2D1B69]/90 backdrop-blur-lg shadow-lg py-3 border-b border-white/5'
+            : 'py-6'}`}
+        >
         {/* Premium background glow effects */}
         <div className={`absolute inset-0 -z-10 transition-opacity duration-700 ${scrollPosition > 50 ? 'opacity-100' : 'opacity-0'}`}>
           <div className="absolute left-1/4 w-48 h-12 bg-[#7B38FB]/10 rounded-full blur-[50px] animate-pulse-slow"></div>
@@ -411,11 +417,15 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         )}
       </header>
+      )}
 
       {/* Main Content */}
-      <main className="pt-20">
+      <main className={user ? "pt-20" : "pt-20"}>
         {children}
       </main>
+
+      {/* Floating Action Button */}
+      {user && <FloatingActionButton />}
 
       {/* Footer */}
       <Footer />

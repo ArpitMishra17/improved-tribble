@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink } from "lucide-react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink, Plus, Mail, Calendar, BarChart } from "lucide-react";
+import Layout from "@/components/Layout";
 
 export default function RecruiterDashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [newStatus, setNewStatus] = useState("");
@@ -103,26 +104,59 @@ export default function RecruiterDashboard() {
 
   if (jobsLoading || applicationsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#1E0B40] via-[#2D1B69] to-[#1E0B40]">
-        <Header />
-        <div className="container mx-auto px-4 pt-32 pb-16">
+      <Layout>
+        <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center h-64">
             <div className="text-white">Loading...</div>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1E0B40] via-[#2D1B69] to-[#1E0B40]">
-      <Header />
-      <div className="container mx-auto px-4 pt-32 pb-16">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold text-white">Recruiter Dashboard</h1>
-            <p className="text-white/70 text-lg">Manage your job postings and applications</p>
+          {/* Header with Quick Actions */}
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <h1 className="text-4xl font-bold text-white">Recruiter Dashboard</h1>
+              <p className="text-white/70 text-lg">Manage your job postings and applications</p>
+            </div>
+
+            {/* Quick Action Toolbar */}
+            <div className="flex flex-wrap justify-center gap-3 mt-6">
+              <Button
+                onClick={() => setLocation("/jobs/post")}
+                className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:from-[#6B28EB] hover:to-[#EF4B98]"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Post New Job
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setLocation("/analytics")}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <BarChart className="h-4 w-4 mr-2" />
+                View Analytics
+              </Button>
+              <Button
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send Bulk Email
+              </Button>
+              <Button
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Schedule Interviews
+              </Button>
+            </div>
           </div>
 
           {spotaxis?.enabled && (
@@ -414,7 +448,6 @@ export default function RecruiterDashboard() {
           </Tabs>
         </div>
       </div>
-      <Footer />
-    </div>
+    </Layout>
   );
 }

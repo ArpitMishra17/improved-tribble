@@ -137,29 +137,32 @@ export default function JobPostPage() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-4">
-              Post a New <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Job</span>
-            </h1>
-            <p className="text-xl text-gray-300">
-              Find the perfect candidate for your team
-            </p>
-          </div>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Post a New <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Job</span>
+          </h1>
+          <p className="text-xl text-gray-300">
+            Find the perfect candidate for your team
+          </p>
+        </div>
 
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Briefcase className="h-6 w-6" />
-                Job Details
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Fill out the information below to create your job posting
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Two-column layout: Form + AI Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          {/* Job Form - 2/3 width */}
+          <div className="lg:col-span-2">
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Briefcase className="h-6 w-6" />
+                  Job Details
+                </CardTitle>
+                <CardDescription className="text-gray-300">
+                  Fill out the information below to create your job posting
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Job Title */}
                 <div>
                   <Label htmlFor="title" className="text-white flex items-center gap-2 mb-2">
@@ -314,6 +317,15 @@ export default function JobPostPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Analysis Panel - 1/3 width */}
+        <div className="lg:col-span-1">
+          <AIAnalysisPanel
+            description={formData.description}
+            title={formData.title}
+          />
+        </div>
+      </div>
       </div>
     </Layout>
   );
