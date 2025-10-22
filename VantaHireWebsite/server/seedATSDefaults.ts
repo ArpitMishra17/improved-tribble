@@ -237,8 +237,8 @@ export async function seedAllATSDefaults() {
   }
 }
 
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run if called directly (only in non-bundled environment)
+if (import.meta.url === `file://${process.argv[1]}` && !process.env.NODE_ENV) {
   seedAllATSDefaults()
     .then(() => process.exit(0))
     .catch((error) => {
