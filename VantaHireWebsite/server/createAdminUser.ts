@@ -96,3 +96,33 @@ export async function createTestRecruiter() {
     throw error;
   }
 }
+
+// Ensure admin password matches ADMIN_PASSWORD if provided via env.
+export async function syncAdminPasswordIfEnv() {
+  try {
+    const newPassword = process.env.ADMIN_PASSWORD;
+    if (!newPassword) return;
+
+    const existingAdmin = await storage.getUserByUsername('admin');
+    const hashedPassword = await hashPassword(newPassword);
+
+    if (existingAdmin) {
+      // Update password
+      await storage.updateUserPassword(existingAdmin.id, hashedPassword);
+      console.log('✓ Admin password synchronized from ADMIN_PASSWORD');
+      return;
+    }
+
+    // Create admin if missing
+    await storage.createUser({
+      username: 'admin',
+      password: hashedPassword,
+      firstName: 'System',
+      lastName: 'Administrator',
+      role: 'admin'
+    });
+    console.log('✓ Admin created from ADMIN_PASSWORD');
+  } catch (error) {
+    console.error('Error syncing admin password:', error);
+  }
+}

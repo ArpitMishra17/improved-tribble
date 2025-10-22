@@ -232,12 +232,6 @@ export async function seedAllATSDefaults() {
     await seedConsultants();
     console.log('🎉 All ATS default data seeded successfully!');
   } catch (error: any) {
-    // If tables don't exist yet (42P01 error), just log a warning instead of throwing
-    if (error?.code === '42P01') {
-      console.warn('⚠️  ATS tables not found. Run `npm run db:push` to create schema first.');
-      return; // Don't throw, just return silently
-    }
-    // For other errors, log and re-throw
     console.error('❌ Error seeding ATS defaults:', error);
     throw error;
   }

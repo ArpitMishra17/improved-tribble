@@ -3,9 +3,10 @@ import compression from "compression";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startJobScheduler } from "./jobScheduler";
-import { createAdminUser, createTestRecruiter } from "./createAdminUser";
+import { createAdminUser, createTestRecruiter, syncAdminPasswordIfEnv } from "./createAdminUser";
 import { createTestJobs } from "./createTestJobs";
 import { seedAllATSDefaults } from "./seedATSDefaults";
+import { ensureAtsSchema } from "./bootstrapSchema";
 
 const app = express();
 
@@ -97,15 +98,20 @@ app.use((req, res, next) => {
   }, async () => {
     log(`serving on port ${port}`);
 
-    // Initialize database: Create admin, seed ATS defaults, create test data
+    // Initialize database: Create schema, sync admin, seed data
     try {
+      // 1. Ensure ATS tables exist (creates them if missing)
+      await ensureAtsSchema();
+
+      // 2. Create/sync admin user
       await createAdminUser();
+      await syncAdminPasswordIfEnv();
       await createTestRecruiter();
 
-      // Seed ATS defaults (pipeline stages, email templates, consultants)
-      // If tables don't exist, it will log a warning but won't crash
+      // 3. Seed ATS defaults (pipeline stages, email templates, consultants)
       await seedAllATSDefaults();
 
+      // 4. Create test jobs
       await createTestJobs();
     } catch (error) {
       console.error('Error initializing database:', error);

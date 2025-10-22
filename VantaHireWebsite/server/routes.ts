@@ -57,6 +57,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "data:",
           // Google Fonts font files (optional)
           "https://fonts.gstatic.com",
+          // Allow Perplexity R2 CDN fonts if used
+          "https://r2cdn.perplexity.ai",
         ],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
