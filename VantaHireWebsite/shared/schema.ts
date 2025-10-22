@@ -33,7 +33,7 @@ export const jobs = pgTable("jobs", {
   deadline: date("deadline"),
   postedBy: integer("posted_by").notNull().references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  isActive: boolean("is_active").notNull().default(true),
+  isActive: boolean("is_active").notNull().default(false), // Only active after admin approval
   status: text("status").notNull().default('pending'), // pending, approved, declined
   reviewComments: text("review_comments"),
   expiresAt: timestamp("expires_at"),

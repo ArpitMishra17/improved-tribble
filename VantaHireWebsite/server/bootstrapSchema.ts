@@ -97,6 +97,9 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS stage_changed_at TIMESTAMP;`);
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS stage_changed_by INTEGER;`);
 
+  // Fix jobs table: pending jobs should not be active by default
+  await db.execute(sql`ALTER TABLE jobs ALTER COLUMN is_active SET DEFAULT FALSE;`);
+
   console.log('✅ ATS schema ready');
 }
 

@@ -310,11 +310,12 @@ export class DatabaseStorage implements IStorage {
   async reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined> {
     const [job] = await db
       .update(jobs)
-      .set({ 
+      .set({
         status,
         reviewComments,
         reviewedBy,
-        reviewedAt: new Date()
+        reviewedAt: new Date(),
+        isActive: status === 'approved' // Only active when approved
       })
       .where(eq(jobs.id, id))
       .returning();
