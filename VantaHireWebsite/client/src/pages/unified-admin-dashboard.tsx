@@ -685,6 +685,25 @@ export default function UnifiedAdminDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            {job.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-500/20 border-green-500/30 text-green-300 hover:bg-green-500/30"
+                                  onClick={() => updateJobStatusMutation.mutate({ jobId: job.id, status: 'approved', comments: '' })}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500/30"
+                                  onClick={() => updateJobStatusMutation.mutate({ jobId: job.id, status: 'declined', comments: '' })}
+                                >
+                                  Decline
+                                </Button>
+                              </>
+                            )}
                             <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                               <Eye className="h-3 w-3" />
                             </Button>
