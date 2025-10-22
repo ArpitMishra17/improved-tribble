@@ -41,26 +41,53 @@ const Hero = () => {
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 relative">
             <div className="animate-fade-in" style={{animationDelay: '0.5s'}}>
-              <span className="animate-gradient-text font-extrabold">AI-Powered Recruitment Partner</span>
-            </div>
-            <div className="animate-fade-in" style={{animationDelay: '0.8s'}}>
-              <span className="text-white leading-tight mt-2 block">for Startups & Enterprise</span>
+              <span className="animate-gradient-text font-extrabold leading-tight block">AI + Human Expertise.</span>
+              <span className="text-white leading-tight mt-2 block">Faster, Fairer Hiring.</span>
             </div>
           </h1>
-          
-          <p className="text-lg mb-8 max-w-lg text-white/80 leading-relaxed animate-slide-up"
-             style={{animationDelay: '1s'}}>
-            Helping startups and enterprises scale with top talent. Our specialized recruitment solutions deliver exceptional candidates for your growing needs.
+
+          <p className="text-lg mb-6 max-w-2xl text-white/90 leading-relaxed animate-slide-up"
+             style={{animationDelay: '0.8s'}}>
+            VantaHire combines AI-powered candidate matching with a trusted network of specialist recruiters to help startups and enterprises scale faster across <span className="text-[#FF5BA8] font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>.
+          </p>
+
+          {/* Key metrics badges */}
+          <div className="flex flex-wrap gap-4 mb-8 animate-fade-in" style={{animationDelay: '1s'}}>
+            <div className="bg-white/10 backdrop-blur-lg px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
+              <div className="w-2 h-2 bg-[#2D81FF] rounded-full animate-pulse-slow"></div>
+              <span className="text-sm font-semibold text-white">≈40% Faster Time-to-Hire</span>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
+              <div className="w-2 h-2 bg-[#FF5BA8] rounded-full animate-pulse-slow"></div>
+              <span className="text-sm font-semibold text-white">60% Fewer Mis-Hires</span>
+            </div>
+            <div className="bg-white/10 backdrop-blur-lg px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
+              <div className="w-2 h-2 bg-[#7B38FB] rounded-full animate-pulse-slow"></div>
+              <span className="text-sm font-semibold text-white">Bias-Aware AI</span>
+            </div>
+          </div>
+
+          <p className="text-sm mb-8 max-w-lg text-white/70 leading-relaxed animate-slide-up italic"
+             style={{animationDelay: '1.1s'}}>
+            Our unique approach consistently delivers better outcomes, powered by responsible, bias-aware AI that puts fairness first.
           </p>
           
-          <div className="animate-slide-up" style={{animationDelay: '1.2s'}}>
-            <Button 
-              variant="gradient" 
-              size="xl" 
-              className="rounded-full premium-card hover:scale-105 transform transition-all duration-300 group"
+          <div className="flex flex-col sm:flex-row gap-4 animate-slide-up" style={{animationDelay: '1.2s'}}>
+            <Button
+              variant="gradient"
+              size="xl"
+              className="rounded-full premium-card hover:scale-105 transform transition-all duration-300 group shadow-lg"
               onClick={openCalendly}
             >
-              <span className="group-hover:animate-pulse-glow inline-block">Schedule a Free Consultation</span>
+              <span className="group-hover:tracking-wide transition-all duration-300">Book Your Free Strategy Call</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="xl"
+              className="rounded-full border-white/30 text-white hover:bg-white/10 hover:border-white/50 transition-all duration-300"
+              onClick={scrollToContact}
+            >
+              Contact Us
             </Button>
           </div>
           
@@ -68,42 +95,27 @@ const Hero = () => {
           <div className="absolute -bottom-4 left-10 w-24 h-1 bg-gradient-to-r from-[#7B38FB]/0 via-[#7B38FB] to-[#7B38FB]/0 rounded-full animate-shine"></div>
         </div>
         
-        <div className="md:w-1/2 flex justify-center relative">
+        <div className="md:w-1/2 flex justify-center relative opacity-60 md:opacity-80">
           {/* Background glows */}
           <div className="absolute w-72 h-72 bg-blue-500/10 rounded-full blur-2xl animate-pulse-slow"></div>
-          <div className="absolute w-48 h-48 bg-pink-500/10 rounded-full blur-2xl translate-x-20 -translate-y-10 animate-pulse-slow" 
+          <div className="absolute w-48 h-48 bg-pink-500/10 rounded-full blur-2xl translate-x-20 -translate-y-10 animate-pulse-slow"
                style={{animationDelay: '1s'}}></div>
-          <div className="absolute w-36 h-36 bg-purple-500/10 rounded-full blur-xl translate-x-40 -translate-y-20 animate-pulse-slow"
-               style={{animationDelay: '1.5s'}}></div>
-          
-          {/* Stars/particles around rocket */}
-          <div className="absolute w-3 h-3 bg-white rounded-full top-10 left-1/4 animate-pulse-slow"></div>
-          <div className="absolute w-2 h-2 bg-white rounded-full bottom-10 right-1/3 animate-pulse-slow" 
+
+          {/* Stars/particles around rocket - reduced */}
+          <div className="absolute w-2 h-2 bg-white/60 rounded-full top-10 left-1/4 animate-pulse-slow"></div>
+          <div className="absolute w-2 h-2 bg-white/60 rounded-full bottom-10 right-1/3 animate-pulse-slow"
               style={{animationDelay: '0.5s'}}></div>
-          <div className="absolute w-4 h-4 bg-yellow-200 rounded-full top-3/4 right-1/4 animate-pulse-slow"
-              style={{animationDelay: '1s'}}></div>
-              
-          {/* Animated floating particles */}
-          <div className="absolute w-2 h-2 bg-pink-300/60 rounded-full top-1/3 left-1/3 animate-float-path" 
-              style={{animationDelay: '0.8s', animationDuration: '15s'}}></div>
-          <div className="absolute w-3 h-3 bg-blue-300/60 rounded-full bottom-1/3 right-1/4 animate-float-path" 
-              style={{animationDelay: '1.5s', animationDuration: '18s'}}></div>
-          
-          {/* 3D Rocket GIF with enhanced animation */}
-          <div className="relative z-10 w-96 h-96 flex items-center justify-center animate-float-path animate-fade-in"
+
+          {/* 3D Rocket GIF - smaller and more subtle */}
+          <div className="relative z-10 w-72 h-72 flex items-center justify-center animate-float-path animate-fade-in"
                style={{animationDelay: '0.4s'}}>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#2D81FF]/0 via-[#2D81FF]/20 to-[#2D81FF]/0 rounded-full blur-3xl animate-pulse-slow"></div>
-            <img 
-              src={rocketGif} 
-              alt="3D Rocket" 
-              className="w-80 h-80 object-contain drop-shadow-2xl"
+            <div className="absolute inset-0 bg-gradient-to-r from-[#2D81FF]/0 via-[#2D81FF]/10 to-[#2D81FF]/0 rounded-full blur-3xl animate-pulse-slow"></div>
+            <img
+              src={rocketGif}
+              alt="AI-powered recruitment visualization"
+              className="w-64 h-64 object-contain drop-shadow-2xl opacity-90"
             />
           </div>
-          
-          {/* Additional glow elements */}
-          <div className="absolute h-20 w-20 rounded-full bg-orange-400/20 blur-xl bottom-10 -right-5 animate-pulse-slow"></div>
-          <div className="absolute h-16 w-16 rounded-full bg-purple-400/20 blur-xl top-24 left-10 animate-pulse-slow"
-               style={{animationDelay: '1.2s'}}></div>
         </div>
       </div>
     </section>

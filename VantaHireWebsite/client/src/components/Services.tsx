@@ -205,13 +205,12 @@ const Services = () => {
                style={{ animationDelay: '0.3s' }}></div>
                
           <h2 className="text-4xl md:text-5xl font-bold mb-6 animate-gradient-text inline-block">
-            Our Services
+            How We Help
           </h2>
-          
-          <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed animate-slide-up" 
+
+          <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed animate-slide-up"
              style={{ animationDelay: '0.5s' }}>
-            Specialized recruitment solutions tailored to your specific needs, 
-            whether you're a company, candidate, or educational institution.
+            Whether you're hiring, looking for your next role, or preparing students for the workforce—we deliver results that matter.
           </p>
         </div>
         
@@ -219,55 +218,70 @@ const Services = () => {
           <div className={`transform transition-all duration-1000 ${isVisible ? 'animate-slide-left' : 'opacity-0 -translate-x-20'}`}
                style={{animationDelay: "150ms"}}>
             <ServiceCard
-              title="For Individuals"
+              title="For Job Seekers"
               items={[
-                "SWOT Analysis & Career Planning",
-                "Resume & LinkedIn Optimization",
-                "Skill Gap Assessment & Upskilling Pathway",
-                "Interview Preparation Bootcamps",
-                "Personal Branding & Networking Mastery"
+                "AI-matched job recommendations",
+                "Resume & LinkedIn optimization",
+                "Interview preparation & coaching",
+                "Career path planning & upskilling",
+                "Direct access to hiring managers"
               ]}
               detailItems={[]}
               icon={<User className="w-full h-full text-white" />}
               accentColor="text-[#2D81FF]"
               bgColor="rgba(30, 11, 64, 0.8)"
             />
+            <div className="text-center mt-4">
+              <span className="text-sm font-semibold text-[#2D81FF] bg-[#2D81FF]/10 px-3 py-1 rounded-full border border-[#2D81FF]/30">
+                Get hired 3x faster
+              </span>
+            </div>
           </div>
-          
+
           <div className={`transform transition-all duration-1000 ${isVisible ? 'animate-slide-up' : 'opacity-0 translate-y-20'}`}
                style={{animationDelay: "300ms"}}>
             <ServiceCard
               title="For Organizations"
               items={[
-                "Recruitment Consulting (AI-driven + Traditional)",
-                "DEI Hiring and Leadership Search",
-                "Freelancer Recruiter Marketplace",
-                "Employer Branding Strategy",
-                "Recruiter Upskilling Programs"
+                "AI-powered candidate matching",
+                "Specialized recruiter network access",
+                "Leadership & technical hiring",
+                "DEI-focused talent pipelines",
+                "Employer branding & strategy"
               ]}
               detailItems={[]}
               icon={<Building className="w-full h-full text-white" />}
               accentColor="text-[#FF9D4A]"
               bgColor="rgba(30, 11, 64, 0.8)"
             />
+            <div className="text-center mt-4">
+              <span className="text-sm font-semibold text-[#FF9D4A] bg-[#FF9D4A]/10 px-3 py-1 rounded-full border border-[#FF9D4A]/30">
+                Fill roles in 10-14 days
+              </span>
+            </div>
           </div>
-          
+
           <div className={`transform transition-all duration-1000 ${isVisible ? 'animate-slide-right' : 'opacity-0 translate-x-20'}`}
                style={{animationDelay: "450ms"}}>
             <ServiceCard
-              title="For Colleges & Universities"
+              title="For Educational Institutions"
               items={[
-                "Corporate Readiness Bootcamps",
-                "Resume Writing & LinkedIn Workshops",
-                "Mock Interviews & Group Discussions",
-                "Guest Lectures & Panel Discussions",
-                "Entrepreneurship Cell Setup"
+                "Campus recruitment programs",
+                "Corporate readiness training",
+                "Industry connection workshops",
+                "Mock interviews & coaching",
+                "Placement success tracking"
               ]}
               detailItems={[]}
               icon={<GraduationCap className="w-full h-full text-white" />}
               accentColor="text-[#FF5BA8]"
               bgColor="rgba(30, 11, 64, 0.8)"
             />
+            <div className="text-center mt-4">
+              <span className="text-sm font-semibold text-[#FF5BA8] bg-[#FF5BA8]/10 px-3 py-1 rounded-full border border-[#FF5BA8]/30">
+                ↑85% placement rates
+              </span>
+            </div>
           </div>
         </div>
       </div>

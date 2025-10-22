@@ -370,12 +370,11 @@ const Contact = () => {
             <div className="w-20 h-1.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] rounded-full mx-auto mb-6"></div>
             
             <h2 className="text-4xl md:text-5xl font-bold mb-6 animate-gradient-text inline-block">
-              Let's Start Your Recruitment Journey
+              Ready to Hire Smarter?
             </h2>
-            
-            <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
-              Have questions or ready to elevate your recruitment process? 
-              Reach out to us and discover how VantaHire can transform your hiring experience.
+
+            <p className="text-lg text-white/90 max-w-2xl mx-auto leading-relaxed">
+              Experience ≈40% faster hiring and 60% fewer mis-hires. Book a free consultation or send us a message to get started.
             </p>
           </div>
           
@@ -385,19 +384,33 @@ const Contact = () => {
                 {/* Calendly CTA - Primary */}
                 <div className="text-center md:text-left">
                   <h3 className="text-2xl font-bold mb-4 animate-gradient-text inline-block">
-                    Ready to Transform Your Hiring?
+                    Start with a Free Strategy Call
                   </h3>
-                  <p className="text-white/80 mb-6">
-                    Schedule a free 30-minute consultation to discuss your recruitment needs.
+                  <p className="text-white/90 mb-4 leading-relaxed">
+                    30-minute consultation to understand your hiring needs and show you how we can help.
                   </p>
+                  <ul className="text-sm text-white/70 space-y-2 mb-6">
+                    <li className="flex items-center">
+                      <div className="w-1.5 h-1.5 bg-[#7B38FB] rounded-full mr-2"></div>
+                      Learn about AI-powered matching
+                    </li>
+                    <li className="flex items-center">
+                      <div className="w-1.5 h-1.5 bg-[#FF5BA8] rounded-full mr-2"></div>
+                      Get a custom hiring plan
+                    </li>
+                    <li className="flex items-center">
+                      <div className="w-1.5 h-1.5 bg-[#2D81FF] rounded-full mr-2"></div>
+                      No commitment required
+                    </li>
+                  </ul>
                   <Button
                     variant="gradient"
                     size="xl"
-                    className="rounded-full premium-card hover:scale-105 transform transition-all duration-300 group w-full"
+                    className="rounded-full premium-card hover:scale-105 transform transition-all duration-300 group w-full shadow-lg"
                     onClick={() => window.open('https://calendly.com/vantahire/30min', '_blank')}
                   >
                     <Calendar className="w-5 h-5 mr-2 group-hover:animate-pulse" />
-                    <span className="group-hover:tracking-wide transition-all duration-300">Schedule a Free Consultation</span>
+                    <span className="group-hover:tracking-wide transition-all duration-300">Book Your Free Call Now</span>
                   </Button>
                 </div>
 

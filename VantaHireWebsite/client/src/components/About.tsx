@@ -59,25 +59,24 @@ const About = () => {
   const tabContents = [
     <div key="story" className="space-y-4">
       <p className="text-lg leading-relaxed">
-        We're more than recruiters—we're future-makers. At VantaHire, cutting-edge AI meets over 20 years 
-        of recruiting mastery to transform how companies, candidates, and institutions connect, grow, and thrive.
+        Born in 2025 from seasoned TA professionals who've built hiring engines at Adobe, Ericsson, Cloudera,
+        and Cradlepoint, VantaHire combines 20+ years of recruiting expertise with responsible AI technology.
       </p>
       <p className="text-lg leading-relaxed">
-        Born in 2025 from the collective passion of seasoned TA professionals, our leadership has architected 
-        hiring engines at Adobe, Ericsson, Cloudera, Cradlepoint—and powered rapid scale-ups for countless startups. 
-        We know what it takes to build high-impact teams and careers that last.
+        We specialize in <span className="text-[#FF5BA8] font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>—industries
+        where finding the right talent fast makes or breaks business outcomes.
       </p>
     </div>,
     <div key="approach" className="space-y-4">
-      <p className="text-lg leading-relaxed">
-        What Sets Us Apart:
+      <p className="text-lg leading-relaxed font-semibold text-white">
+        The VantaHire Difference:
       </p>
-      <ul className="space-y-2 mt-4">
+      <ul className="space-y-3 mt-4">
         {[
-          "AI-First, Human-Focused: Smart automation supercharges our processes, but people remain at the heart of every decision.", 
-          "DEI by Design: We champion inclusive sourcing strategies that expand your talent pool and drive innovation through diversity.", 
-          "Upskilling & Coaching: From personalized training pathways to one-on-one career coaching, we empower recruiters and candidates to up their game.", 
-          "Community-Powered Growth: Join a thriving network of TA professionals—exchange insights, sharpen skills, and grow together."
+          "AI-Powered Matching: Our bias-aware algorithms surface candidates traditional searches miss, while human recruiters validate every match.",
+          "≈40% Faster Hiring: Streamlined workflows and pre-qualified candidates mean you close roles in weeks, not months.",
+          "60% Fewer Mis-Hires: Better matching = better retention. Our candidates stay longer and perform better.",
+          "Fairness First: Built-in bias detection ensures diverse, qualified candidate pools for every role."
         ].map((item, i) => (
           <li key={i} className="flex items-start">
             <Check className="h-5 w-5 text-[#7B38FB] mr-2 mt-1 flex-shrink-0" />
@@ -88,13 +87,14 @@ const About = () => {
     </div>,
     <div key="impact" className="space-y-4">
       <p className="text-lg leading-relaxed">
-        With over 20 years of combined experience and 2,500+ successful placements, we've helped hundreds of
-        companies scale their teams with exceptional talent. Our 96% client satisfaction rate reflects our
-        commitment to delivering results that exceed expectations.
+        <span className="font-semibold text-white">2,500+ successful placements.</span> <span className="font-semibold text-white">96% client satisfaction.</span> <span className="font-semibold text-white">20+ years of expertise.</span>
       </p>
       <p className="text-lg leading-relaxed">
-        Our Promise: We don't just fill roles. We craft end-to-end talent ecosystems that fuel long-term
-        success—today and into tomorrow's world of work. Let's build your future, together.
+        From early-stage startups needing their first engineering hire to enterprises scaling teams of 50+,
+        we've consistently delivered talent that drives business growth.
+      </p>
+      <p className="text-lg leading-relaxed text-white/90 italic">
+        "We don't just fill roles—we build talent ecosystems that fuel your long-term success."
       </p>
     </div>
   ];
@@ -125,11 +125,11 @@ const About = () => {
                style={{ animationDelay: '0.3s' }}></div>
 
           <h2 className="text-4xl md:text-5xl font-bold mb-6 animate-gradient-text inline-block">
-            About Us
+            Why VantaHire?
           </h2>
 
           <p className="text-lg text-white/80 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.6s' }}>
-            Discover the story, approach, and impact that makes VantaHire your ideal recruitment partner
+            AI-powered precision meets human expertise. Discover how we deliver ≈40% faster hires with 60% fewer mis-hires.
           </p>
         </div>
 

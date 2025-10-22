@@ -263,14 +263,14 @@ const Industries = () => {
             <div className="relative inline-block">
               <Star className="w-12 h-12 absolute -top-6 -left-10 animate-pulse-slow" />
               <h2 className="text-4xl md:text-5xl font-bold animate-gradient-text inline-block">
-                Industries We Serve
+                Industry Expertise
               </h2>
             </div>
-            
-            <p className="text-lg text-white/80 max-w-2xl mx-auto mt-6 leading-relaxed animate-slide-up" 
+
+            <p className="text-lg text-white/90 max-w-3xl mx-auto mt-6 leading-relaxed animate-slide-up"
                style={{ animationDelay: '0.5s' }}>
-              Our specialized recruiters have deep expertise across multiple industries, 
-              allowing us to find the perfect talent match for your unique requirements.
+              Deep specialization in <span className="text-[#FF5BA8] font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>—
+              plus expertise across 10+ additional high-growth sectors.
             </p>
           </div>
         </div>
