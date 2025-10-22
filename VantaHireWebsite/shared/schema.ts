@@ -155,6 +155,21 @@ export const automationSettings = pgTable("automation_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Consultant Profiles
+export const consultants = pgTable("consultants", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  experience: text("experience").notNull(),
+  linkedinUrl: text("linkedin_url"),
+  domains: text("domains").notNull(),
+  description: text("description"),
+  photoUrl: text("photo_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   jobs: many(jobs),
@@ -285,6 +300,26 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick
   isDefault: true,
 });
 
+export const insertConsultantSchema = createInsertSchema(consultants).pick({
+  name: true,
+  email: true,
+  experience: true,
+  linkedinUrl: true,
+  domains: true,
+  description: true,
+  photoUrl: true,
+  isActive: true,
+}).extend({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  experience: z.string().min(1).max(50),
+  linkedinUrl: z.string().url().optional(),
+  domains: z.string().min(1).max(1000),
+  description: z.string().max(2000).optional(),
+  photoUrl: z.string().url().optional(),
+  isActive: z.boolean().optional(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -389,3 +424,6 @@ export type ApplicationStageHistory = typeof applicationStageHistory.$inferSelec
 export type EmailAuditLog = typeof emailAuditLog.$inferSelect;
 
 export type AutomationSetting = typeof automationSettings.$inferSelect;
+
+export type Consultant = typeof consultants.$inferSelect;
+export type InsertConsultant = z.infer<typeof insertConsultantSchema>;

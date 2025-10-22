@@ -25,7 +25,10 @@ import {
   type InsertPipelineStage,
   type EmailTemplate,
   type InsertEmailTemplate,
-  type AutomationSetting
+  type AutomationSetting,
+  consultants,
+  type Consultant,
+  type InsertConsultant
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, sql, or, inArray, count } from "drizzle-orm";
@@ -111,6 +114,14 @@ export interface IStorage {
   // ATS: email templates
   getEmailTemplates(): Promise<EmailTemplate[]>;
   createEmailTemplate(template: InsertEmailTemplate & { createdBy?: number }): Promise<EmailTemplate>;
+
+  // Consultant operations
+  getConsultants(): Promise<Consultant[]>;
+  getActiveConsultants(): Promise<Consultant[]>;
+  getConsultant(id: number): Promise<Consultant | undefined>;
+  createConsultant(consultant: InsertConsultant): Promise<Consultant>;
+  updateConsultant(id: number, consultant: Partial<InsertConsultant>): Promise<Consultant | undefined>;
+  deleteConsultant(id: number): Promise<boolean>;
 }
 
 // Database storage implementation using Drizzle ORM
@@ -987,6 +998,39 @@ export class DatabaseStorage implements IStorage {
     // Then check specific setting in database
     const setting = await this.getAutomationSetting(key);
     return setting?.settingValue ?? true; // Default to enabled if not set
+  }
+
+  // ===== Consultant methods =====
+  async getConsultants(): Promise<Consultant[]> {
+    return db.select().from(consultants).orderBy(desc(consultants.createdAt));
+  }
+
+  async getActiveConsultants(): Promise<Consultant[]> {
+    return db.select().from(consultants).where(eq(consultants.isActive, true)).orderBy(desc(consultants.createdAt));
+  }
+
+  async getConsultant(id: number): Promise<Consultant | undefined> {
+    const [result] = await db.select().from(consultants).where(eq(consultants.id, id));
+    return result;
+  }
+
+  async createConsultant(consultant: InsertConsultant): Promise<Consultant> {
+    const [result] = await db.insert(consultants).values(consultant).returning();
+    return result;
+  }
+
+  async updateConsultant(id: number, consultant: Partial<InsertConsultant>): Promise<Consultant | undefined> {
+    const [result] = await db
+      .update(consultants)
+      .set({ ...consultant, updatedAt: new Date() })
+      .where(eq(consultants.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteConsultant(id: number): Promise<boolean> {
+    const result = await db.delete(consultants).where(eq(consultants.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 

@@ -10,7 +10,8 @@ import {
   Plus,
   Search,
   FileText,
-  Target
+  Target,
+  UserCheck
 } from "lucide-react";
 
 export default function QuickAccessBar() {
@@ -41,6 +42,12 @@ export default function QuickAccessBar() {
           icon: Briefcase,
           path: "/jobs",
           shortcut: "J"
+        },
+        {
+          label: "Consultants",
+          icon: UserCheck,
+          path: "/consultants",
+          shortcut: "C"
         },
         {
           label: "Analytics",

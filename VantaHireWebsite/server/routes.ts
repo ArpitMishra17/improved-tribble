@@ -694,6 +694,96 @@ New job application received:
     }
   });
 
+  // ============= CONSULTANT SHOWCASE ROUTES =============
+
+  // Public: Get all active consultants
+  app.get("/api/consultants", async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const consultants = await storage.getActiveConsultants();
+      res.json(consultants);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Public: Get a specific consultant
+  app.get("/api/consultants/:id", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid consultant ID" });
+      }
+
+      const consultant = await storage.getConsultant(id);
+      if (!consultant || !consultant.isActive) {
+        return res.status(404).json({ error: "Consultant not found" });
+      }
+
+      res.json(consultant);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Admin: Get all consultants (including inactive)
+  app.get("/api/admin/consultants", requireRole(['admin']), async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const consultants = await storage.getConsultants();
+      res.json(consultants);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Admin: Create a new consultant
+  app.post("/api/admin/consultants", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const consultantData = req.body;
+      const consultant = await storage.createConsultant(consultantData);
+      res.status(201).json(consultant);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Admin: Update a consultant
+  app.patch("/api/admin/consultants/:id", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid consultant ID" });
+      }
+
+      const consultant = await storage.updateConsultant(id, req.body);
+      if (!consultant) {
+        return res.status(404).json({ error: "Consultant not found" });
+      }
+
+      res.json(consultant);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Admin: Delete a consultant
+  app.delete("/api/admin/consultants/:id", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid consultant ID" });
+      }
+
+      const deleted = await storage.deleteConsultant(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Consultant not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // ============= PHASE 3: APPLICATION MANAGEMENT ROUTES =============
   
   // Update single application status (recruiters/admins only)

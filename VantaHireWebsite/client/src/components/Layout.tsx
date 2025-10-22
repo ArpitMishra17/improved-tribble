@@ -152,14 +152,26 @@ const Layout = ({ children }: LayoutProps) => {
                   <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
                 </a>
 
-                <a 
-                  href="/jobs" 
+                <a
+                  href="/jobs"
                   className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
                   onClick={(e) => { e.preventDefault(); setLocation("/jobs"); }}
                 >
                   <span className="relative z-10 flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
                     Jobs
+                  </span>
+                  <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
+                </a>
+
+                <a
+                  href="/consultants"
+                  className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
+                  onClick={(e) => { e.preventDefault(); setLocation("/consultants"); }}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Consultants
                   </span>
                   <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
                 </a>

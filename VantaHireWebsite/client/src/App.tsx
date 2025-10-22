@@ -22,6 +22,7 @@ import ApplicationManagementPage from "@/pages/application-management-page";
 import CandidateDashboard from "@/pages/candidate-dashboard";
 import JobAnalyticsDashboard from "@/pages/job-analytics-dashboard";
 import RecruiterDashboard from "@/pages/recruiter-dashboard";
+import ConsultantsPage from "@/pages/consultants-page";
 import { CookieConsent, AnalyticsOnConsent } from "@/components/CookieConsent";
 
 function Router() {
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/recruiter-auth" component={RecruiterAuth} />
       <Route path="/candidate-auth" component={CandidateAuth} />
+      <Route path="/consultants" component={ConsultantsPage} />
       <Route path="/jobs" component={Jobs} />
       <Route path="/jobs/:id" component={JobDetailsPage} />
       <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'admin']} />

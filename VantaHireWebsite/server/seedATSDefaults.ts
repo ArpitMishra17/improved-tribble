@@ -4,7 +4,7 @@
  */
 
 import { db } from './db';
-import { pipelineStages, emailTemplates } from '../shared/schema';
+import { pipelineStages, emailTemplates, consultants } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 
 export async function seedDefaultPipelineStages() {
@@ -152,10 +152,84 @@ VantaHire Recruitment Team`,
   console.log('✅ Email templates seeded\n');
 }
 
+export async function seedConsultants() {
+  console.log('🌱 Seeding consultant profiles...');
+
+  const defaultConsultants = [
+    {
+      name: 'Smita Shirke',
+      email: 'jadhav.smita03@gmail.com',
+      experience: '5 Years',
+      linkedinUrl: 'https://www.linkedin.com/in/smita-jadhav-shirke-3b493a30/',
+      domains: 'Test & Measurement, Embedded, Automotive, Oil & Gas, Software Technology, Telecom, Cloud Computing, Industrial Measurement, Digital Media, Fintech',
+      description: 'Worked with Finland based Industrial Measurement company, to set up their NTT in Mumbai',
+      photoUrl: 'https://drive.google.com/uc?id=1zaNRNvlVCx9cEEbVFWNcTJT6F7-dWsXh',
+      isActive: true,
+    },
+    {
+      name: 'Hina Udernani',
+      email: 'hina.mahesh@gmail.com',
+      experience: '12 Years',
+      linkedinUrl: 'https://www.linkedin.com/in/hina-udernani-2a68a0b',
+      domains: 'HR Management, Recruitment Specialist, Interview Coordination, Background Checks, Onboarding, Candidate Management, Employee Records, Talent Acquisition, Retention, Succession Planning',
+      description: 'Accomplished HR professional with over 12 years of experience in human resources management, specializing in recruitment and aligning HR function with business strategies. Adept at designing and executing talent acquisition, retention, and succession planning. As a recruiting specialist - interview coordination, doing background checks, onboarding new hires, ensuring candidate management stays top notch along with maintaining employee records. As a recruiter - determining staffing needs, acting as a communication channel between candidates and companies along with process improvements.',
+      photoUrl: 'https://drive.google.com/uc?id=17vQ2GrQisb_1kt3-xsQhrrpntPvubcrK',
+      isActive: true,
+    },
+    {
+      name: 'Bhaskar Boroo',
+      email: 'bhaskarbaroo@gmail.com',
+      experience: '12 Years',
+      linkedinUrl: 'https://www.linkedin.com/in/bhaskar-boroo-3b39317b',
+      domains: 'Telecom, Fintech, Semiconductor, Storage',
+      description: 'My journey with Vantahire has been truly fulfilling. Joining as a freelance recruiter in June, I\'ve had the opportunity to work with diverse clients, manage varied hiring mandates, and refine my end-to-end recruitment skills. The supportive environment, transparent communication, and collaborative culture have made the experience both enjoyable and professionally enriching.',
+      photoUrl: 'https://drive.google.com/uc?id=1xs2Kqx1s_ySsAK17DbGE5LOPwrJ1SFje',
+      isActive: true,
+    },
+    {
+      name: 'Harshita Bhargava',
+      email: 'Harshitabhargava02@gmail.com',
+      experience: '4.5 Years',
+      linkedinUrl: 'https://www.linkedin.com/in/harshitabhargava',
+      domains: 'IT and Non IT Hiring, Talent Acquisition, End to End Recruitment, Stakeholder Management, HR Operations, Headhunting, Sourcing, Data Management',
+      description: 'Experienced recruitment specialist with expertise in full-cycle recruitment across IT and non-IT sectors.',
+      photoUrl: 'https://drive.google.com/uc?id=178icrkRIFbxCqSKgf3KVhceojdQWwU6c',
+      isActive: true,
+    },
+    {
+      name: 'Deepika M',
+      email: 'deepikalikitha04@gmail.com',
+      experience: '2.5 Years',
+      linkedinUrl: 'https://www.linkedin.com/in/deepika-m-3355a7171',
+      domains: 'IT Recruitment',
+      description: 'IT Recruiter focused on market niche skills',
+      photoUrl: 'https://drive.google.com/uc?id=1Qu1K_R0tFKNIhq3s88n8-rEtWbyN_qRy',
+      isActive: true,
+    },
+  ];
+
+  for (const consultant of defaultConsultants) {
+    // Check if consultant already exists
+    const existing = await db.query.consultants.findFirst({
+      where: eq(consultants.email, consultant.email)
+    });
+
+    if (!existing) {
+      await db.insert(consultants).values(consultant);
+      console.log(`  ✓ Created consultant: ${consultant.name}`);
+    } else {
+      console.log(`  ⊘ Consultant already exists: ${consultant.name}`);
+    }
+  }
+
+  console.log('✅ Consultant profiles seeded\n');
+}
+
 export async function seedAllATSDefaults() {
   try {
     await seedDefaultPipelineStages();
     await seedDefaultEmailTemplates();
+    await seedConsultants();
     console.log('🎉 All ATS default data seeded successfully!');
   } catch (error) {
     console.error('❌ Error seeding ATS defaults:', error);
