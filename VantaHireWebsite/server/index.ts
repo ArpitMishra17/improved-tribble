@@ -91,10 +91,7 @@ app.use((req, res, next) => {
     reusePort: true,
   }, async () => {
     log(`serving on port ${port}`);
-    if (process.env.SPOTAXIS_BASE_URL) {
-      log(`SpotAxis integration enabled -> ${process.env.SPOTAXIS_BASE_URL}`);
-    }
-    
+
     // Create test admin and recruiter users
     try {
       await createAdminUser();

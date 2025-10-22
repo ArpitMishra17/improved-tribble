@@ -21,12 +21,7 @@ export default function JobPostPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
-  // Check SpotAxis integration
-  const { data: spotaxis } = useQuery<{ enabled: boolean; baseUrl?: string | null }>({
-    queryKey: ["/api/integrations/spotaxis"],
-  });
-  
+
   const [formData, setFormData] = useState({
     title: "",
     location: "",
@@ -108,31 +103,6 @@ export default function JobPostPage() {
       }
     }
   };
-
-  // If SpotAxis mode, guide recruiter to manage jobs there
-  if (spotaxis?.enabled) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Create Job on SpotAxis</CardTitle>
-                <CardDescription className="text-white/70">
-                  Job creation, templates, and pipelines are managed within SpotAxis.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <a href="/spotaxis/job/new">
-                  <Button className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8]">Open SpotAxis Job Creator</Button>
-                </a>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>

@@ -229,13 +229,6 @@ export default function JobsPage() {
                         </p>
                       )}
                       <div className="flex gap-2">
-                        {(job as any).externalJobUrl && (
-                          <a href={(job as any).externalJobUrl} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                              Open on SpotAxis <ExternalLink className="h-4 w-4 ml-2" />
-                            </Button>
-                          </a>
-                        )}
                         <Link href={`/jobs/${job.id}`}>
                           <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
                             View Details

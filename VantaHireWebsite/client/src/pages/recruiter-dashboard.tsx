@@ -18,10 +18,6 @@ export default function RecruiterDashboard() {
   const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [newStatus, setNewStatus] = useState("");
-  // SpotAxis integration flag (must be inside component for hooks correctness)
-  const { data: spotaxis } = useQuery<{ enabled: boolean }>({
-    queryKey: ["/api/integrations/spotaxis"],
-  });
 
   // Fetch recruiter's jobs
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
@@ -158,37 +154,6 @@ export default function RecruiterDashboard() {
               </Button>
             </div>
           </div>
-
-          {spotaxis?.enabled && (
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Manage on SpotAxis</CardTitle>
-                <CardDescription className="text-white/70">Access advanced job management, pipelines, and collaborative hiring.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-3">
-                <a href="/spotaxis/recruiter" className="inline-block">
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                    Recruiter Profile <ExternalLink className="h-4 w-4 ml-2" />
-                  </Button>
-                </a>
-                <a href="/spotaxis/job/new" className="inline-block">
-                  <Button className="bg-gradient-to-r from-purple-500 to-blue-500">
-                    Create Job <ExternalLink className="h-4 w-4 ml-2" />
-                  </Button>
-                </a>
-                <a href="/spotaxis/jobs" className="inline-block">
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                    Careers / Job Board <ExternalLink className="h-4 w-4 ml-2" />
-                  </Button>
-                </a>
-                <a href="/spotaxis/admin" className="inline-block">
-                  <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                    Admin <ExternalLink className="h-4 w-4 ml-2" />
-                  </Button>
-                </a>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

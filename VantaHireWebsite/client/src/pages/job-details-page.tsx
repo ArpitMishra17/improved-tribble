@@ -164,10 +164,6 @@ export default function JobDetailsPage() {
     );
   }
 
-  // If SpotAxis integration is active, backend includes an externalApplyUrl
-  const externalApplyUrl = (job as any)?.externalApplyUrl as string | undefined;
-  const externalJobUrl = (job as any)?.externalJobUrl as string | undefined;
-
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -219,16 +215,6 @@ export default function JobDetailsPage() {
                     {job.type.replace('-', ' ')}
                   </Badge>
                 </div>
-
-                {externalJobUrl && (
-                  <div className="mb-2">
-                    <a href={externalJobUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                        View on SpotAxis
-                      </Button>
-                    </a>
-                  </div>
-                )}
 
                 {job.deadline && (
                   <div className="flex items-center gap-2 text-orange-300">
@@ -283,26 +269,9 @@ export default function JobDetailsPage() {
                 )}
               </div>
 
-              {/* Application Form / External Apply */}
+              {/* Application Form */}
               <div className="space-y-6">
-                {externalApplyUrl ? (
-                  <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card sticky top-8">
-                    <CardHeader>
-                      <CardTitle className="text-white">Apply on SpotAxis</CardTitle>
-                      <CardDescription className="text-white/70">
-                        You’ll be redirected to complete your application on SpotAxis.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <a href={externalApplyUrl} target="_blank" rel="noopener noreferrer">
-                        <Button className="w-full bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105" size="lg">
-                          Apply on SpotAxis
-                        </Button>
-                      </a>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  !showApplicationForm ? (
+                {!showApplicationForm ? (
                     <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card sticky top-8">
                       <CardHeader>
                         <CardTitle className="text-white">Apply for this position</CardTitle>
@@ -417,7 +386,6 @@ export default function JobDetailsPage() {
                         </form>
                       </CardContent>
                     </Card>
-                  )
                 )}
               </div>
             </div>

@@ -10,7 +10,6 @@ import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
 import helmet from "helmet";
-import * as spotaxis from "./integrations/spotaxis";
 
 // ATS Validation Schemas
 const updateStageSchema = z.object({
@@ -105,15 +104,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/client-config", (_req: Request, res: Response) => {
     res.json({
       apolloAppId: process.env.APOLLO_APP_ID || null,
-    });
-  });
-
-  // SpotAxis integration status and config
-  app.get("/api/integrations/spotaxis", (req: Request, res: Response) => {
-    res.json({
-      enabled: spotaxis.isEnabled(),
-      baseUrl: process.env.SPOTAXIS_BASE_URL || null,
-      careersUrl: process.env.SPOTAXIS_CAREERS_URL || null,
     });
   });
 
@@ -267,37 +257,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const search = req.query.search as string;
       const skills = req.query.skills ? (req.query.skills as string).split(',') : undefined;
 
-      if (spotaxis.isEnabled()) {
-        const result = await spotaxis.fetchJobs({ page, limit, location, type, search, skills });
-        res.json({
-          jobs: result.jobs,
-          pagination: {
-            page: result.page,
-            limit: result.limit,
-            total: result.total,
-            totalPages: result.totalPages,
-          },
-        });
-      } else {
-        const result = await storage.getJobs({
+      const result = await storage.getJobs({
+        page,
+        limit,
+        location,
+        type,
+        search,
+        skills
+      });
+
+      res.json({
+        jobs: result.jobs,
+        pagination: {
           page,
           limit,
-          location,
-          type,
-          search,
-          skills
-        });
-
-        res.json({
-          jobs: result.jobs,
-          pagination: {
-            page,
-            limit,
-            total: result.total,
-            totalPages: Math.ceil(result.total / limit)
-          }
-        });
-      }
+          total: result.total,
+          totalPages: Math.ceil(result.total / limit)
+        }
+      });
     } catch (error) {
       next(error);
     }
@@ -311,23 +288,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid job ID' });
       }
 
-      if (spotaxis.isEnabled()) {
-        const job = await spotaxis.fetchJobById(jobId);
-        if (!job) {
-          return res.status(404).json({ error: 'Job not found' });
-        }
-        return res.json(job);
-      } else {
-        const job = await storage.getJob(jobId);
-        if (!job) {
-          return res.status(404).json({ error: 'Job not found' });
-        }
-
-        // Increment view count for analytics
-        await storage.incrementJobViews(jobId);
-
-        res.json(job);
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
       }
+
+      // Increment view count for analytics
+      await storage.incrementJobViews(jobId);
+
+      res.json(job);
     } catch (error) {
       next(error);
     }
@@ -1285,30 +1254,6 @@ New job application received:
       console.error('Careers proxy error:', error);
       res.status(500).json({ error: "Unable to load careers page" });
     }
-  });
-
-  // SpotAxis helper redirects (avoid hardcoding in client)
-  app.get("/spotaxis/admin", (req: Request, res: Response) => {
-    const base = process.env.SPOTAXIS_BASE_URL;
-    if (!base) return res.status(400).json({ error: "SpotAxis not configured" });
-    res.redirect(302, `${base.replace(/\/$/, '')}/admin/`);
-  });
-  app.get("/spotaxis/recruiter", (req: Request, res: Response) => {
-    const base = process.env.SPOTAXIS_BASE_URL;
-    if (!base) return res.status(400).json({ error: "SpotAxis not configured" });
-    res.redirect(302, `${base.replace(/\/$/, '')}/profile/employer/`);
-  });
-  app.get("/spotaxis/job/new", (req: Request, res: Response) => {
-    const base = process.env.SPOTAXIS_BASE_URL;
-    if (!base) return res.status(400).json({ error: "SpotAxis not configured" });
-    res.redirect(302, `${base.replace(/\/$/, '')}/job/edit/`);
-  });
-  app.get("/spotaxis/jobs", (req: Request, res: Response) => {
-    const careers = process.env.SPOTAXIS_CAREERS_URL;
-    const base = process.env.SPOTAXIS_BASE_URL;
-    if (!careers && !base) return res.status(400).json({ error: "SpotAxis not configured" });
-    const target = careers || `${base!.replace(/\/$/, '')}/jobs/`;
-    res.redirect(302, target);
   });
 
   // WhatsApp webhook routes
