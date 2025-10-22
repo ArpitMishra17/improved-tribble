@@ -149,10 +149,10 @@ export default function AdminDashboard() {
                   Super Admin
                 </Button>
                 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="border-white/20 text-white hover:bg-white/10 h-12"
-                  onClick={() => window.location.href = '/admin/jobs'}
+                  onClick={() => window.location.href = '/admin'}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Review Jobs
