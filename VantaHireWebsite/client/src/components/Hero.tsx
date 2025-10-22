@@ -39,31 +39,31 @@ const Hero = () => {
           <div className="w-20 h-1.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] rounded-full mb-6 animate-slide-right"
                style={{animationDelay: '0.3s'}}></div>
           
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 relative">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 relative">
             <div className="animate-fade-in" style={{animationDelay: '0.5s'}}>
               <span className="animate-gradient-text font-extrabold leading-tight block">AI + Human Expertise.</span>
               <span className="text-white leading-tight mt-2 block">Faster, Fairer Hiring.</span>
             </div>
           </h1>
 
-          <p className="text-lg mb-6 max-w-2xl text-white/90 leading-relaxed animate-slide-up"
+          <p className="text-base sm:text-lg mb-6 max-w-2xl text-white/90 leading-relaxed animate-slide-up"
              style={{animationDelay: '0.8s'}}>
             VantaHire combines AI-powered candidate matching with a trusted network of specialist recruiters to help startups and enterprises scale faster across <span className="text-[#FF5BA8] font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>.
           </p>
 
           {/* Key metrics badges */}
-          <div className="flex flex-wrap gap-4 mb-8 animate-fade-in" style={{animationDelay: '1s'}}>
-            <div className="bg-white/10 backdrop-blur-lg px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
-              <div className="w-2 h-2 bg-[#2D81FF] rounded-full animate-pulse-slow"></div>
-              <span className="text-sm font-semibold text-white">≈40% Faster Time-to-Hire</span>
+          <div className="flex flex-wrap gap-3 mb-8 animate-fade-in" style={{animationDelay: '1s'}}>
+            <div className="bg-white/10 backdrop-blur-lg px-3 py-2 sm:px-4 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
+              <div className="w-2 h-2 bg-[#2D81FF] rounded-full animate-pulse-slow flex-shrink-0"></div>
+              <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">≈40% Faster Hiring</span>
             </div>
-            <div className="bg-white/10 backdrop-blur-lg px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
-              <div className="w-2 h-2 bg-[#FF5BA8] rounded-full animate-pulse-slow"></div>
-              <span className="text-sm font-semibold text-white">60% Fewer Mis-Hires</span>
+            <div className="bg-white/10 backdrop-blur-lg px-3 py-2 sm:px-4 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
+              <div className="w-2 h-2 bg-[#FF5BA8] rounded-full animate-pulse-slow flex-shrink-0"></div>
+              <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">60% Fewer Mis-Hires</span>
             </div>
-            <div className="bg-white/10 backdrop-blur-lg px-4 py-2 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
-              <div className="w-2 h-2 bg-[#7B38FB] rounded-full animate-pulse-slow"></div>
-              <span className="text-sm font-semibold text-white">Bias-Aware AI</span>
+            <div className="bg-white/10 backdrop-blur-lg px-3 py-2 sm:px-4 rounded-full border border-white/20 flex items-center gap-2 hover:bg-white/15 transition-all duration-300">
+              <div className="w-2 h-2 bg-[#7B38FB] rounded-full animate-pulse-slow flex-shrink-0"></div>
+              <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">Bias-Aware AI</span>
             </div>
           </div>
 
@@ -95,25 +95,25 @@ const Hero = () => {
           <div className="absolute -bottom-4 left-10 w-24 h-1 bg-gradient-to-r from-[#7B38FB]/0 via-[#7B38FB] to-[#7B38FB]/0 rounded-full animate-shine"></div>
         </div>
         
-        <div className="md:w-1/2 flex justify-center relative opacity-60 md:opacity-80">
+        <div className="md:w-1/2 flex justify-center relative opacity-50 md:opacity-80 mt-8 md:mt-0">
           {/* Background glows */}
-          <div className="absolute w-72 h-72 bg-blue-500/10 rounded-full blur-2xl animate-pulse-slow"></div>
-          <div className="absolute w-48 h-48 bg-pink-500/10 rounded-full blur-2xl translate-x-20 -translate-y-10 animate-pulse-slow"
+          <div className="absolute w-48 h-48 md:w-72 md:h-72 bg-blue-500/10 rounded-full blur-2xl animate-pulse-slow"></div>
+          <div className="absolute w-32 h-32 md:w-48 md:h-48 bg-pink-500/10 rounded-full blur-2xl translate-x-20 -translate-y-10 animate-pulse-slow"
                style={{animationDelay: '1s'}}></div>
 
-          {/* Stars/particles around rocket - reduced */}
-          <div className="absolute w-2 h-2 bg-white/60 rounded-full top-10 left-1/4 animate-pulse-slow"></div>
-          <div className="absolute w-2 h-2 bg-white/60 rounded-full bottom-10 right-1/3 animate-pulse-slow"
+          {/* Stars/particles around rocket - reduced, hidden on mobile */}
+          <div className="hidden md:block absolute w-2 h-2 bg-white/60 rounded-full top-10 left-1/4 animate-pulse-slow"></div>
+          <div className="hidden md:block absolute w-2 h-2 bg-white/60 rounded-full bottom-10 right-1/3 animate-pulse-slow"
               style={{animationDelay: '0.5s'}}></div>
 
-          {/* 3D Rocket GIF - smaller and more subtle */}
-          <div className="relative z-10 w-72 h-72 flex items-center justify-center animate-float-path animate-fade-in"
+          {/* 3D Rocket GIF - smaller on mobile, larger on desktop */}
+          <div className="relative z-10 w-48 h-48 md:w-72 md:h-72 flex items-center justify-center animate-float-path animate-fade-in"
                style={{animationDelay: '0.4s'}}>
             <div className="absolute inset-0 bg-gradient-to-r from-[#2D81FF]/0 via-[#2D81FF]/10 to-[#2D81FF]/0 rounded-full blur-3xl animate-pulse-slow"></div>
             <img
               src={rocketGif}
               alt="AI-powered recruitment visualization"
-              className="w-64 h-64 object-contain drop-shadow-2xl opacity-90"
+              className="w-40 h-40 md:w-64 md:h-64 object-contain drop-shadow-2xl opacity-90"
             />
           </div>
         </div>

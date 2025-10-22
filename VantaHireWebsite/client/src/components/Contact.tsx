@@ -11,8 +11,6 @@ const ContactForm = () => {
     name: '',
     email: '',
     phone: '',
-    company: '',
-    location: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,8 +66,6 @@ const ContactForm = () => {
           name: '',
           email: '',
           phone: '',
-          company: '',
-          location: '',
           message: ''
         });
         setSubmitted(false);
@@ -186,80 +182,27 @@ const ContactForm = () => {
                   focusedField === 'phone' ? 'text-[#7B38FB]' : 'text-white/80'
                 }`}
               >
-                Phone Number <span className="text-white/40 text-xs">(Optional)</span>
+                Phone Number <span className="text-[#FF5BA8]">*</span>
               </label>
               <input
                 type="tel"
                 id="phone"
                 name="phone"
-                value={formState.phone || ''}
+                value={formState.phone}
                 onChange={handleChange}
                 onFocus={() => setFocusedField('phone')}
                 onBlur={() => setFocusedField(null)}
+                required
                 className={`w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 focus:border-[#7B38FB] focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-[#7B38FB] transition-all duration-300 ${
                   focusedField === 'phone' ? 'premium-border' : ''
                 }`}
-                placeholder="9876543210"
+                placeholder="+1 (555) 123-4567"
               />
               {focusedField === 'phone' && (
                 <div className="absolute h-0.5 w-1/4 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] bottom-0 left-0 rounded-full animate-shine"></div>
               )}
             </div>
-            
-            <div className="relative">
-              <label
-                htmlFor="company"
-                className={`block text-sm font-medium mb-1 transition-all duration-300 ${
-                  focusedField === 'company' ? 'text-[#7B38FB]' : 'text-white/80'
-                }`}
-              >
-                Company <span className="text-white/40 text-xs">(Optional)</span>
-              </label>
-              <input
-                type="text"
-                id="company"
-                name="company"
-                value={formState.company}
-                onChange={handleChange}
-                onFocus={() => setFocusedField('company')}
-                onBlur={() => setFocusedField(null)}
-                className={`w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 focus:border-[#7B38FB] focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-[#7B38FB] transition-all duration-300 ${
-                  focusedField === 'company' ? 'premium-border' : ''
-                }`}
-                placeholder="Your Organization"
-              />
-              {focusedField === 'company' && (
-                <div className="absolute h-0.5 w-1/4 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] bottom-0 left-0 rounded-full animate-shine"></div>
-              )}
-            </div>
-            
-            <div className="relative">
-              <label
-                htmlFor="location"
-                className={`block text-sm font-medium mb-1 transition-all duration-300 ${
-                  focusedField === 'location' ? 'text-[#7B38FB]' : 'text-white/80'
-                }`}
-              >
-                Location / City <span className="text-white/40 text-xs">(Optional)</span>
-              </label>
-              <input
-                type="text"
-                id="location"
-                name="location"
-                value={formState.location}
-                onChange={handleChange}
-                onFocus={() => setFocusedField('location')}
-                onBlur={() => setFocusedField(null)}
-                className={`w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 focus:border-[#7B38FB] focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-[#7B38FB] transition-all duration-300 ${
-                  focusedField === 'location' ? 'premium-border' : ''
-                }`}
-                placeholder="New York, San Francisco, etc."
-              />
-              {focusedField === 'location' && (
-                <div className="absolute h-0.5 w-1/4 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] bottom-0 left-0 rounded-full animate-shine"></div>
-              )}
-            </div>
-            
+
             <div className="relative">
               <label
                 htmlFor="message"

@@ -232,7 +232,7 @@ const Services = () => {
               bgColor="rgba(30, 11, 64, 0.8)"
             />
             <div className="text-center mt-4">
-              <span className="text-sm font-semibold text-[#2D81FF] bg-[#2D81FF]/10 px-3 py-1 rounded-full border border-[#2D81FF]/30">
+              <span className="text-xs sm:text-sm font-semibold text-[#2D81FF] bg-[#2D81FF]/10 px-3 py-1.5 rounded-full border border-[#2D81FF]/30 inline-block">
                 Get hired 3x faster
               </span>
             </div>
@@ -255,7 +255,7 @@ const Services = () => {
               bgColor="rgba(30, 11, 64, 0.8)"
             />
             <div className="text-center mt-4">
-              <span className="text-sm font-semibold text-[#FF9D4A] bg-[#FF9D4A]/10 px-3 py-1 rounded-full border border-[#FF9D4A]/30">
+              <span className="text-xs sm:text-sm font-semibold text-[#FF9D4A] bg-[#FF9D4A]/10 px-3 py-1.5 rounded-full border border-[#FF9D4A]/30 inline-block">
                 Fill roles in 10-14 days
               </span>
             </div>
@@ -278,7 +278,7 @@ const Services = () => {
               bgColor="rgba(30, 11, 64, 0.8)"
             />
             <div className="text-center mt-4">
-              <span className="text-sm font-semibold text-[#FF5BA8] bg-[#FF5BA8]/10 px-3 py-1 rounded-full border border-[#FF5BA8]/30">
+              <span className="text-xs sm:text-sm font-semibold text-[#FF5BA8] bg-[#FF5BA8]/10 px-3 py-1.5 rounded-full border border-[#FF5BA8]/30 inline-block">
                 ↑85% placement rates
               </span>
             </div>
