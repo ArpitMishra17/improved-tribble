@@ -5,6 +5,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { startJobScheduler } from "./jobScheduler";
 import { createAdminUser, createTestRecruiter } from "./createAdminUser";
 import { createTestJobs } from "./createTestJobs";
+import { seedAllATSDefaults } from "./seedATSDefaults";
 
 const app = express();
 
@@ -96,15 +97,16 @@ app.use((req, res, next) => {
   }, async () => {
     log(`serving on port ${port}`);
 
-    // Create test admin and recruiter users
+    // Initialize database: Create admin, seed ATS defaults, create test data
     try {
       await createAdminUser();
       await createTestRecruiter();
+      await seedAllATSDefaults(); // Seed pipeline stages, email templates, consultants
       await createTestJobs();
     } catch (error) {
-      console.error('Error creating test users and jobs:', error);
+      console.error('Error initializing database:', error);
     }
-    
+
     // Start job scheduler for automatic job expiration
     startJobScheduler();
   });
