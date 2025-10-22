@@ -378,7 +378,7 @@ export default function JobDetailsPage() {
                               type="button" 
                               variant="outline" 
                               onClick={() => setShowApplicationForm(false)}
-                              className="border-white/20 text-white hover:bg-white/10"
+                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                             >
                               Cancel
                             </Button>

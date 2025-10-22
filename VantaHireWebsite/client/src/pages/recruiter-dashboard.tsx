@@ -155,7 +155,7 @@ export default function RecruiterDashboard() {
               <Button
                 variant="outline"
                 onClick={() => setLocation("/analytics")}
-                className="border-white/20 text-white hover:bg-white/10"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <BarChart className="h-4 w-4 mr-2" />
                 View Analytics
@@ -173,7 +173,7 @@ export default function RecruiterDashboard() {
                     });
                   }
                 }}
-                className="border-white/20 text-white hover:bg-white/10"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Send Bulk Email
@@ -191,7 +191,7 @@ export default function RecruiterDashboard() {
                     });
                   }
                 }}
-                className="border-white/20 text-white hover:bg-white/10"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Interviews
@@ -298,7 +298,7 @@ export default function RecruiterDashboard() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setSelectedApplicationId(application.id)}
-                                className="border-white/20 text-white hover:bg-white/10"
+                                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                                 data-testid="review-application"
                               >
                                 <Eye className="h-4 w-4 mr-1" />
@@ -312,7 +312,7 @@ export default function RecruiterDashboard() {
                                     downloadResumeMutation.mutate(application.id);
                                     window.open(`/api/applications/${application.id}/resume`, '_blank');
                                   }}
-                                  className="border-white/20 text-white hover:bg-white/10"
+                                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                                 >
                                   <Download className="h-4 w-4 mr-1" />
                                   Resume
@@ -375,7 +375,7 @@ export default function RecruiterDashboard() {
                                     setReviewNotes("");
                                     setNewStatus("");
                                   }}
-                                  className="border-white/20 text-white hover:bg-white/10"
+                                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                                 >
                                   Cancel
                                 </Button>
@@ -435,7 +435,7 @@ export default function RecruiterDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => setLocation(`/jobs/${job.id}/applications`)}
-                              className="border-white/20 text-white hover:bg-white/10"
+                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View Applications
@@ -443,7 +443,7 @@ export default function RecruiterDashboard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-white/20 text-white hover:bg-white/10"
+                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                             >
                               Edit Job
                             </Button>

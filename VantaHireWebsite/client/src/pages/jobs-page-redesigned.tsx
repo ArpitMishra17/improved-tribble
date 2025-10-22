@@ -260,7 +260,7 @@ export default function JobsPage() {
                           </p>
                         )}
                         <div className="flex gap-2 ml-auto">
-                          <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                          <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                             <Star className="h-4 w-4 mr-2" />
                             Save
                           </Button>

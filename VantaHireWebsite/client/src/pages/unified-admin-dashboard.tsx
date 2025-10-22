@@ -685,10 +685,10 @@ export default function UnifiedAdminDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                               <Edit className="h-3 w-3" />
                             </Button>
                           </div>
@@ -757,10 +757,10 @@ export default function UnifiedAdminDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                               <Download className="h-3 w-3" />
                             </Button>
                           </div>
@@ -828,10 +828,10 @@ export default function UnifiedAdminDashboard() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                               <Edit className="h-3 w-3" />
                             </Button>
                           </div>

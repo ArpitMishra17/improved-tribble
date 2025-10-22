@@ -489,7 +489,7 @@ export default function ApplicationManagementPage() {
               onClick={() => handleResumeDownload(application)}
               variant="outline"
               size="sm"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
               <Download className="w-4 h-4 mr-2" />
               Resume
@@ -520,7 +520,7 @@ export default function ApplicationManagementPage() {
               }}
               variant="outline"
               size="sm"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Schedule Interview
@@ -533,7 +533,7 @@ export default function ApplicationManagementPage() {
               }}
               variant="outline"
               size="sm"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
               <Mail className="w-4 h-4 mr-2" />
               Send Email
@@ -546,7 +546,7 @@ export default function ApplicationManagementPage() {
               }}
               variant="outline"
               size="sm"
-              className="border-white/20 text-white hover:bg-white/10"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
               <History className="w-4 h-4 mr-2" />
               History
@@ -621,7 +621,7 @@ export default function ApplicationManagementPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                   onClick={() => alert("Bulk email feature - Select candidates first")}
                 >
                   <Mail className="h-4 w-4 mr-2" />
@@ -630,7 +630,7 @@ export default function ApplicationManagementPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                   onClick={() => alert("Batch interview feature - Select candidates first")}
                 >
                   <Calendar className="h-4 w-4 mr-2" />
@@ -639,7 +639,7 @@ export default function ApplicationManagementPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                   onClick={() => alert("Export feature coming soon")}
                 >
                   <FileDown className="h-4 w-4 mr-2" />
@@ -649,7 +649,7 @@ export default function ApplicationManagementPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setLocation("/recruiter-dashboard")}
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Back to Dashboard

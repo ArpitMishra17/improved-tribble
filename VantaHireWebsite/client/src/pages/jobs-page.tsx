@@ -248,7 +248,7 @@ export default function JobsPage() {
                   variant="outline"
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 >
                   Previous
                 </Button>
@@ -276,7 +276,7 @@ export default function JobsPage() {
                   variant="outline"
                   onClick={() => setPage(page + 1)}
                   disabled={page === data.pagination.totalPages}
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 >
                   Next
                 </Button>

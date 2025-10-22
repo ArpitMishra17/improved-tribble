@@ -247,7 +247,7 @@ export default function CandidateDashboard() {
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="border-white/20 text-white hover:bg-white/10"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 onClick={() => window.open(application.resumeUrl, '_blank')}
               >
                 <Download className="w-4 h-4 mr-1" />
@@ -467,7 +467,7 @@ export default function CandidateDashboard() {
                               onClick={handleAddSkill} 
                               variant="outline" 
                               size="sm"
-                              className="border-white/20 text-white hover:bg-white/10"
+                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                             >
                               <Plus className="w-4 h-4" />
                             </Button>
@@ -499,7 +499,7 @@ export default function CandidateDashboard() {
                           <Button 
                             variant="outline" 
                             onClick={() => setEditingProfile(false)}
-                            className="border-white/20 text-white hover:bg-white/10"
+                            className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                           >
                             <X className="w-4 h-4 mr-2" />
                             Cancel
