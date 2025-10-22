@@ -188,6 +188,26 @@ export default function AdminSuperDashboard() {
     },
   });
 
+  // Review job mutation (approve/decline)
+  const reviewJobMutation = useMutation({
+    mutationFn: async ({ id, status, comments }: { id: number; status: string; comments?: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/jobs/${id}/review`, { status, reviewComments: comments });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      toast({ title: "Job review status updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update job review status",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Update user role mutation
   const updateUserRoleMutation = useMutation({
     mutationFn: async ({ id, role }: { id: number; role: string }) => {
@@ -446,6 +466,28 @@ export default function AdminSuperDashboard() {
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
+                            {job.status === 'pending' && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'approved' })}
+                                  className="border-green-600 text-green-400 hover:bg-green-900/20 bg-green-900/10"
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'declined' })}
+                                  className="border-red-600 text-red-400 hover:bg-red-900/20 bg-red-900/10"
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Decline
+                                </Button>
+                              </>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
