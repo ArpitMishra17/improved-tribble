@@ -24,11 +24,21 @@ Optional
   - `CLOUDINARY_CLOUD_NAME`
   - `CLOUDINARY_API_KEY`
   - `CLOUDINARY_API_SECRET`
+- Email sending (choose one; defaults to Ethereal previews if unset):
+  - Brevo (Sendinblue) via SMTP:
+    - `EMAIL_PROVIDER=brevo`
+    - `SEND_FROM_EMAIL=no-reply@yourdomain.com`
+    - `SEND_FROM_NAME=VantaHire`
+    - `NOTIFICATION_EMAIL=alerts@yourdomain.com` (optional)
+    - `BREVO_SMTP_HOST=smtp-relay.brevo.com` (default)
+    - `BREVO_SMTP_PORT=587` (default; use 465 for SSL)
+    - `BREVO_SMTP_USER=apikey` (default)
+    - `BREVO_SMTP_PASSWORD=<your-brevo-smtp-key>`
 - SpotAxis integration:
   - `SPOTAXIS_BASE_URL` (e.g. `https://your-spotaxis-app.railway.app`)
   - `SPOTAXIS_CAREERS_URL` (e.g. `https://org-subdomain.your-spotaxis.com/jobs/`)
- - Email automation (ATS):
-   - `EMAIL_AUTOMATION_ENABLED` = `true` to auto-send emails on stage changes, scheduling, and application received
+- Email automation (ATS):
+  - `EMAIL_AUTOMATION_ENABLED` = `true` to auto-send emails on stage changes, scheduling, and application received
 
 ## 3) Build & Start Commands
 The repo already defines:

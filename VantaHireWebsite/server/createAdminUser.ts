@@ -10,17 +10,31 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
+function generateSecurePassword(length: number = 24): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+  const bytes = randomBytes(length);
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars[bytes[i] % chars.length];
+  }
+  return password;
+}
+
 export async function createAdminUser() {
   try {
     // Check if admin user already exists
     const existingAdmin = await storage.getUserByUsername('admin');
     if (existingAdmin) {
-      console.log('Admin user already exists');
+      console.log('✓ Admin user already exists');
       return existingAdmin;
     }
 
+    // Use env variable or generate secure random password
+    const adminPassword = process.env.ADMIN_PASSWORD || generateSecurePassword(24);
+    const wasGenerated = !process.env.ADMIN_PASSWORD;
+
     // Create admin user
-    const hashedPassword = await hashPassword('admin123');
+    const hashedPassword = await hashPassword(adminPassword);
     const adminUser = await storage.createUser({
       username: 'admin',
       password: hashedPassword,
@@ -29,11 +43,22 @@ export async function createAdminUser() {
       role: 'admin'
     });
 
-    console.log('Admin user created successfully:');
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔐 ADMIN USER CREATED SUCCESSFULLY');
+    console.log('═══════════════════════════════════════════════════════');
     console.log('Username: admin');
-    console.log('Password: admin123');
+    console.log(`Password: ${adminPassword}`);
     console.log('Role: admin');
-    
+    if (wasGenerated) {
+      console.log('');
+      console.log('⚠️  PASSWORD WAS AUTO-GENERATED');
+      console.log('💡 Set ADMIN_PASSWORD env variable to use a custom password');
+      console.log('🔒 SAVE THIS PASSWORD - it cannot be retrieved later!');
+    }
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('');
+
     return adminUser;
   } catch (error) {
     console.error('Error creating admin user:', error);

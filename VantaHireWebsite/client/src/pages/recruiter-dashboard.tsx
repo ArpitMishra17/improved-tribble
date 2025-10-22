@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink, Plus, Mail, Calendar, BarChart } from "lucide-react";
+import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink, Plus, Mail, Calendar, BarChart, Play } from "lucide-react";
 import Layout from "@/components/Layout";
 
 export default function RecruiterDashboard() {
@@ -64,6 +64,28 @@ export default function RecruiterDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/my-applications-received"] });
+    },
+  });
+
+  // Publish job mutation
+  const publishJobMutation = useMutation({
+    mutationFn: async ({ jobId, isActive }: { jobId: number; isActive: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/jobs/${jobId}/status`, { isActive });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-jobs"] });
+      toast({
+        title: "Job Published",
+        description: "Your job is now live and accepting applications!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Publish Failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -412,6 +434,7 @@ export default function RecruiterDashboard() {
                             <Button
                               variant="outline"
                               size="sm"
+                              onClick={() => setLocation(`/jobs/${job.id}/applications`)}
                               className="border-white/20 text-white hover:bg-white/10"
                             >
                               <Eye className="h-4 w-4 mr-1" />
@@ -424,6 +447,17 @@ export default function RecruiterDashboard() {
                             >
                               Edit Job
                             </Button>
+                            {job.status === 'approved' && !job.isActive && (
+                              <Button
+                                size="sm"
+                                onClick={() => publishJobMutation.mutate({ jobId: job.id, isActive: true })}
+                                disabled={publishJobMutation.isPending}
+                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                              >
+                                <Play className="h-4 w-4 mr-1" />
+                                {publishJobMutation.isPending ? 'Publishing...' : 'Publish Job'}
+                              </Button>
+                            )}
                           </div>
                         </div>
                       ))
