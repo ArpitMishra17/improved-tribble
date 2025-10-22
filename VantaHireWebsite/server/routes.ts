@@ -17,10 +17,11 @@ const updateStageSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Be lenient: allow date-only (YYYY-MM-DD) or full ISO datetime; empty strings treated as undefined
 const scheduleInterviewSchema = z.object({
-  date: z.string().datetime().optional(),
-  time: z.string().min(1).optional(),
-  location: z.string().min(1).optional(),
+  date: z.string().optional(),
+  time: z.string().optional(),
+  location: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -605,8 +606,16 @@ New job application received:
       const appId = parseInt(req.params.id);
       if (isNaN(appId)) return res.status(400).json({ error: 'Invalid application ID' });
 
-      // Validate input with Zod
-      const validation = scheduleInterviewSchema.safeParse(req.body);
+      // Coerce empty strings to undefined before validation
+      const payload = {
+        date: typeof req.body?.date === 'string' && req.body.date.trim() !== '' ? req.body.date.trim() : undefined,
+        time: typeof req.body?.time === 'string' && req.body.time.trim() !== '' ? req.body.time.trim() : undefined,
+        location: typeof req.body?.location === 'string' && req.body.location.trim() !== '' ? req.body.location.trim() : undefined,
+        notes: typeof req.body?.notes === 'string' && req.body.notes.trim() !== '' ? req.body.notes.trim() : undefined,
+      };
+
+      // Validate input with Zod (lenient)
+      const validation = scheduleInterviewSchema.safeParse(payload);
       if (!validation.success) {
         return res.status(400).json({
           error: 'Validation error',
@@ -614,9 +623,20 @@ New job application received:
         });
       }
 
-      const { date, time, location, notes } = validation.data;
+      // Normalize date: accept YYYY-MM-DD or full ISO
+      let { date, time, location, notes } = validation.data;
+      let ts: Date | undefined = undefined;
+      if (date) {
+        // If only date provided (no 'T'), convert to midnight UTC
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          ts = new Date(`${date}T00:00:00Z`);
+        } else {
+          const parsed = new Date(date);
+          if (!isNaN(parsed.getTime())) ts = parsed;
+        }
+      }
       const updated = await storage.scheduleInterview(appId, {
-        date: date ? new Date(date) : undefined,
+        date: ts,
         time,
         location,
         notes
