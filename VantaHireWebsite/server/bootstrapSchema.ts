@@ -100,6 +100,9 @@ export async function ensureAtsSchema(): Promise<void> {
   // Fix jobs table: pending jobs should not be active by default
   await db.execute(sql`ALTER TABLE jobs ALTER COLUMN is_active SET DEFAULT FALSE;`);
 
+  // Clean up existing data: pending jobs should not be active
+  await db.execute(sql`UPDATE jobs SET is_active = FALSE WHERE status = 'pending' AND is_active = TRUE;`);
+
   console.log('✅ ATS schema ready');
 }
 
