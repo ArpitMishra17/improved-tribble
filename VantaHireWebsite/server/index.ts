@@ -101,7 +101,18 @@ app.use((req, res, next) => {
     try {
       await createAdminUser();
       await createTestRecruiter();
-      await seedAllATSDefaults(); // Seed pipeline stages, email templates, consultants
+
+      // Try to seed ATS defaults, but don't fail if tables don't exist yet
+      try {
+        await seedAllATSDefaults(); // Seed pipeline stages, email templates, consultants
+      } catch (seedError: any) {
+        if (seedError.code === '42P01') {
+          console.warn('⚠️  ATS tables not found. Run `npm run db:push` to create schema first.');
+        } else {
+          throw seedError;
+        }
+      }
+
       await createTestJobs();
     } catch (error) {
       console.error('Error initializing database:', error);
