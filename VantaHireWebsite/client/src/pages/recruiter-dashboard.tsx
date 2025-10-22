@@ -140,6 +140,17 @@ export default function RecruiterDashboard() {
               </Button>
               <Button
                 variant="outline"
+                onClick={() => {
+                  if (jobs.length > 0) {
+                    setLocation(`/jobs/${jobs[0].id}/applications`);
+                  } else {
+                    toast({
+                      title: "No jobs available",
+                      description: "Please post a job first before sending bulk emails.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
                 className="border-white/20 text-white hover:bg-white/10"
               >
                 <Mail className="h-4 w-4 mr-2" />
@@ -147,6 +158,17 @@ export default function RecruiterDashboard() {
               </Button>
               <Button
                 variant="outline"
+                onClick={() => {
+                  if (jobs.length > 0) {
+                    setLocation(`/jobs/${jobs[0].id}/applications`);
+                  } else {
+                    toast({
+                      title: "No jobs available",
+                      description: "Please post a job first before scheduling interviews.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
                 className="border-white/20 text-white hover:bg-white/10"
               >
                 <Calendar className="h-4 w-4 mr-2" />

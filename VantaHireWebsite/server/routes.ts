@@ -1333,19 +1333,6 @@ New job application received:
     }
   });
 
-  // Proxy route for PyjamaHR careers page
-  app.get("/careers", async (req: Request, res: Response) => {
-    try {
-      const targetUrl = "https://app.pyjamahr.com/careers?company=Vantahire&company_uuid=D931601ECE&isHeaderVisible=true&is_careers_page=true";
-      
-      // Redirect to the PyjamaHR careers page
-      res.redirect(302, targetUrl);
-    } catch (error) {
-      console.error('Careers proxy error:', error);
-      res.status(500).json({ error: "Unable to load careers page" });
-    }
-  });
-
   // WhatsApp webhook routes
   // Incoming WhatsApp webhook endpoint
   app.post('/api/whatsapp/incoming', (req: Request, res: Response) => {

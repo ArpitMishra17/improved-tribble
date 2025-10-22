@@ -11,7 +11,6 @@ import AuthPage from "@/pages/auth-page";
 import RecruiterAuth from "@/pages/recruiter-auth";
 import CandidateAuth from "@/pages/candidate-auth";
 import JobsPage from "@/pages/jobs-page";
-import Jobs from "@/pages/Jobs";
 import JobDetailsPage from "@/pages/job-details-page";
 import JobPostPage from "@/pages/job-post-page";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -33,7 +32,7 @@ function Router() {
       <Route path="/recruiter-auth" component={RecruiterAuth} />
       <Route path="/candidate-auth" component={CandidateAuth} />
       <Route path="/consultants" component={ConsultantsPage} />
-      <Route path="/jobs" component={Jobs} />
+      <Route path="/jobs" component={JobsPage} />
       <Route path="/jobs/:id" component={JobDetailsPage} />
       <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'admin']} />
