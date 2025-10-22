@@ -78,7 +78,20 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
+        if (!user) {
+          return done(null, false);
+        }
+
+        // Special handling for admin user - check against ADMIN_PASSWORD env variable
+        if (user.username === 'admin' && process.env.ADMIN_PASSWORD) {
+          if (password === process.env.ADMIN_PASSWORD) {
+            return done(null, user);
+          }
+          return done(null, false);
+        }
+
+        // Normal password comparison for other users
+        if (!(await comparePasswords(password, user.password))) {
           return done(null, false);
         }
         return done(null, user);
