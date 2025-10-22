@@ -17,11 +17,16 @@ if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !pr
 const storage = multer.memoryStorage();
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  // Only allow PDF files for resumes
-  if (file.mimetype === 'application/pdf') {
+  // Allow PDF, DOC, DOCX files for resumes
+  const allowed = new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ]);
+  if (allowed.has(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF files are allowed for resumes'));
+    cb(new Error('Only PDF, DOC, or DOCX files are allowed for resumes'));
   }
 };
 
@@ -45,7 +50,6 @@ export async function uploadToCloudinary(buffer: Buffer, originalName: string): 
         resource_type: 'raw',
         folder: 'vantahire/resumes',
         public_id: `resume_${Date.now()}_${originalName.replace(/\.[^/.]+$/, "")}`,
-        format: 'pdf',
       },
       (error, result) => {
         if (error) {

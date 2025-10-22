@@ -310,7 +310,7 @@ export default function RecruiterDashboard() {
                                   size="sm"
                                   onClick={() => {
                                     downloadResumeMutation.mutate(application.id);
-                                    window.open(application.resumeUrl, '_blank');
+                                    window.open(`/api/applications/${application.id}/resume`, '_blank');
                                   }}
                                   className="border-white/20 text-white hover:bg-white/10"
                                 >

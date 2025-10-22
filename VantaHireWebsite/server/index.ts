@@ -67,10 +67,14 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
+    // Normalize common upload/validation errors to 400 instead of 500
+    let status = err.status || err.statusCode || 500;
+    const isMulter = err?.name === 'MulterError' || err?.code === 'LIMIT_FILE_SIZE' || /Only PDF files/.test(err?.message || '');
+    if (isMulter && status === 500) status = 400;
+
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
+    res.status(status).json({ error: message });
     console.error('Server error:', err);
   });
 

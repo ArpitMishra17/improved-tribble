@@ -336,9 +336,9 @@ export default function ApplicationManagementPage() {
   };
 
   const handleResumeDownload = (application: Application) => {
-    // Open resume in new tab
-    window.open(application.resumeUrl, '_blank');
-    // Track download
+    // Use secure, permission-gated endpoint
+    window.open(`/api/applications/${application.id}/resume`, '_blank');
+    // Track download for analytics/status (server also marks for recruiter/admin)
     markDownloadedMutation.mutate(application.id);
   };
 

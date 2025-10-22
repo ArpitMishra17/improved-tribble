@@ -415,6 +415,47 @@ New job application received:
     }
   });
 
+  // Secure resume download via permission-gated redirect
+  app.get("/api/applications/:id/resume", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      if (isNaN(applicationId)) return res.status(400).json({ error: 'Invalid application ID' });
+
+      const appRecord = await storage.getApplication(applicationId);
+      if (!appRecord) return res.status(404).json({ error: 'Application not found' });
+
+      // Permission checks
+      const role = req.user!.role;
+      if (role === 'admin') {
+        // allowed
+      } else if (role === 'recruiter') {
+        const job = await storage.getJob(appRecord.jobId);
+        if (!job || job.postedBy !== req.user!.id) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+        // Mark as downloaded for recruiter/admin access
+        await storage.markApplicationDownloaded(applicationId);
+      } else if (role === 'candidate') {
+        // Candidate can only access their own application
+        if (appRecord.email !== req.user!.username) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+      } else {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const url = appRecord.resumeUrl;
+      if (!url || !/^https?:\/\//i.test(url)) {
+        return res.status(404).json({ error: 'Resume not available' });
+      }
+
+      // Simple, practical approach: redirect to stored URL (do not expose it elsewhere in UI)
+      return res.redirect(302, url);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Get jobs posted by current user (recruiters only)
   app.get("/api/my-jobs", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
     try {

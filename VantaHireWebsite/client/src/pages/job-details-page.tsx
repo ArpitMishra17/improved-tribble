@@ -337,14 +337,14 @@ export default function JobDetailsPage() {
                           <div>
                             <Label htmlFor="resume" className="text-white">Resume (PDF) *</Label>
                             <div className="relative">
-                              <Input
-                                id="resume"
-                                type="file"
-                                accept=".pdf"
-                                onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-                                required
-                                className="bg-white/5 border-white/20 text-white file:bg-purple-500 file:text-white file:border-0 file:rounded file:px-4 file:py-2"
-                              />
+                            <Input
+                              id="resume"
+                              type="file"
+                              accept=".pdf,.doc,.docx"
+                              onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                              required
+                              className="bg-white/5 border-white/20 text-white file:bg-purple-500 file:text-white file:border-0 file:rounded file:px-4 file:py-2"
+                            />
                               <Upload className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
                             </div>
                             {resumeFile && (
