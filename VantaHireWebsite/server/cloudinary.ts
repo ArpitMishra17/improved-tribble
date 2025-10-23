@@ -1,7 +1,8 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { Request } from 'express';
 import multer from 'multer';
-import { fileTypeFromBuffer } from 'file-type';
+// Use default import for compatibility (CJS/ESM). Some builds expose fileTypeFromBuffer; older expose fromBuffer.
+import fileTypeMod from 'file-type';
 
 // Configure Cloudinary
 if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -35,7 +36,9 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
 // Validate file type using magic bytes (more secure than MIME type)
 async function validateFileType(buffer: Buffer): Promise<boolean> {
   try {
-    const fileType = await fileTypeFromBuffer(buffer);
+    const anyMod: any = fileTypeMod as any;
+    const detector = anyMod?.fileTypeFromBuffer || anyMod?.fromBuffer;
+    const fileType = detector ? await detector(buffer) : null;
 
     if (!fileType) {
       // Could be a text-based format like older DOC files
