@@ -11,7 +11,8 @@ import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestio
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
 import helmet from "helmet";
 // Import csrf-csrf with compatibility for CJS/ESM builds
-import * as csrfCsrfMod from "csrf-csrf";
+import { createRequire } from "module";
+import { randomBytes } from "crypto";
 
 // ATS Validation Schemas
 const updateStageSchema = z.object({
@@ -75,25 +76,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Setup CSRF protection for session-backed mutations
-  const anyCsrf: any = csrfCsrfMod as any;
-  const doubleCsrfFactory: any = anyCsrf?.doubleCsrf || anyCsrf?.default?.doubleCsrf || (typeof anyCsrf === 'function' ? anyCsrf : null);
-  if (!doubleCsrfFactory) {
-    throw new Error('csrf-csrf: doubleCsrf factory not found (CJS/ESM interop)');
-  }
+  // Lightweight double-submit CSRF (no external dependency to avoid ESM/CJS interop issues)
   const cookieName = isDevelopment ? 'x-csrf-token' : '__Host-psifi.x-csrf-token';
-  const { doubleCsrfProtection, generateToken } = doubleCsrfFactory({
-    getSecret: () => process.env.SESSION_SECRET || 'default-secret-please-change',
-    // __Host- prefix requires secure flag; only use in production
-    cookieName,
-    cookieOptions: {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: !isDevelopment,
-      path: '/',
-    },
-    size: 64,
-    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-  });
+  const cookieOptions = {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: !isDevelopment,
+    path: '/',
+  };
+
+  function parseCookies(header: string | undefined): Record<string, string> {
+    const out: Record<string, string> = {};
+    if (!header) return out;
+    header.split(';').forEach((pair) => {
+      const idx = pair.indexOf('=');
+      if (idx > -1) {
+        const key = pair.slice(0, idx).trim();
+        const val = decodeURIComponent(pair.slice(idx + 1).trim());
+        out[key] = val;
+      }
+    });
+    return out;
+  }
+
+  function generateToken(_req: Request, res: Response): string {
+    const token = randomBytes(32).toString('base64url');
+    // Use Express's cookie setter
+    (res as any).cookie?.(cookieName, token, cookieOptions) ?? res.setHeader('Set-Cookie', `${cookieName}=${token}; Path=/; SameSite=Lax${cookieOptions.secure ? '; Secure' : ''}; HttpOnly`);
+    return token;
+  }
+
+  function doubleCsrfProtection(req: Request, res: Response, next: NextFunction) {
+    const method = req.method.toUpperCase();
+    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();
+    // Compare header token with cookie token (double submit cookie)
+    const headerToken = (req.headers['x-csrf-token'] as string) || '';
+    const cookies = parseCookies(req.headers.cookie);
+    const cookieToken = cookies[cookieName] || '';
+    if (headerToken && cookieToken && headerToken === cookieToken) return next();
+    return res.status(403).json({ error: 'Invalid CSRF token' });
+  }
 
   // CSRF token endpoint - must be called before making mutating requests
   app.get("/api/csrf-token", (req: Request, res: Response) => {
