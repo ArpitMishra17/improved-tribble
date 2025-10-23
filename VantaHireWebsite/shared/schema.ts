@@ -39,7 +39,12 @@ export const jobs = pgTable("jobs", {
   expiresAt: timestamp("expires_at"),
   reviewedBy: integer("reviewed_by").references(() => users.id),
   reviewedAt: timestamp("reviewed_at")
-});
+}, (table) => ({
+  // Indexes for performance hotspots
+  statusIdx: index("jobs_status_idx").on(table.status),
+  postedByIdx: index("jobs_posted_by_idx").on(table.postedBy),
+  isActiveIdx: index("jobs_is_active_idx").on(table.isActive),
+}));
 
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
@@ -55,6 +60,7 @@ export const userProfiles = pgTable("user_profiles", {
 export const applications = pgTable("applications", {
   id: serial("id").primaryKey(),
   jobId: integer("job_id").notNull().references(() => jobs.id),
+  userId: integer("user_id").references(() => users.id), // Optional: bind application to user account
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone").notNull(),
@@ -82,6 +88,8 @@ export const applications = pgTable("applications", {
   currentStageIdx: index("applications_current_stage_idx").on(table.currentStage),
   jobIdIdx: index("applications_job_id_idx").on(table.jobId),
   emailIdx: index("applications_email_idx").on(table.email),
+  userIdIdx: index("applications_user_id_idx").on(table.userId),
+  statusIdx: index("applications_status_idx").on(table.status),
 }));
 
 export const jobAnalytics = pgTable("job_analytics", {

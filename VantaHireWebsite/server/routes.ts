@@ -10,6 +10,7 @@ import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
 import helmet from "helmet";
+import { doubleCsrf } from "csrf-csrf";
 
 // ATS Validation Schemas
 const updateStageSchema = z.object({
@@ -26,39 +27,30 @@ const scheduleInterviewSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup security middleware with development-friendly CSP
+  // Setup security middleware with environment-aware CSP
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        // Allow strictly required third-party domains
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'",
-          // Apollo (optional tracker)
-          "https://assets.apollo.io",
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          // Google Fonts stylesheet (optional)
-          "https://fonts.googleapis.com",
-        ],
+        // scriptSrc: Only allow unsafe directives in development
+        scriptSrc: isDevelopment
+          ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://assets.apollo.io"]
+          : ["'self'", "https://assets.apollo.io"],
+        // styleSrc: Only allow unsafe-inline in development
+        styleSrc: isDevelopment
+          ? ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]
+          : ["'self'", "https://fonts.googleapis.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: [
-          "'self'",
-          "ws:",
-          "wss:",
-          // Apollo (optional tracker)
-          "https://assets.apollo.io",
-        ],
+        // connectSrc: Restrict WebSocket connections in production
+        connectSrc: isDevelopment
+          ? ["'self'", "ws:", "wss:", "https://assets.apollo.io"]
+          : ["'self'", "https://assets.apollo.io"],
         fontSrc: [
           "'self'",
           "data:",
-          // Google Fonts font files (optional)
           "https://fonts.gstatic.com",
-          // Allow Perplexity R2 CDN fonts if used
           "https://r2cdn.perplexity.ai",
         ],
         objectSrc: ["'none'"],
@@ -67,10 +59,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
     },
   }));
+
+  // Enable HSTS in production to enforce HTTPS (prevents protocol downgrade)
+  if (!isDevelopment) {
+    app.use(helmet.hsts({
+      // 180 days in seconds (recommended minimum); here ~180 days
+      maxAge: 60 * 60 * 24 * 180,
+      includeSubDomains: true,
+      preload: false,
+    }));
+  }
   
   // Setup authentication
   setupAuth(app);
-  
+
+  // Setup CSRF protection for session-backed mutations
+  const { doubleCsrfProtection, generateToken } = doubleCsrf({
+    getSecret: () => process.env.SESSION_SECRET || 'default-secret-please-change',
+    // __Host- prefix requires secure flag; only use in production
+    cookieName: isDevelopment ? 'x-csrf-token' : '__Host-psifi.x-csrf-token',
+    cookieOptions: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: !isDevelopment,
+      path: '/',
+    },
+    size: 64,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  });
+
+  // CSRF token endpoint - must be called before making mutating requests
+  app.get("/api/csrf-token", (req: Request, res: Response) => {
+    const token = generateToken(req, res);
+    res.json({ token });
+  });
+
   // Rate limiting configurations
   const applicationRateLimit = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -125,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Contact form submission endpoint
-  app.post("/api/contact", async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/contact", doubleCsrfProtection, async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Extend the schema with additional validation
       const contactValidationSchema = insertContactSchema.extend({
@@ -175,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all contact submissions (admin access)
-  app.get("/api/contact", async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/contact", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const submissions = await storage.getAllContactSubmissions();
       res.json(submissions);
@@ -185,7 +208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test email notification (for admin use)
-  app.get("/api/test-email", async (req: Request, res: Response) => {
+  app.get("/api/test-email", requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const emailService = await getEmailService();
       
@@ -226,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============= JOB MANAGEMENT ROUTES =============
   
   // Create a new job posting (recruiters/admins only)
-  app.post("/api/jobs", jobPostingRateLimit, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/jobs", jobPostingRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const jobData = insertJobSchema.parse(req.body);
       const job = await storage.createJob({
@@ -306,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submit job application with resume upload
-  app.post("/api/jobs/:id/apply", applicationRateLimit, upload.single('resume'), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/jobs/:id/apply", applicationRateLimit, doubleCsrfProtection, upload.single('resume'), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const jobId = parseInt(req.params.id);
       if (isNaN(jobId)) {
@@ -344,7 +367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const application = await storage.createApplication({
         ...applicationData,
         jobId,
-        resumeUrl
+        resumeUrl,
+        // Bind to user account if authenticated (for candidate access control)
+        userId: req.user?.id
       });
 
       // Fire-and-forget: candidate confirmation (if enabled)
@@ -439,8 +464,8 @@ New job application received:
         // Mark as downloaded for recruiter/admin access
         await storage.markApplicationDownloaded(applicationId);
       } else if (role === 'candidate') {
-        // Candidate can only access their own application
-        if (appRecord.email !== req.user!.username) {
+        // Candidate can only access their own application (bound by userId, not email)
+        if (!appRecord.userId || appRecord.userId !== req.user!.id) {
           return res.status(403).json({ error: 'Access denied' });
         }
       } else {
@@ -460,7 +485,7 @@ New job application received:
   });
 
   // Get jobs posted by current user (recruiters only)
-  app.get("/api/my-jobs", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/my-jobs", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const jobs = await storage.getJobsByUser(req.user!.id);
       res.json(jobs);
@@ -470,7 +495,7 @@ New job application received:
   });
 
   // Update job status (activate/deactivate)
-  app.patch("/api/jobs/:id/status", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/jobs/:id/status", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const jobId = parseInt(req.params.id);
       const { isActive } = req.body;
@@ -532,7 +557,7 @@ New job application received:
   });
 
   // Create pipeline stage (recruiters/admin)
-  app.post("/api/pipeline/stages", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/pipeline/stages", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const body = insertPipelineStageSchema.parse(req.body);
       const stage = await storage.createPipelineStage({ ...body, createdBy: req.user!.id });
@@ -544,7 +569,7 @@ New job application received:
   });
 
   // Move application to a new stage
-  app.patch("/api/applications/:id/stage", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/stage", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const appId = parseInt(req.params.id);
       if (isNaN(appId)) return res.status(400).json({ error: 'Invalid application ID' });
@@ -601,7 +626,7 @@ New job application received:
   });
 
   // Schedule interview
-  app.patch("/api/applications/:id/interview", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/interview", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const appId = parseInt(req.params.id);
       if (isNaN(appId)) return res.status(400).json({ error: 'Invalid application ID' });
@@ -653,7 +678,7 @@ New job application received:
   });
 
   // Add recruiter note
-  app.post("/api/applications/:id/notes", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/applications/:id/notes", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const appId = parseInt(req.params.id);
       const { note } = req.body;
@@ -664,7 +689,7 @@ New job application received:
   });
 
   // Set rating
-  app.patch("/api/applications/:id/rating", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/rating", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const appId = parseInt(req.params.id);
       const { rating } = req.body;
@@ -682,7 +707,7 @@ New job application received:
     } catch (e) { next(e); }
   });
 
-  app.post("/api/email-templates", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/email-templates", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const body = insertEmailTemplateSchema.parse(req.body as InsertEmailTemplate);
       const tpl = await storage.createEmailTemplate({ ...body, createdBy: req.user!.id });
@@ -694,7 +719,7 @@ New job application received:
   });
 
   // Send email using template
-  app.post("/api/applications/:id/send-email", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/applications/:id/send-email", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const appId = parseInt(req.params.id);
       const { templateId, customizations } = req.body as { templateId: number; customizations?: Record<string,string> };
@@ -717,10 +742,26 @@ New job application received:
   });
 
   // Automation settings - Update a specific setting
-  app.patch("/api/admin/automation-settings/:key", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/automation-settings/:key", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { key } = req.params;
       const { value } = req.body;
+
+      // Whitelist valid automation setting keys to prevent arbitrary key injection
+      const validKeys = [
+        'email_on_application_received',
+        'email_on_status_change',
+        'email_on_interview_scheduled',
+        'email_on_offer_sent',
+        'email_on_rejection',
+        'auto_acknowledge_applications',
+        'notify_recruiter_new_application',
+        'reminder_interview_upcoming',
+      ];
+
+      if (!validKeys.includes(key)) {
+        return res.status(400).json({ error: 'Invalid automation setting key' });
+      }
 
       if (typeof value !== 'boolean') {
         return res.status(400).json({ error: 'value must be a boolean' });
@@ -732,7 +773,7 @@ New job application received:
   });
 
   // Review a job (approve/decline)
-  app.patch("/api/admin/jobs/:id/review", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/jobs/:id/review", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const jobId = parseInt(req.params.id);
       const { status, reviewComments } = req.body;
@@ -799,7 +840,7 @@ New job application received:
   });
 
   // Admin: Create a new consultant
-  app.post("/api/admin/consultants", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/admin/consultants", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const consultantData = req.body;
       const consultant = await storage.createConsultant(consultantData);
@@ -810,7 +851,7 @@ New job application received:
   });
 
   // Admin: Update a consultant
-  app.patch("/api/admin/consultants/:id", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/consultants/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -829,7 +870,7 @@ New job application received:
   });
 
   // Admin: Delete a consultant
-  app.delete("/api/admin/consultants/:id", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.delete("/api/admin/consultants/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -850,7 +891,7 @@ New job application received:
   // ============= PHASE 3: APPLICATION MANAGEMENT ROUTES =============
   
   // Update single application status (recruiters/admins only)
-  app.patch("/api/applications/:id/status", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/status", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const applicationId = parseInt(req.params.id);
       const { status, notes } = req.body;
@@ -891,7 +932,7 @@ New job application received:
   });
 
   // Bulk update application statuses (recruiters/admins only)
-  app.patch("/api/applications/bulk", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/bulk", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { applicationIds, status, notes } = req.body;
       
@@ -942,7 +983,7 @@ New job application received:
   });
 
   // Mark application as viewed (automatically updates status to 'reviewed')
-  app.patch("/api/applications/:id/view", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/view", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const applicationId = parseInt(req.params.id);
       
@@ -976,7 +1017,7 @@ New job application received:
   });
 
   // Mark application as downloaded (when resume is downloaded)
-  app.patch("/api/applications/:id/download", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/download", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const applicationId = parseInt(req.params.id);
       
@@ -1052,7 +1093,7 @@ New job application received:
   });
 
   // Update user role (admin only)
-  app.patch("/api/admin/users/:id/role", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/users/:id/role", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = parseInt(req.params.id);
       const { role } = req.body;
@@ -1078,7 +1119,7 @@ New job application received:
   });
 
   // Delete job (admin only)
-  app.delete("/api/admin/jobs/:id", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.delete("/api/admin/jobs/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       const jobId = parseInt(req.params.id);
       
@@ -1111,7 +1152,7 @@ New job application received:
   });
 
   // Create or update user profile
-  app.post("/api/profile", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/profile", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileData = req.body;
       
@@ -1135,7 +1176,7 @@ New job application received:
   });
 
   // Update user profile
-  app.patch("/api/profile", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/profile", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const profileData = req.body;
       const profile = await storage.updateUserProfile(req.user!.id, profileData);
@@ -1171,7 +1212,7 @@ New job application received:
   });
 
   // Withdraw application
-  app.delete("/api/applications/:id/withdraw", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.delete("/api/applications/:id/withdraw", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const applicationId = parseInt(req.params.id);
       
@@ -1230,7 +1271,7 @@ New job application received:
   });
 
   // AI-powered job description analysis
-  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
@@ -1270,7 +1311,7 @@ New job application received:
   });
 
   // AI-powered job scoring
-  app.post("/api/ai/score-job", aiAnalysisRateLimit, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/ai/score-job", aiAnalysisRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
@@ -1304,13 +1345,13 @@ New job application received:
       if (jobId) {
         await storage.updateJobAnalytics(jobId, {
           aiScoreCache: score,
-          aiModelVersion: "gpt-4o"
+          aiModelVersion: "llama-3.3-70b-versatile"
         });
       }
 
       res.json({
         score,
-        model_version: "gpt-4o",
+        model_version: "llama-3.3-70b-versatile",
         timestamp: new Date().toISOString(),
         factors: {
           content_analysis: true,
@@ -1396,20 +1437,13 @@ New job application received:
     }
   });
 
-  // WhatsApp webhook routes
-  // Incoming WhatsApp webhook endpoint
-  app.post('/api/whatsapp/incoming', (req: Request, res: Response) => {
-    console.log('Incoming WhatsApp message:', req.body);
-    // Your message handling logic here
-    res.type('text/xml');
-    res.send('<Response></Response>');
-  });
-
-  // Status callback webhook endpoint
-  app.post('/api/whatsapp/status', (req: Request, res: Response) => {
-    console.log('WhatsApp status update:', req.body);
-    res.sendStatus(200);
-  });
+  // WhatsApp integration removed - was unused placeholder code
+  // If you need WhatsApp integration in the future:
+  // 1. Set up WhatsApp Business API account
+  // 2. Add WHATSAPP_APP_SECRET to environment variables
+  // 3. Implement proper webhook signature validation
+  // 4. Add error handling and input validation
+  // See COMPREHENSIVE_SECURITY_AUDIT.md for implementation details
 
   const httpServer = createServer(app);
   return httpServer;

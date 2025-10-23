@@ -26,11 +26,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // WWW to non-WWW redirect for SEO (301 permanent redirect)
+// Host header validation to prevent injection attacks
 app.use((req, res, next) => {
   const host = req.headers.host || '';
-  if (host.startsWith('www.')) {
-    const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
-    return res.redirect(301, `${protocol}://${host.slice(4)}${req.url}`);
+
+  // Define allowed hosts (customize for your domain)
+  const allowedHosts = process.env.ALLOWED_HOSTS
+    ? process.env.ALLOWED_HOSTS.split(',')
+    : ['localhost:5000', 'www.localhost:5000']; // Default for development
+
+  // Validate host is in allowed list
+  if (host && !allowedHosts.includes(host)) {
+    // Log suspicious request but continue (don't block in case of misconfiguration)
+    console.warn(`⚠️  Unrecognized host header: ${host}`);
+  }
+
+  // Only redirect if host is in allowed list and starts with www.
+  if (host.startsWith('www.') && allowedHosts.includes(host)) {
+    const nonWwwHost = host.slice(4);
+    if (allowedHosts.includes(nonWwwHost)) {
+      const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+      return res.redirect(301, `${protocol}://${nonWwwHost}${req.url}`);
+    }
   }
   next();
 });
@@ -38,27 +55,12 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
+      // Log only request metadata, never response bodies (GDPR/PII compliance)
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
     }
   });
 
@@ -103,16 +105,20 @@ app.use((req, res, next) => {
       // 1. Ensure ATS tables exist (creates them if missing)
       await ensureAtsSchema();
 
-      // 2. Create/sync admin user
+      // 2. Create/sync admin user (production-safe)
       await createAdminUser();
       await syncAdminPasswordIfEnv();
-      await createTestRecruiter();
 
-      // 3. Seed ATS defaults (pipeline stages, email templates, consultants)
-      await seedAllATSDefaults();
-
-      // 4. Create test jobs
-      await createTestJobs();
+      // 3. Development-only: Create test data (NEVER run in production)
+      if (process.env.NODE_ENV !== 'production' && process.env.SEED_DEFAULTS === 'true') {
+        console.log('🔧 Development mode: Seeding test data...');
+        await createTestRecruiter();
+        await seedAllATSDefaults();
+        await createTestJobs();
+        console.log('✅ Test data seeded successfully');
+      } else if (process.env.NODE_ENV === 'production') {
+        console.log('🔒 Production mode: Skipping test data seeding');
+      }
     } catch (error) {
       console.error('Error initializing database:', error);
     }

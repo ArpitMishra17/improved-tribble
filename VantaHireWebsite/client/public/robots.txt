@@ -1,0 +1,16 @@
+# VantaHire Robots.txt
+# https://www.robotstxt.org/robotstxt.html
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-dashboard
+Disallow: /admin-super-dashboard
+Disallow: /unified-admin-dashboard
+Disallow: /recruiter-dashboard
+Disallow: /candidate-dashboard
+Disallow: /application-management
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://vantahire.com/sitemap.xml

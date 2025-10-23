@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Job, insertApplicationSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getCsrfToken } from "@/lib/csrf";
 import { z } from "zod";
 import Layout from "@/components/Layout";
 
@@ -47,8 +48,14 @@ export default function JobDetailsPage() {
 
   const applicationMutation = useMutation({
     mutationFn: async (data: FormData) => {
+      // Add CSRF token to FormData
+      const csrfToken = await getCsrfToken();
+
       const response = await fetch(`/api/jobs/${jobId}/apply`, {
         method: "POST",
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
         body: data,
       });
       if (!response.ok) {

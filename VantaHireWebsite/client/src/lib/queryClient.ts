@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getCsrfToken, clearCsrfToken } from "./csrf";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -12,12 +13,32 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Build headers with CSRF token for mutating requests
+  const headers: HeadersInit = data ? { "Content-Type": "application/json" } : {};
+
+  // Add CSRF token for state-changing operations
+  const mutatingMethods = ['POST', 'PATCH', 'DELETE', 'PUT'];
+  if (mutatingMethods.includes(method.toUpperCase())) {
+    try {
+      const csrfToken = await getCsrfToken();
+      headers['x-csrf-token'] = csrfToken;
+    } catch (error) {
+      console.error('Failed to get CSRF token:', error);
+      throw new Error('CSRF token unavailable');
+    }
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
+
+  // Clear cached CSRF token on 403 (likely invalid token)
+  if (res.status === 403) {
+    clearCsrfToken();
+  }
 
   await throwIfResNotOk(res);
   return res;

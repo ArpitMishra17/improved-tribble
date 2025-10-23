@@ -97,6 +97,19 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS stage_changed_at TIMESTAMP;`);
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS stage_changed_by INTEGER;`);
 
+  // Phase 5: Add userId column for robust candidate authorization (binds applications to user accounts)
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id);`);
+
+  // Phase 5: Create performance indexes for hotspot queries
+  // Jobs table indexes (status, postedBy, isActive for filtering)
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs(status);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_posted_by_idx ON jobs(posted_by);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_is_active_idx ON jobs(is_active);`);
+
+  // Applications table indexes (userId for auth, status for filtering)
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS applications_user_id_idx ON applications(user_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS applications_status_idx ON applications(status);`);
+
   // Fix jobs table: pending jobs should not be active by default
   await db.execute(sql`ALTER TABLE jobs ALTER COLUMN is_active SET DEFAULT FALSE;`);
 

@@ -6,6 +6,15 @@ import { lt, eq } from 'drizzle-orm';
 
 // Job expiration scheduler
 export function startJobScheduler() {
+  // Gate scheduler to prevent duplicate runs in multi-instance deployments
+  if (process.env.ENABLE_SCHEDULER !== 'true') {
+    console.log('⏸️  Job scheduler disabled (ENABLE_SCHEDULER not set to true)');
+    console.log('   Set ENABLE_SCHEDULER=true on ONE instance to enable scheduled jobs');
+    return;
+  }
+
+  console.log('✅ Job scheduler enabled - starting cron jobs');
+
   // Run daily at 2 AM to check for expired jobs
   cron.schedule('0 2 * * *', async () => {
     console.log('Running job expiration check...');
@@ -65,7 +74,9 @@ export function startJobScheduler() {
     }
   });
 
-  console.log('Job scheduler started - checking for expired jobs daily at 2 AM');
+  console.log('📅 Job scheduler started successfully:');
+  console.log('   - Job expiration check: Daily at 2 AM');
+  console.log('   - Declined job cleanup: Weekly on Sunday at 3 AM');
 }
 
 // Utility function to manually expire a job

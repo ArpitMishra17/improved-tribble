@@ -27,11 +27,11 @@ if (isNeon) {
   const { Pool } = await import('pg');
   const { drizzle } = await import('drizzle-orm/node-postgres');
 
-  // Enable SSL in production unless explicitly disabled
+  // Enable SSL in production with certificate verification
   const useSsl = process.env.DATABASE_SSL === 'true' || /sslmode=require/i.test(databaseUrl) || process.env.NODE_ENV === 'production';
   pool = new Pool({
     connectionString: databaseUrl,
-    ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+    ssl: useSsl ? { rejectUnauthorized: true } : undefined,
   } as any);
   db = drizzle(pool, { schema });
 }

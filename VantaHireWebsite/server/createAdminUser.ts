@@ -43,21 +43,11 @@ export async function createAdminUser() {
       role: 'admin'
     });
 
-    console.log('');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('🔐 ADMIN USER CREATED SUCCESSFULLY');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('Username: admin');
-    console.log(`Password: ${adminPassword}`);
-    console.log('Role: admin');
-    if (wasGenerated) {
-      console.log('');
-      console.log('⚠️  PASSWORD WAS AUTO-GENERATED');
-      console.log('💡 Set ADMIN_PASSWORD env variable to use a custom password');
-      console.log('🔒 SAVE THIS PASSWORD - it cannot be retrieved later!');
+    // Security: Never log passwords (even in development)
+    console.log('✅ Admin user created/verified successfully');
+    if (wasGenerated && process.env.NODE_ENV !== 'production') {
+      console.log('⚠️  Auto-generated admin password - set ADMIN_PASSWORD env variable for custom password');
     }
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('');
 
     return adminUser;
   } catch (error) {
@@ -85,10 +75,10 @@ export async function createTestRecruiter() {
       role: 'recruiter'
     });
 
-    console.log('Test recruiter created successfully:');
+    console.log('Test recruiter created successfully');
     console.log('Username: recruiter');
-    console.log('Password: recruiter123');
     console.log('Role: recruiter');
+    // Password intentionally not logged for security
     
     return recruiterUser;
   } catch (error) {

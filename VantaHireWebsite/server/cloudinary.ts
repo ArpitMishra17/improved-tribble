@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { Request } from 'express';
 import multer from 'multer';
+import { fileTypeFromBuffer } from 'file-type';
 
 // Configure Cloudinary
 if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -17,18 +18,46 @@ if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !pr
 const storage = multer.memoryStorage();
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  // Allow PDF, DOC, DOCX files for resumes
+  // Basic MIME type check (can be spoofed - real validation happens in validateFileType)
   const allowed = new Set([
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/octet-stream', // Allow generic type, will validate with magic bytes
   ]);
   if (allowed.has(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only PDF, DOC, or DOCX files are allowed for resumes'));
+    cb(new Error('Invalid file type. Only PDF, DOC, or DOCX files are allowed'));
   }
 };
+
+// Validate file type using magic bytes (more secure than MIME type)
+async function validateFileType(buffer: Buffer): Promise<boolean> {
+  try {
+    const fileType = await fileTypeFromBuffer(buffer);
+
+    if (!fileType) {
+      // Could be a text-based format like older DOC files
+      // Check first few bytes for DOC signature
+      const header = buffer.slice(0, 8).toString('hex');
+      // DOC files start with D0CF11E0A1B11AE1 (OLE2 signature)
+      if (header.startsWith('d0cf11e0a1b11ae1')) {
+        return true;
+      }
+      return false;
+    }
+
+    // Allowed file types based on magic bytes
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedExtensions = ['pdf', 'doc', 'docx'];
+
+    return allowedTypes.includes(fileType.mime) || allowedExtensions.includes(fileType.ext);
+  } catch (error) {
+    console.error('Error validating file type:', error);
+    return false;
+  }
+}
 
 export const upload = multer({
   storage,
@@ -42,6 +71,12 @@ export const upload = multer({
 export async function uploadToCloudinary(buffer: Buffer, originalName: string): Promise<string> {
   if (!process.env.CLOUDINARY_CLOUD_NAME) {
     throw new Error('Cloudinary not configured');
+  }
+
+  // Validate file type using magic bytes (security check)
+  const isValid = await validateFileType(buffer);
+  if (!isValid) {
+    throw new Error('Invalid file format. Only genuine PDF, DOC, or DOCX files are allowed.');
   }
 
   return new Promise((resolve, reject) => {

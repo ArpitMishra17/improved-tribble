@@ -443,12 +443,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async withdrawApplication(applicationId: number, userId: number): Promise<boolean> {
-    // First verify the application belongs to the user by email
-    const user = await this.getUser(userId);
-    if (!user) return false;
-
+    // First verify the application belongs to the user (bound by userId, not email)
     const application = await this.getApplication(applicationId);
-    if (!application || application.email !== user.username) return false;
+    if (!application || !application.userId || application.userId !== userId) return false;
 
     // Delete the application
     const result = await db

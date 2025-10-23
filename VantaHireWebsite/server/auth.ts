@@ -52,8 +52,13 @@ export function requireAuth(req: any, res: any, next: any) {
 }
 
 export function setupAuth(app: Express) {
+  // Fail fast if SESSION_SECRET is not set in production
+  if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET environment variable must be set in production');
+  }
+
   const PostgresSessionStore = connectPg(session);
-  
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'vantahire-dev-secret',
     resave: false,
@@ -65,6 +70,7 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
+      sameSite: 'lax', // CSRF protection
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   };
@@ -82,15 +88,7 @@ export function setupAuth(app: Express) {
           return done(null, false);
         }
 
-        // Special handling for admin user - check against ADMIN_PASSWORD env variable
-        if (user.username === 'admin' && process.env.ADMIN_PASSWORD) {
-          if (password === process.env.ADMIN_PASSWORD) {
-            return done(null, user);
-          }
-          return done(null, false);
-        }
-
-        // Normal password comparison for other users
+        // Use secure password comparison for all users (including admin)
         if (!(await comparePasswords(password, user.password))) {
           return done(null, false);
         }
