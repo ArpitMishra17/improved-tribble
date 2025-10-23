@@ -10,7 +10,8 @@ import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
 import helmet from "helmet";
-import { doubleCsrf } from "csrf-csrf";
+// Import csrf-csrf with compatibility for CJS/ESM builds
+import csrfCsrfMod from "csrf-csrf";
 
 // ATS Validation Schemas
 const updateStageSchema = z.object({
@@ -74,10 +75,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Setup CSRF protection for session-backed mutations
-  const { doubleCsrfProtection, generateToken } = doubleCsrf({
+  const anyCsrf: any = csrfCsrfMod as any;
+  const doubleCsrfFactory: any =
+    typeof anyCsrf === 'function'
+      ? anyCsrf
+      : anyCsrf?.doubleCsrf || anyCsrf?.default?.doubleCsrf;
+  const cookieName = isDevelopment ? 'x-csrf-token' : '__Host-psifi.x-csrf-token';
+  const { doubleCsrfProtection, generateToken } = doubleCsrfFactory({
     getSecret: () => process.env.SESSION_SECRET || 'default-secret-please-change',
     // __Host- prefix requires secure flag; only use in production
-    cookieName: isDevelopment ? 'x-csrf-token' : '__Host-psifi.x-csrf-token',
+    cookieName,
     cookieOptions: {
       httpOnly: true,
       sameSite: 'lax',
