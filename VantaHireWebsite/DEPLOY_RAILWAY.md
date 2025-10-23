@@ -15,7 +15,7 @@ Set these in Railway → Variables:
 - `PORT` (Railway injects this automatically; app reads it)
 - `DATABASE_URL` **[REQUIRED]**
   - If using Railway Postgres: copy the full connection string from the Railway Postgres plugin.
-    - Note: SSL certificate verification is enabled by default in production
+    - Note: SSL/TLS is enabled by default in production
   - If using Neon: use the Neon connection string (often ends with `.neon.tech`), keep `sslmode=require`.
 - `SESSION_SECRET` **[REQUIRED]** - Must be a random string (minimum 32 characters)
   - Generate with: `openssl rand -hex 32`
@@ -52,6 +52,12 @@ Set these in Railway → Variables:
   - `SPOTAXIS_CAREERS_URL` (e.g. `https://org-subdomain.your-spotaxis.com/jobs/`)
 - Email automation (ATS):
   - `EMAIL_AUTOMATION_ENABLED` = `true` to auto-send emails on stage changes, scheduling, and application received
+
+### Database TLS Configuration (when provider uses self-signed certs)
+- `DATABASE_CA_CERT` (PEM) — Paste the provider's CA bundle (PEM). This enables full certificate verification.
+- `DATABASE_SSL_REJECT_UNAUTHORIZED` — Set to `false` only as a last resort if your provider uses a self-signed cert and you cannot supply a CA. Defaults to `true`.
+
+Recommended: Prefer `DATABASE_CA_CERT` to maintain strict verification. Avoid global `NODE_TLS_REJECT_UNAUTHORIZED=0`.
 - Cron scheduler (job expiration, cleanup):
   - `ENABLE_SCHEDULER` = `true` to enable scheduled tasks (set on ONE instance only in multi-instance deployments)
 
