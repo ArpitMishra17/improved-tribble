@@ -11,7 +11,7 @@ import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestio
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
 import helmet from "helmet";
 // Import csrf-csrf with compatibility for CJS/ESM builds
-import csrfCsrfMod from "csrf-csrf";
+import * as csrfCsrfMod from "csrf-csrf";
 
 // ATS Validation Schemas
 const updateStageSchema = z.object({
@@ -76,10 +76,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup CSRF protection for session-backed mutations
   const anyCsrf: any = csrfCsrfMod as any;
-  const doubleCsrfFactory: any =
-    typeof anyCsrf === 'function'
-      ? anyCsrf
-      : anyCsrf?.doubleCsrf || anyCsrf?.default?.doubleCsrf;
+  const doubleCsrfFactory: any = anyCsrf?.doubleCsrf || anyCsrf?.default?.doubleCsrf || (typeof anyCsrf === 'function' ? anyCsrf : null);
+  if (!doubleCsrfFactory) {
+    throw new Error('csrf-csrf: doubleCsrf factory not found (CJS/ESM interop)');
+  }
   const cookieName = isDevelopment ? 'x-csrf-token' : '__Host-psifi.x-csrf-token';
   const { doubleCsrfProtection, generateToken } = doubleCsrfFactory({
     getSecret: () => process.env.SESSION_SECRET || 'default-secret-please-change',
