@@ -52,6 +52,13 @@ Set these in Railway → Variables:
   - `SPOTAXIS_CAREERS_URL` (e.g. `https://org-subdomain.your-spotaxis.com/jobs/`)
 - Email automation (ATS):
   - `EMAIL_AUTOMATION_ENABLED` = `true` to auto-send emails on stage changes, scheduling, and application received
+- Forms Feature (recruiter-sent candidate forms):
+  - `FORM_INVITE_EXPIRY_DAYS` = Number of days until form invitations expire (default: 14)
+  - `FORM_PUBLIC_RATE_LIMIT` = Rate limit for public form endpoints (requests per minute per IP, default: 10)
+  - `FORM_INVITE_DAILY_LIMIT` = Rate limit for sending form invitations (per day per recruiter, default: 50)
+  - `BASE_URL` = Base URL for generating form links in emails (REQUIRED for forms feature)
+    - Example: `https://vantahire.com` or `https://improved-tribble-production.up.railway.app`
+    - **IMPORTANT**: Must use HTTPS in production to avoid mixed-content warnings in form emails
 
 ### Database TLS Configuration (when provider uses self-signed certs)
 - `DATABASE_CA_CERT` (PEM) — Paste the provider's CA bundle (PEM). This enables full certificate verification.
@@ -135,8 +142,9 @@ Before deploying, verify:
 ### Automatic Migrations (Recommended)
 The application automatically runs migrations on startup via `ensureAtsSchema()` in `server/index.ts`. This includes:
 - Creating ATS tables (pipeline_stages, email_templates, etc.)
+- Creating Forms tables (forms, form_fields, form_invitations, form_responses, form_response_answers)
 - Adding userId column to applications table
-- Creating performance indexes on jobs and applications tables
+- Creating performance indexes on jobs, applications, and forms tables
 
 No manual intervention required - migrations run on every deployment.
 
@@ -147,6 +155,20 @@ npm run db:push
 ```
 
 This runs the standalone migration script at `server/scripts/runMigrations.ts`.
+
+### Seeding Default Data
+
+After deployment, you can optionally seed default data:
+
+```bash
+# Seed default ATS pipeline stages and email templates
+npm run seed:ats
+
+# Seed default form templates (3 templates: Additional Info, Availability, References)
+npm run seed:forms
+```
+
+**Note**: The seed scripts are idempotent - they skip existing data and only create missing items.
 
 ## 9) Troubleshooting
 - Port binding: ensure the app logs show it's listening on the PORT Railway provided.

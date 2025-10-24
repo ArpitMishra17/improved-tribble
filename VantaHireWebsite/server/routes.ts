@@ -10,6 +10,7 @@ import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
 import helmet from "helmet";
+import { registerFormsRoutes } from "./forms.routes";
 // Import csrf-csrf with compatibility for CJS/ESM builds
 import { createRequire } from "module";
 import { randomBytes } from "crypto";
@@ -109,6 +110,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function doubleCsrfProtection(req: Request, res: Response, next: NextFunction) {
     const method = req.method.toUpperCase();
     if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return next();
+
+    // Exempt public form endpoints from CSRF (they use token-based auth, not session cookies)
+    if (req.path.startsWith('/api/forms/public/')) return next();
+
     // Compare header token with cookie token (double submit cookie)
     const headerToken = (req.headers['x-csrf-token'] as string) || '';
     const cookies = parseCookies(req.headers.cookie);
@@ -1473,6 +1478,9 @@ New job application received:
   // 3. Implement proper webhook signature validation
   // 4. Add error handling and input validation
   // See COMPREHENSIVE_SECURITY_AUDIT.md for implementation details
+
+  // Register forms routes (recruiter-sent candidate forms feature)
+  registerFormsRoutes(app, doubleCsrfProtection);
 
   const httpServer = createServer(app);
   return httpServer;

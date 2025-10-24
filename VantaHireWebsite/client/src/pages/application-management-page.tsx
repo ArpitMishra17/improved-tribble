@@ -47,6 +47,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { FormsModal } from "@/components/FormsModal";
 
 export default function ApplicationManagementPage() {
   const [match, params] = useRoute("/jobs/:id/applications");
@@ -72,6 +73,7 @@ export default function ApplicationManagementPage() {
   const [showInterviewDialog, setShowInterviewDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showFormsDialog, setShowFormsDialog] = useState(false);
 
   const jobId = params?.id ? parseInt(params.id) : null;
 
@@ -552,6 +554,19 @@ export default function ApplicationManagementPage() {
               History
             </Button>
 
+            <Button
+              onClick={() => {
+                setSelectedApp(application);
+                setShowFormsDialog(true);
+              }}
+              variant="outline"
+              size="sm"
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Forms
+            </Button>
+
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -1003,6 +1018,15 @@ export default function ApplicationManagementPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Forms Dialog */}
+        {selectedApp && (
+          <FormsModal
+            open={showFormsDialog}
+            onOpenChange={setShowFormsDialog}
+            application={selectedApp}
+          />
+        )}
       </div>
     </Layout>
   );

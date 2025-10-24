@@ -178,6 +178,74 @@ export const consultants = pgTable("consultants", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Forms Feature: Recruiter-sent candidate forms
+export const forms = pgTable("forms", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  createdByIdx: index("forms_created_by_idx").on(table.createdBy),
+  isPublishedIdx: index("forms_is_published_idx").on(table.isPublished),
+}));
+
+export const formFields = pgTable("form_fields", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").notNull().references(() => forms.id, { onDelete: 'cascade' }),
+  type: text("type").notNull(), // 'short_text', 'long_text', 'yes_no', 'select', 'date', 'file', 'email'
+  label: text("label").notNull(),
+  required: boolean("required").notNull().default(false),
+  options: text("options"), // JSON string for select options
+  order: integer("order").notNull(),
+}, (table) => ({
+  formIdOrderIdx: index("form_fields_form_id_order_idx").on(table.formId, table.order),
+}));
+
+export const formInvitations = pgTable("form_invitations", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  formId: integer("form_id").notNull().references(() => forms.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  status: text("status").notNull().default('pending'), // 'pending', 'sent', 'viewed', 'answered', 'expired', 'failed'
+  sentBy: integer("sent_by").notNull().references(() => users.id),
+  sentAt: timestamp("sent_at"),
+  viewedAt: timestamp("viewed_at"),
+  answeredAt: timestamp("answered_at"),
+  fieldSnapshot: text("field_snapshot").notNull(), // JSONB stored as text: snapshot of form fields at creation
+  customMessage: text("custom_message"),
+  reminderSentAt: timestamp("reminder_sent_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tokenIdx: index("form_invitations_token_idx").on(table.token),
+  applicationIdStatusIdx: index("form_invitations_app_status_idx").on(table.applicationId, table.status),
+  createdAtIdx: index("form_invitations_created_at_idx").on(table.createdAt),
+  formIdIdx: index("form_invitations_form_id_idx").on(table.formId),
+}));
+
+export const formResponses = pgTable("form_responses", {
+  id: serial("id").primaryKey(),
+  invitationId: integer("invitation_id").notNull().references(() => formInvitations.id, { onDelete: 'cascade' }).unique(),
+  applicationId: integer("application_id").notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+}, (table) => ({
+  applicationIdIdx: index("form_responses_application_id_idx").on(table.applicationId),
+}));
+
+export const formResponseAnswers = pgTable("form_response_answers", {
+  id: serial("id").primaryKey(),
+  responseId: integer("response_id").notNull().references(() => formResponses.id, { onDelete: 'cascade' }),
+  fieldId: integer("field_id").notNull().references(() => formFields.id),
+  value: text("value"), // Text or JSON string for structured answers
+  fileUrl: text("file_url"), // For file upload fields
+}, (table) => ({
+  responseIdIdx: index("form_response_answers_response_id_idx").on(table.responseId),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   jobs: many(jobs),
@@ -289,6 +357,64 @@ export const jobAnalyticsRelations = relations(jobAnalytics, ({ one }) => ({
   job: one(jobs, {
     fields: [jobAnalytics.jobId],
     references: [jobs.id],
+  }),
+}));
+
+export const formsRelations = relations(forms, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [forms.createdBy],
+    references: [users.id],
+  }),
+  fields: many(formFields),
+  invitations: many(formInvitations),
+}));
+
+export const formFieldsRelations = relations(formFields, ({ one }) => ({
+  form: one(forms, {
+    fields: [formFields.formId],
+    references: [forms.id],
+  }),
+}));
+
+export const formInvitationsRelations = relations(formInvitations, ({ one }) => ({
+  application: one(applications, {
+    fields: [formInvitations.applicationId],
+    references: [applications.id],
+  }),
+  form: one(forms, {
+    fields: [formInvitations.formId],
+    references: [forms.id],
+  }),
+  sentBy: one(users, {
+    fields: [formInvitations.sentBy],
+    references: [users.id],
+  }),
+  response: one(formResponses, {
+    fields: [formInvitations.id],
+    references: [formResponses.invitationId],
+  }),
+}));
+
+export const formResponsesRelations = relations(formResponses, ({ one, many }) => ({
+  invitation: one(formInvitations, {
+    fields: [formResponses.invitationId],
+    references: [formInvitations.id],
+  }),
+  application: one(applications, {
+    fields: [formResponses.applicationId],
+    references: [applications.id],
+  }),
+  answers: many(formResponseAnswers),
+}));
+
+export const formResponseAnswersRelations = relations(formResponseAnswers, ({ one }) => ({
+  response: one(formResponses, {
+    fields: [formResponseAnswers.responseId],
+    references: [formResponses.id],
+  }),
+  field: one(formFields, {
+    fields: [formResponseAnswers.fieldId],
+    references: [formFields.id],
   }),
 }));
 
@@ -435,3 +561,54 @@ export type AutomationSetting = typeof automationSettings.$inferSelect;
 
 export type Consultant = typeof consultants.$inferSelect;
 export type InsertConsultant = z.infer<typeof insertConsultantSchema>;
+
+// Forms Feature: Insert schemas and types
+export const insertFormSchema = createInsertSchema(forms).pick({
+  name: true,
+  description: true,
+  isPublished: true,
+}).extend({
+  name: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  isPublished: z.boolean().optional(),
+});
+
+export const insertFormFieldSchema = z.object({
+  type: z.enum(['short_text', 'long_text', 'yes_no', 'select', 'date', 'file', 'email']),
+  label: z.string().min(1).max(200),
+  required: z.boolean().default(false),
+  options: z.string().optional(), // JSON string for select options
+  order: z.number().int().min(0),
+});
+
+export const insertFormInvitationSchema = z.object({
+  applicationId: z.number().int().positive(),
+  formId: z.number().int().positive(),
+  customMessage: z.string().max(1000).optional(),
+});
+
+export const insertFormResponseSchema = z.object({
+  invitationId: z.number().int().positive(),
+  applicationId: z.number().int().positive(),
+});
+
+export const insertFormResponseAnswerSchema = z.object({
+  fieldId: z.number().int().positive(),
+  value: z.string().optional(),
+  fileUrl: z.string().url().optional(),
+});
+
+export type Form = typeof forms.$inferSelect;
+export type InsertForm = z.infer<typeof insertFormSchema>;
+
+export type FormField = typeof formFields.$inferSelect;
+export type InsertFormField = z.infer<typeof insertFormFieldSchema>;
+
+export type FormInvitation = typeof formInvitations.$inferSelect;
+export type InsertFormInvitation = z.infer<typeof insertFormInvitationSchema>;
+
+export type FormResponse = typeof formResponses.$inferSelect;
+export type InsertFormResponse = z.infer<typeof insertFormResponseSchema>;
+
+export type FormResponseAnswer = typeof formResponseAnswers.$inferSelect;
+export type InsertFormResponseAnswer = z.infer<typeof insertFormResponseAnswerSchema>;
