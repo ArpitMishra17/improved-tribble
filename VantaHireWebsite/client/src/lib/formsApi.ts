@@ -117,6 +117,37 @@ export interface SubmitFormResponse {
   message: string;
 }
 
+export interface CreateTemplateRequest {
+  name: string;
+  description?: string;
+  isPublished?: boolean;
+  fields: Array<{
+    type: string;
+    label: string;
+    required: boolean;
+    options?: string;
+    order: number;
+  }>;
+}
+
+export interface UpdateTemplateRequest {
+  name?: string;
+  description?: string;
+  isPublished?: boolean;
+  fields?: Array<{
+    type: string;
+    label: string;
+    required: boolean;
+    options?: string;
+    order: number;
+  }>;
+}
+
+export interface DeleteTemplateResponse {
+  success: boolean;
+  message: string;
+}
+
 // ==================== Type-safe API Client ====================
 
 export const formsApi = {
@@ -128,6 +159,41 @@ export const formsApi = {
       credentials: 'include',
     });
     if (!res.ok) throw new Error(`Failed to fetch templates: ${res.statusText}`);
+    return res.json();
+  },
+
+  /**
+   * Fetch single template by ID
+   */
+  async getTemplate(id: number): Promise<FormTemplateDTO> {
+    const res = await fetch(`/api/forms/templates/${id}`, {
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error(`Failed to fetch template: ${res.statusText}`);
+    return res.json();
+  },
+
+  /**
+   * Create new form template
+   */
+  async createTemplate(data: CreateTemplateRequest): Promise<FormTemplateDTO> {
+    const res = await apiRequest('POST', '/api/forms/templates', data);
+    return res.json();
+  },
+
+  /**
+   * Update existing form template
+   */
+  async updateTemplate(id: number, data: UpdateTemplateRequest): Promise<FormTemplateDTO> {
+    const res = await apiRequest('PATCH', `/api/forms/templates/${id}`, data);
+    return res.json();
+  },
+
+  /**
+   * Delete form template (only if no invitations exist)
+   */
+  async deleteTemplate(id: number): Promise<DeleteTemplateResponse> {
+    const res = await apiRequest('DELETE', `/api/forms/templates/${id}`, {});
     return res.json();
   },
 
@@ -259,6 +325,7 @@ export const formsApi = {
  */
 export const formsQueryKeys = {
   templates: () => ['/api/forms/templates'] as const,
+  templateDetail: (templateId: number) => [`/api/forms/templates/${templateId}`] as const,
   invitations: (applicationId: number) => [`/api/forms/invitations?applicationId=${applicationId}`] as const,
   responses: (applicationId: number) => [`/api/forms/responses?applicationId=${applicationId}`] as const,
   responseDetail: (responseId: number) => [`/api/forms/responses/${responseId}`] as const,
