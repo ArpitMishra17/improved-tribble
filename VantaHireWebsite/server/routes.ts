@@ -5,7 +5,7 @@ import { insertContactSchema, insertJobSchema, insertApplicationSchema, insertPi
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
-import { upload, uploadToCloudinary } from "./cloudinary";
+import { upload, uploadToCloudinary, rewriteCloudinaryUrlForDownload } from "./cloudinary";
 import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
@@ -402,6 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...applicationData,
         jobId,
         resumeUrl,
+        resumeFilename: req.file?.originalname || null, // Save original filename for proper downloads
         // Bind to user account if authenticated (for candidate access control)
         userId: req.user?.id
       });
@@ -511,8 +512,10 @@ New job application received:
         return res.status(404).json({ error: 'Resume not available' });
       }
 
-      // Simple, practical approach: redirect to stored URL (do not expose it elsewhere in UI)
-      return res.redirect(302, url);
+      // Transform Cloudinary URL to force download with proper filename
+      const downloadUrl = rewriteCloudinaryUrlForDownload(url, appRecord.resumeFilename);
+
+      return res.redirect(302, downloadUrl);
     } catch (error) {
       next(error);
     }

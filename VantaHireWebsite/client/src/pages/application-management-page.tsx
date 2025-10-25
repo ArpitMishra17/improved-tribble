@@ -380,15 +380,22 @@ export default function ApplicationManagementPage() {
   };
 
   const filteredApplications = applications?.filter(app => {
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    const matchesSearch = searchQuery === '' || 
+    const matchesStage = statusFilter === 'all' ||
+                         (statusFilter === 'unassigned' && app.currentStage == null) ||
+                         (statusFilter !== 'unassigned' && app.currentStage === parseInt(statusFilter));
+    const matchesSearch = searchQuery === '' ||
       app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStatus && matchesSearch;
+    return matchesStage && matchesSearch;
   }) || [];
 
-  const getApplicationsByStatus = (status: string) => {
-    return applications?.filter(app => app.status === status) || [];
+  const getApplicationsByStage = (stageId: number) => {
+    return applications?.filter(app => app.currentStage === stageId) || [];
+  };
+
+  const getApplicationsWithoutStage = () => {
+    // Explicitly check for null/undefined (stage IDs start from 1, but be defensive)
+    return applications?.filter(app => app.currentStage == null) || [];
   };
 
   const ApplicationCard = ({ application }: { application: Application }) => {
@@ -766,12 +773,15 @@ export default function ApplicationManagementPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="submitted">Submitted</SelectItem>
-                      <SelectItem value="reviewed">Reviewed</SelectItem>
-                      <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                      <SelectItem value="downloaded">Downloaded</SelectItem>
+                      <SelectItem value="all">All Stages</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {pipelineStages
+                        .sort((a, b) => a.order - b.order)
+                        .map(stage => (
+                          <SelectItem key={stage.id} value={stage.id.toString()}>
+                            {stage.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -779,15 +789,18 @@ export default function ApplicationManagementPage() {
             </CardContent>
           </Card>
 
-          {/* Application Tabs */}
+          {/* Application Tabs - Dynamic based on pipeline stages */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 bg-white/10 border-white/20">
+            <TabsList className={`grid w-full bg-white/10 border-white/20`} style={{ gridTemplateColumns: `repeat(${pipelineStages.length + 2}, minmax(0, 1fr))` }}>
               <TabsTrigger value="all">All ({applications?.length || 0})</TabsTrigger>
-              <TabsTrigger value="submitted">Submitted ({getApplicationsByStatus('submitted').length})</TabsTrigger>
-              <TabsTrigger value="reviewed">Reviewed ({getApplicationsByStatus('reviewed').length})</TabsTrigger>
-              <TabsTrigger value="shortlisted">Shortlisted ({getApplicationsByStatus('shortlisted').length})</TabsTrigger>
-              <TabsTrigger value="rejected">Rejected ({getApplicationsByStatus('rejected').length})</TabsTrigger>
-              <TabsTrigger value="downloaded">Downloaded ({getApplicationsByStatus('downloaded').length})</TabsTrigger>
+              <TabsTrigger value="unassigned">Unassigned ({getApplicationsWithoutStage().length})</TabsTrigger>
+              {pipelineStages
+                .sort((a, b) => a.order - b.order)
+                .map(stage => (
+                  <TabsTrigger key={stage.id} value={`stage-${stage.id}`}>
+                    {stage.name} ({getApplicationsByStage(stage.id).length})
+                  </TabsTrigger>
+                ))}
             </TabsList>
 
             <TabsContent value="all" className="mt-6">
@@ -806,23 +819,43 @@ export default function ApplicationManagementPage() {
               )}
             </TabsContent>
 
-            {['submitted', 'reviewed', 'shortlisted', 'rejected', 'downloaded'].map(status => (
-              <TabsContent key={status} value={status} className="mt-6">
-                {getApplicationsByStatus(status).length === 0 ? (
-                  <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-                    <CardContent className="p-8 text-center">
-                      <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-white mb-2">No {status} Applications</h3>
-                      <p className="text-gray-300">No applications with {status} status.</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  getApplicationsByStatus(status).map(application => (
-                    <ApplicationCard key={application.id} application={application} />
-                  ))
-                )}
-              </TabsContent>
-            ))}
+            {/* Unassigned tab */}
+            <TabsContent value="unassigned" className="mt-6">
+              {getApplicationsWithoutStage().length === 0 ? (
+                <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+                  <CardContent className="p-8 text-center">
+                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No Unassigned Applications</h3>
+                    <p className="text-gray-300">All applications have been assigned to a stage.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                getApplicationsWithoutStage().map(application => (
+                  <ApplicationCard key={application.id} application={application} />
+                ))
+              )}
+            </TabsContent>
+
+            {/* Dynamic stage tabs */}
+            {pipelineStages
+              .sort((a, b) => a.order - b.order)
+              .map(stage => (
+                <TabsContent key={stage.id} value={`stage-${stage.id}`} className="mt-6">
+                  {getApplicationsByStage(stage.id).length === 0 ? (
+                    <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+                      <CardContent className="p-8 text-center">
+                        <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">No {stage.name} Applications</h3>
+                        <p className="text-gray-300">No applications in {stage.name} stage.</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    getApplicationsByStage(stage.id).map(application => (
+                      <ApplicationCard key={application.id} application={application} />
+                    ))
+                  )}
+                </TabsContent>
+              ))}
           </Tabs>
           </div>
         </div>

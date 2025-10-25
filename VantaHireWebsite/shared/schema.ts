@@ -65,6 +65,7 @@ export const applications = pgTable("applications", {
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   resumeUrl: text("resume_url").notNull(),
+  resumeFilename: text("resume_filename"), // Original filename for proper downloads
   coverLetter: text("cover_letter"),
   status: text("status").default("submitted").notNull(),
   notes: text("notes"),

@@ -110,3 +110,44 @@ export async function deleteFromCloudinary(publicId: string): Promise<void> {
 
   await cloudinary.uploader.destroy(publicId);
 }
+
+/**
+ * Transform Cloudinary URL to force download with proper filename
+ * Handles custom domains, existing transformations, and fallback filenames
+ *
+ * @param url - Original Cloudinary URL (or any URL with /upload/ segment)
+ * @param filename - Original filename to use in download (optional, defaults to 'resume.pdf')
+ * @returns Transformed URL with fl_attachment flag
+ *
+ * @example
+ * // Basic URL
+ * rewriteCloudinaryUrlForDownload('https://res.cloudinary.com/.../upload/v123/abc.pdf', 'John_Doe_Resume.pdf')
+ * // => 'https://res.cloudinary.com/.../upload/fl_attachment:John_Doe_Resume.pdf/v123/abc.pdf'
+ *
+ * // With existing transformations
+ * rewriteCloudinaryUrlForDownload('https://cdn.example.com/.../upload/w_200,h_300/v123/abc.pdf', 'resume.pdf')
+ * // => 'https://cdn.example.com/.../upload/fl_attachment:resume.pdf,w_200,h_300/v123/abc.pdf'
+ *
+ * // Non-Cloudinary URL (no transformation)
+ * rewriteCloudinaryUrlForDownload('https://example.com/file.pdf', 'resume.pdf')
+ * // => 'https://example.com/file.pdf'
+ */
+export function rewriteCloudinaryUrlForDownload(url: string, filename?: string | null): string {
+  // Only transform URLs with Cloudinary /upload/ segment
+  if (!url.includes('/upload/')) {
+    return url;
+  }
+
+  // Use provided filename or fallback to safe default
+  const safeFilename = filename || 'resume.pdf';
+  const attachmentFlag = `fl_attachment:${encodeURIComponent(safeFilename)}`;
+
+  // Insert fl_attachment after /upload/, preserving any existing transformations
+  return url.replace(/\/upload\/([^/]*)/, (match, existingTransforms) => {
+    // If there are existing transforms, prepend fl_attachment
+    // Otherwise, just add fl_attachment with trailing slash
+    return existingTransforms
+      ? `/upload/${attachmentFlag},${existingTransforms}`
+      : `/upload/${attachmentFlag}/`;
+  });
+}

@@ -100,6 +100,9 @@ export async function ensureAtsSchema(): Promise<void> {
   // Phase 5: Add userId column for robust candidate authorization (binds applications to user accounts)
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id);`);
 
+  // Add resumeFilename column for proper file download headers
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_filename TEXT;`);
+
   // Phase 5: Create performance indexes for hotspot queries
   // Jobs table indexes (status, postedBy, isActive for filtering)
   await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs(status);`);
