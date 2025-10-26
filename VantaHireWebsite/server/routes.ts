@@ -546,7 +546,8 @@ New job application received:
           submittedByRecruiter: true,
           createdByUserId: req.user!.id,
           source: applicationData.source,
-          sourceMetadata: applicationData.sourceMetadata ? JSON.stringify(applicationData.sourceMetadata) : null,
+          // Pass object directly to JSONB column; driver serializes to JSON
+          sourceMetadata: applicationData.sourceMetadata || null,
           currentStage: initialStage,
           stageChangedAt: initialStage ? new Date() : null,
           stageChangedBy: initialStage ? req.user!.id : null,
