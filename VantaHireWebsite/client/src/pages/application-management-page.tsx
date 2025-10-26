@@ -23,7 +23,8 @@ import {
   Star,
   History,
   ArrowLeft,
-  FileDown
+  FileDown,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,6 +40,7 @@ import { Job, Application, PipelineStage, EmailTemplate } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { ApplicationBreadcrumb } from "@/components/Breadcrumb";
+import { AddCandidateModal } from "@/components/AddCandidateModal";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +73,7 @@ export default function ApplicationManagementPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [newRecruiterNote, setNewRecruiterNote] = useState("");
   const [showInterviewDialog, setShowInterviewDialog] = useState(false);
+  const [addCandidateModalOpen, setAddCandidateModalOpen] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [showFormsDialog, setShowFormsDialog] = useState(false);
@@ -661,6 +664,15 @@ export default function ApplicationManagementPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] text-white border-0 hover:opacity-90"
+                  onClick={() => setAddCandidateModalOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Candidate
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                   onClick={() => alert("Export feature coming soon")}
                 >
@@ -1060,6 +1072,13 @@ export default function ApplicationManagementPage() {
             application={selectedApp}
           />
         )}
+
+        {/* Add Candidate Modal */}
+        <AddCandidateModal
+          jobId={jobId}
+          open={addCandidateModalOpen}
+          onOpenChange={setAddCandidateModalOpen}
+        />
       </div>
     </Layout>
   );

@@ -1,7 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertContactSchema, insertJobSchema, insertApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate } from "@shared/schema";
+import { db } from "./db";
+import { sql, eq, and } from "drizzle-orm";
+import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages } from "@shared/schema";
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
@@ -462,6 +464,130 @@ New job application received:
       }
     }
   });
+
+  // Recruiter adds candidate on behalf (MVP: Add Candidate feature)
+  app.post(
+    "/api/jobs/:id/applications/recruiter-add",
+    requireRole(['recruiter', 'admin']),
+    doubleCsrfProtection,
+    upload.single('resume'),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const jobId = parseInt(req.params.id);
+        if (isNaN(jobId)) {
+          return res.status(400).json({ error: 'Invalid job ID' });
+        }
+
+        // Permission guard: Verify job ownership (recruiters must own job, admins bypass)
+        const job = await storage.getJob(jobId);
+        if (!job) {
+          return res.status(404).json({ error: 'Job not found' });
+        }
+
+        if (req.user!.role === 'recruiter' && job.postedBy !== req.user!.id) {
+          return res.status(403).json({ error: 'Access denied: You can only add candidates to your own jobs' });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ error: 'Resume file is required' });
+        }
+
+        // Validate with dedicated schema
+        const applicationData = recruiterAddApplicationSchema.parse(req.body);
+
+        // Duplicate detection (case-insensitive email check)
+        const existingApp = await db.query.applications.findFirst({
+          where: and(
+            eq(applications.jobId, jobId),
+            sql`LOWER(${applications.email}) = LOWER(${applicationData.email})`
+          )
+        });
+
+        if (existingApp) {
+          return res.status(400).json({
+            error: 'Duplicate application',
+            message: `An application from ${applicationData.email} already exists for this job`,
+            existingApplicationId: existingApp.id
+          });
+        }
+
+        // Upload resume
+        let resumeUrl = 'placeholder-resume.pdf';
+        try {
+          resumeUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+        } catch (error) {
+          console.log('Cloudinary not configured, using placeholder resume URL');
+          resumeUrl = `resume-${Date.now()}-${req.file.originalname}`;
+        }
+
+        // Validate initial stage if provided
+        let initialStage: number | null = null;
+        if (applicationData.currentStage) {
+          const stageExists = await db.query.pipelineStages.findFirst({
+            where: eq(pipelineStages.id, applicationData.currentStage)
+          });
+
+          if (!stageExists) {
+            return res.status(400).json({ error: 'Invalid stage ID' });
+          }
+
+          initialStage = applicationData.currentStage;
+        }
+
+        // Create application with recruiter metadata
+        const application = await storage.createApplication({
+          name: applicationData.name,
+          email: applicationData.email,
+          phone: applicationData.phone,
+          coverLetter: applicationData.coverLetter || null,
+          jobId,
+          resumeUrl,
+          resumeFilename: req.file.originalname,
+          submittedByRecruiter: true,
+          createdByUserId: req.user!.id,
+          source: applicationData.source,
+          sourceMetadata: applicationData.sourceMetadata ? JSON.stringify(applicationData.sourceMetadata) : null,
+          currentStage: initialStage,
+          stageChangedAt: initialStage ? new Date() : null,
+          stageChangedBy: initialStage ? req.user!.id : null,
+          userId: null, // No candidate account yet
+        });
+
+        // DO NOT increment applyClicks (preserves analytics integrity)
+        // await storage.incrementApplyClicks(jobId); // SKIP
+
+        // DO NOT send candidate "application received" email
+        // Recruiter-added candidates didn't apply themselves
+
+        // Audit log (simple console log for MVP)
+        console.log('[RECRUITER_ADD]', {
+          applicationId: application.id,
+          recruiterId: req.user!.id,
+          jobId,
+          candidateEmail: applicationData.email,
+          source: applicationData.source,
+          timestamp: new Date().toISOString()
+        });
+
+        res.status(201).json({
+          success: true,
+          message: 'Candidate added successfully',
+          applicationId: application.id,
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({
+            error: 'Validation error',
+            details: error.errors.map(e => ({
+              field: e.path.join('.'),
+              message: e.message
+            }))
+          });
+        }
+        next(error);
+      }
+    }
+  );
 
   // Get applications for a specific job (recruiters only)
   app.get("/api/jobs/:id/applications", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {

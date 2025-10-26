@@ -103,6 +103,12 @@ export async function ensureAtsSchema(): Promise<void> {
   // Add resumeFilename column for proper file download headers
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_filename TEXT;`);
 
+  // Add recruiter metadata columns for "Add Candidate" feature
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS submitted_by_recruiter BOOLEAN DEFAULT FALSE;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS created_by_user_id INTEGER REFERENCES users(id);`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'public_apply';`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS source_metadata JSONB;`);
+
   // Phase 5: Create performance indexes for hotspot queries
   // Jobs table indexes (status, postedBy, isActive for filtering)
   await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_status_idx ON jobs(status);`);
@@ -112,6 +118,9 @@ export async function ensureAtsSchema(): Promise<void> {
   // Applications table indexes (userId for auth, status for filtering)
   await db.execute(sql`CREATE INDEX IF NOT EXISTS applications_user_id_idx ON applications(user_id);`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS applications_status_idx ON applications(status);`);
+
+  // Functional index for case-insensitive duplicate detection (recruiter-add)
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS applications_job_email_idx ON applications(job_id, LOWER(email));`);
 
   // Fix jobs table: pending jobs should not be active by default
   await db.execute(sql`ALTER TABLE jobs ALTER COLUMN is_active SET DEFAULT FALSE;`);

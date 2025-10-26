@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, date, numeric, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, date, numeric, index, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -84,6 +84,11 @@ export const applications = pgTable("applications", {
   tags: text("tags").array(),
   stageChangedAt: timestamp("stage_changed_at"),
   stageChangedBy: integer("stage_changed_by").references(() => users.id),
+  // Recruiter-add metadata
+  submittedByRecruiter: boolean("submitted_by_recruiter").default(false),
+  createdByUserId: integer("created_by_user_id").references(() => users.id),
+  source: text("source").default("public_apply"), // 'public_apply', 'recruiter_add', 'referral', 'linkedin', 'indeed', 'other'
+  sourceMetadata: jsonb("source_metadata"), // { referrer, platform, notes }
 }, (table) => ({
   // Indexes for ATS performance
   currentStageIdx: index("applications_current_stage_idx").on(table.currentStage),
@@ -505,6 +510,21 @@ export const insertApplicationSchema = createInsertSchema(applications).pick({
   notes: z.string().max(1000).optional(),
 });
 
+// Zod schema for recruiter-add endpoint (separate from public apply)
+export const recruiterAddApplicationSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  phone: z.string().min(10).max(15),
+  coverLetter: z.string().max(2000).optional(),
+  source: z.enum(['recruiter_add', 'referral', 'linkedin', 'indeed', 'other']).default('recruiter_add'),
+  sourceMetadata: z.object({
+    referrer: z.string().optional(),
+    platform: z.string().optional(),
+    notes: z.string().max(500).optional(),
+  }).optional(),
+  currentStage: z.number().int().positive().optional(), // Initial stage assignment
+});
+
 export const insertUserProfileSchema = createInsertSchema(userProfiles).pick({
   bio: true,
   skills: true,
@@ -540,6 +560,7 @@ export type InsertJob = z.infer<typeof insertJobSchema>;
 export type Job = typeof jobs.$inferSelect;
 
 export type InsertApplication = z.infer<typeof insertApplicationSchema>;
+export type RecruiterAddApplication = z.infer<typeof recruiterAddApplicationSchema>;
 export type Application = typeof applications.$inferSelect;
 
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
