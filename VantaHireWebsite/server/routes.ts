@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
-import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages } from "@shared/schema";
+import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages, applicationStageHistory } from "@shared/schema";
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
@@ -130,33 +130,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ token });
   });
 
-  // Rate limiting configurations
+  // Rate limiting configurations (all per-day)
   const applicationRateLimit = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 3, // 3 applications per hour per IP
-    message: { error: 'Too many applications. Please try again later.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
-  
-  const jobPostingRateLimit = rateLimit({
     windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 10, // 10 job posts per day per user
-    message: { error: 'Job posting limit reached. Try again tomorrow.' },
+    max: 10, // 10 applications per day per IP
+    message: { error: 'Application limit reached (10/day). Try again tomorrow.' },
     standardHeaders: true,
     legacyHeaders: false,
   });
 
-  // Rate limiting for AI analysis - 5 requests per hour per user
+  const jobPostingRateLimit = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 10, // 10 job posts per day per user
+    message: { error: 'Job posting limit reached (10/day). Try again tomorrow.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  // Rate limiting for AI analysis - per day per user
   const aiAnalysisRateLimit = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // limit each user to 5 AI requests per hour
-    message: { error: "AI analysis limit reached. Please try again later." },
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 20, // 20 AI requests per day per user
+    message: { error: "AI analysis limit reached (20/day). Try again tomorrow." },
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => req.user?.id?.toString() || req.ip || 'anonymous',
   });
-  
+
+  // Rate limiting for recruiter-add - 50 candidates per day per recruiter
+  const recruiterAddRateLimit = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // 24 hours
+    max: 50, // 50 candidates per day per recruiter
+    message: { error: "Candidate addition limit reached (50/day). Try again tomorrow." },
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => req.user?.id?.toString() || req.ip || 'anonymous',
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -382,11 +392,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Resume file is required' });
       }
 
-      // Increment apply click count for analytics
-      await storage.incrementApplyClicks(jobId);
-
       // Validate application data
       const applicationData = insertApplicationSchema.parse(req.body);
+
+      // Duplicate detection (case-insensitive email check)
+      const existingApp = await db.query.applications.findFirst({
+        where: and(
+          eq(applications.jobId, jobId),
+          sql`LOWER(${applications.email}) = LOWER(${applicationData.email})`
+        )
+      });
+
+      if (existingApp) {
+        return res.status(400).json({
+          error: 'Duplicate application',
+          message: `You have already applied for this position with ${applicationData.email}`,
+          existingApplicationId: existingApp.id
+        });
+      }
+
+      // Increment apply click count for analytics (after duplicate check)
+      await storage.incrementApplyClicks(jobId);
 
       // Upload resume to Cloudinary or use placeholder if not configured
       let resumeUrl = 'placeholder-resume.pdf';
@@ -469,6 +495,7 @@ New job application received:
   app.post(
     "/api/jobs/:id/applications/recruiter-add",
     requireRole(['recruiter', 'admin']),
+    recruiterAddRateLimit,
     doubleCsrfProtection,
     upload.single('resume'),
     async (req: Request, res: Response, next: NextFunction) => {
@@ -553,6 +580,17 @@ New job application received:
           stageChangedBy: initialStage ? req.user!.id : null,
           userId: null, // No candidate account yet
         });
+
+        // Log initial stage assignment to history table
+        if (initialStage) {
+          await db.insert(applicationStageHistory).values({
+            applicationId: application.id,
+            fromStage: null, // No previous stage (initial assignment)
+            toStage: initialStage,
+            changedBy: req.user!.id,
+            notes: 'Initial stage assigned by recruiter during candidate addition',
+          });
+        }
 
         // DO NOT increment applyClicks (preserves analytics integrity)
         // await storage.incrementApplyClicks(jobId); // SKIP
