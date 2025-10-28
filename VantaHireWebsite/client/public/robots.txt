@@ -12,5 +12,11 @@ Disallow: /candidate-dashboard
 Disallow: /application-management
 Disallow: /api/
 
-# Sitemap location
-Sitemap: https://vantahire.com/sitemap.xml
+# AI Crawler Resources
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /llms-small.txt
+
+# Sitemap locations
+Sitemap: https://www.vantahire.com/sitemap.xml
+Sitemap: https://www.vantahire.com/sitemap-jobs.xml
