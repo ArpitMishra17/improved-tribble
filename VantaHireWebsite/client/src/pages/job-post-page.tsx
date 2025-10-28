@@ -269,9 +269,9 @@ export default function JobPostPage() {
                 <div className="flex gap-4">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => setLocation("/jobs")}
-                    className="flex-1 border-white/20 text-white hover:bg-white/10"
+                    className="flex-1 bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
                   >
                     Cancel
                   </Button>

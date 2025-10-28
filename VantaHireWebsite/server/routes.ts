@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
-import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages, applicationStageHistory } from "@shared/schema";
+import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages, applicationStageHistory, jobs } from "@shared/schema";
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
@@ -11,6 +11,7 @@ import { upload, uploadToCloudinary, rewriteCloudinaryUrlForDownload } from "./c
 import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
+import { generateJobsSitemapXML } from "./seoUtils";
 import helmet from "helmet";
 import { registerFormsRoutes } from "./forms.routes";
 // Import csrf-csrf with compatibility for CJS/ESM builds
@@ -177,6 +178,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       apolloAppId: process.env.APOLLO_APP_ID || null,
     });
+  });
+
+  // Dynamic jobs sitemap for SEO
+  app.get("/sitemap-jobs.xml", async (_req: Request, res: Response) => {
+    try {
+      // Check if sitemap generation is enabled via feature flag
+      const enableSitemap = process.env.SEO_ENABLE_SITEMAP_JOBS !== 'false'; // Default to true
+
+      if (!enableSitemap) {
+        return res.status(404).send('Not found');
+      }
+
+      // Query only approved and active jobs (using typed columns)
+      const activeJobs = await db.query.jobs.findMany({
+        where: and(
+          eq(jobs.isActive, true),
+          eq(jobs.status, 'approved')
+        ),
+        columns: {
+          id: true,
+          slug: true,
+          updatedAt: true,
+          createdAt: true,
+        },
+        orderBy: (jobs, { desc }) => [desc(jobs.createdAt)],
+        limit: 50000, // Google sitemap limit
+      });
+
+      const baseUrl = process.env.BASE_URL || 'https://www.vantahire.com';
+      const sitemapXML = generateJobsSitemapXML(activeJobs, baseUrl);
+
+      res.header('Content-Type', 'application/xml');
+      res.header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+      res.send(sitemapXML);
+    } catch (error) {
+      console.error('Error generating jobs sitemap:', error);
+      res.status(500).send('Error generating sitemap');
+    }
   });
 
   // AI features status

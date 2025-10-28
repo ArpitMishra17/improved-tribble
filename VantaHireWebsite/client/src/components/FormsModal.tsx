@@ -205,9 +205,9 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
 
           <div className="flex justify-end gap-2 mt-4">
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => setSelectedResponse(null)}
-              className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
             >
               Back to Forms
             </Button>
@@ -294,9 +294,9 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
               {responses.length > 0 && (
                 <Button
                   onClick={handleExportCSV}
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export CSV

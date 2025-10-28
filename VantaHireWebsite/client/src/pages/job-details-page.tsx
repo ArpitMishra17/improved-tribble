@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getCsrfToken } from "@/lib/csrf";
 import { z } from "zod";
 import Layout from "@/components/Layout";
+import { generateJobPostingJsonLd, generateJobMetaDescription, getJobCanonicalUrl } from "@/lib/seoHelpers";
 
 export default function JobDetailsPage() {
   const [match, params] = useRoute("/jobs/:id");
@@ -171,8 +173,42 @@ export default function JobDetailsPage() {
     );
   }
 
+  // Generate SEO metadata and JSON-LD
+  const metaDescription = generateJobMetaDescription(job);
+  const canonicalUrl = getJobCanonicalUrl(job);
+  const jobPostingJsonLd = generateJobPostingJsonLd(job);
+
   return (
     <Layout>
+      <Helmet>
+        {/* Page Title and Meta */}
+        <title>{job.title} - VantaHire | AI + Human Expertise for Faster, Fairer Hiring</title>
+        <meta name="description" content={metaDescription} />
+        <link rel="canonical" href={canonicalUrl} />
+
+        {/* Open Graph */}
+        <meta property="og:title" content={`${job.title} - VantaHire`} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content={`${window.location.origin}/og-image.jpg`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:title" content={`${job.title} - VantaHire`} />
+        <meta name="twitter:description" content={metaDescription} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={`${window.location.origin}/twitter-image.jpg`} />
+
+        {/* JobPosting JSON-LD for Google Jobs */}
+        {jobPostingJsonLd && (
+          <script type="application/ld+json">
+            {JSON.stringify(jobPostingJsonLd)}
+          </script>
+        )}
+      </Helmet>
+
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         {/* Premium background effects */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>

@@ -38,12 +38,15 @@ export const jobs = pgTable("jobs", {
   reviewComments: text("review_comments"),
   expiresAt: timestamp("expires_at"),
   reviewedBy: integer("reviewed_by").references(() => users.id),
-  reviewedAt: timestamp("reviewed_at")
+  reviewedAt: timestamp("reviewed_at"),
+  slug: text("slug"), // URL-friendly slug for SEO (e.g., "senior-developer-bangalore")
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 }, (table) => ({
   // Indexes for performance hotspots
   statusIdx: index("jobs_status_idx").on(table.status),
   postedByIdx: index("jobs_posted_by_idx").on(table.postedBy),
   isActiveIdx: index("jobs_is_active_idx").on(table.isActive),
+  slugIdx: index("jobs_slug_idx").on(table.slug),
 }));
 
 export const userProfiles = pgTable("user_profiles", {

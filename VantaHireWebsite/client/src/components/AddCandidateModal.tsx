@@ -233,9 +233,9 @@ export function AddCandidateModal({
 
         <div className="flex justify-end gap-2 pt-4">
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={() => onOpenChange(false)}
-            className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+            className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
           >
             Cancel
           </Button>

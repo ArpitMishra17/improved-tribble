@@ -4,6 +4,116 @@ import { sql } from 'drizzle-orm';
 export async function ensureAtsSchema(): Promise<void> {
   console.log('🔧 Ensuring ATS schema exists...');
 
+  // Create base tables first (from schema.ts)
+  console.log('  Creating base tables (users, jobs, applications, etc.)...');
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL,
+      first_name TEXT,
+      last_name TEXT,
+      role TEXT NOT NULL DEFAULT 'candidate'
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS contact_submissions (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT,
+      company TEXT,
+      location TEXT,
+      message TEXT NOT NULL,
+      submitted_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS jobs (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      location TEXT NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      skills TEXT[],
+      deadline DATE,
+      posted_by INTEGER NOT NULL REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      is_active BOOLEAN NOT NULL DEFAULT FALSE,
+      status TEXT NOT NULL DEFAULT 'pending',
+      review_comments TEXT,
+      expires_at TIMESTAMP,
+      reviewed_by INTEGER REFERENCES users(id),
+      reviewed_at TIMESTAMP,
+      slug TEXT,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      bio TEXT,
+      skills TEXT[],
+      linkedin TEXT,
+      location TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS applications (
+      id SERIAL PRIMARY KEY,
+      job_id INTEGER NOT NULL REFERENCES jobs(id),
+      user_id INTEGER REFERENCES users(id),
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      resume_url TEXT NOT NULL,
+      resume_filename TEXT,
+      cover_letter TEXT,
+      status TEXT DEFAULT 'submitted' NOT NULL,
+      notes TEXT,
+      last_viewed_at TIMESTAMP,
+      downloaded_at TIMESTAMP,
+      applied_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      current_stage INTEGER,
+      interview_date TIMESTAMP,
+      interview_time TEXT,
+      interview_location TEXT,
+      interview_notes TEXT,
+      recruiter_notes TEXT[],
+      rating INTEGER,
+      tags TEXT[],
+      stage_changed_at TIMESTAMP,
+      stage_changed_by INTEGER,
+      submitted_by_recruiter BOOLEAN DEFAULT FALSE,
+      created_by_user_id INTEGER REFERENCES users(id),
+      source TEXT DEFAULT 'public_apply',
+      source_metadata JSONB
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS job_analytics (
+      id SERIAL PRIMARY KEY,
+      job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      views INTEGER NOT NULL DEFAULT 0,
+      apply_clicks INTEGER NOT NULL DEFAULT 0,
+      conversion_rate NUMERIC(5, 2) DEFAULT 0.00,
+      ai_score_cache INTEGER,
+      ai_model_version TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
   // Create ATS tables if they do not exist
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS pipeline_stages (
@@ -127,6 +237,12 @@ export async function ensureAtsSchema(): Promise<void> {
 
   // Clean up existing data: pending jobs should not be active
   await db.execute(sql`UPDATE jobs SET is_active = FALSE WHERE status = 'pending' AND is_active = TRUE;`);
+
+  // Phase 2 (SEO): Add slug and updatedAt columns for SEO-friendly URLs
+  console.log('  Adding SEO columns to jobs table...');
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS slug TEXT;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW() NOT NULL;`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_slug_idx ON jobs(slug);`);
 
   // Forms Feature: Create forms tables in dependency order
   console.log('  Creating forms tables...');

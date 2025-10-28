@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { Search, MapPin, Clock, Filter, Briefcase, Star, Building, DollarSign, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,39 @@ export default function JobsPage() {
     setPage(1); // Reset to first page when searching
   };
 
+  // Generate dynamic meta tags based on filters and results
+  const metaData = useMemo(() => {
+    const baseUrl = window.location.origin;
+    const count = data?.pagination.total || 0;
+
+    // Build title with filters
+    let title = "Find Jobs";
+    if (location) title += ` in ${location}`;
+    if (type && type !== "all") {
+      const typeLabel = type.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      title += ` - ${typeLabel}`;
+    }
+    title += " | VantaHire";
+
+    // Build description
+    let description = `Browse ${count} open roles across IT, Telecom, Automotive, Fintech, Healthcare.`;
+    if (location) description += ` Find opportunities in ${location}.`;
+    if (search) description += ` Search: ${search}.`;
+    description += " AI-powered matching with specialist recruiters.";
+
+    // Build canonical URL with query params
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (location) params.set("location", location);
+    if (type && type !== "all") params.set("type", type);
+    if (skills) params.set("skills", skills);
+    if (page > 1) params.set("page", page.toString());
+
+    const canonicalUrl = `${baseUrl}/jobs${params.toString() ? `?${params.toString()}` : ''}`;
+
+    return { title, description, canonicalUrl, baseUrl };
+  }, [location, type, search, skills, page, data?.pagination.total]);
+
   const formatDate = (dateString: string | Date) => {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return date.toLocaleDateString('en-US', {
@@ -65,6 +99,27 @@ export default function JobsPage() {
 
   return (
     <Layout>
+      <Helmet>
+        <title>{metaData.title}</title>
+        <meta name="description" content={metaData.description} />
+        <link rel="canonical" href={metaData.canonicalUrl} />
+
+        {/* Open Graph */}
+        <meta property="og:title" content={metaData.title} />
+        <meta property="og:description" content={metaData.description} />
+        <meta property="og:url" content={metaData.canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content={`${metaData.baseUrl}/og-image.jpg`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaData.title} />
+        <meta name="twitter:description" content={metaData.description} />
+        <meta name="twitter:image" content={`${metaData.baseUrl}/twitter-image.jpg`} />
+      </Helmet>
+
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         {/* Premium background effects */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>

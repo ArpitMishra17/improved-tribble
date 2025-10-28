@@ -1,3 +1,4 @@
+import slugify from 'slugify';
 import {
   users,
   contactSubmissions,
@@ -170,8 +171,16 @@ export class DatabaseStorage implements IStorage {
   
   // Job methods
   async createJob(job: InsertJob & { postedBy: number }): Promise<Job> {
+    // Generate SEO-friendly slug from title
+    const slug = slugify(job.title, {
+      lower: true,
+      strict: true, // Remove special characters
+      trim: true
+    });
+
     const jobData = {
       ...job,
+      slug,
       deadline: job.deadline ? job.deadline.toISOString().split('T')[0] : null
     };
     const [result] = await db
@@ -243,7 +252,10 @@ export class DatabaseStorage implements IStorage {
   async updateJobStatus(id: number, isActive: boolean): Promise<Job | undefined> {
     const [job] = await db
       .update(jobs)
-      .set({ isActive })
+      .set({
+        isActive,
+        updatedAt: new Date()
+      })
       .where(eq(jobs.id, id))
       .returning();
     return job || undefined;
@@ -315,6 +327,7 @@ export class DatabaseStorage implements IStorage {
         reviewComments,
         reviewedBy,
         reviewedAt: new Date(),
+        updatedAt: new Date(),
         isActive: status === 'approved' // Only active when approved
       })
       .where(eq(jobs.id, id))

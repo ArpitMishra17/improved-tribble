@@ -24,3 +24,7 @@ coverage/
 *.swp
 *.swo
 *~
+
+# Sensitive files with secrets
+railway-vars.json
+test-brevo-smtp.js

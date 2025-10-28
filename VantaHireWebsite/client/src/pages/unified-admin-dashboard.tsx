@@ -33,7 +33,7 @@ import {
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { Redirect } from "wouter";
+import { Redirect, Link } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 
 interface AdminStats {
@@ -468,16 +468,25 @@ export default function UnifiedAdminDashboard() {
                         </>
                       )}
                     </Button>
-                    <Button 
-                      variant="outline"
-                      className="w-full border-white/20 text-white hover:bg-white/10"
+                    <Link href="/recruiter-dashboard">
+                      <Button
+                        variant="secondary"
+                        className="w-full bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+                      >
+                        <Briefcase className="h-4 w-4 mr-2" />
+                        Recruiter Dashboard
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="secondary"
+                      className="w-full bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export Analytics
                     </Button>
-                    <Button 
-                      variant="outline"
-                      className="w-full border-white/20 text-white hover:bg-white/10"
+                    <Button
+                      variant="secondary"
+                      className="w-full bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
                     >
                       <Settings className="h-4 w-4 mr-2" />
                       System Settings

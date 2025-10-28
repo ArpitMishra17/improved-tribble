@@ -436,10 +436,10 @@ export function TemplateEditorModal({ open, onOpenChange, template }: TemplateEd
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-700">
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => onOpenChange(false)}
               disabled={isPending}
-              className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+              className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
             >
               Cancel
             </Button>
