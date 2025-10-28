@@ -238,10 +238,17 @@ const Testimonials = () => {
           
           {/* Mobile view - stacked */}
           <div className="md:hidden animate-fade-in" style={{ animationDelay: '0.7s' }}>
-            <TestimonialCard 
-              {...testimonials[activeIndex]} 
-              active={true}
-            />
+            {testimonials[activeIndex] && (
+              <TestimonialCard
+                quote={testimonials[activeIndex].quote}
+                name={testimonials[activeIndex].name}
+                role={testimonials[activeIndex].role}
+                company={testimonials[activeIndex].company}
+                rating={testimonials[activeIndex].rating}
+                dotColor={testimonials[activeIndex].dotColor}
+                active={true}
+              />
+            )}
           </div>
           
           {/* Premium navigation controls */}

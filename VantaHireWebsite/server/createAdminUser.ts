@@ -15,7 +15,7 @@ function generateSecurePassword(length: number = 24): string {
   const bytes = randomBytes(length);
   let password = '';
   for (let i = 0; i < length; i++) {
-    password += chars[bytes[i] % chars.length];
+    password += chars[bytes[i]! % chars.length];
   }
   return password;
 }

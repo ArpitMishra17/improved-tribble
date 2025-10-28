@@ -244,6 +244,44 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW() NOT NULL;`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_slug_idx ON jobs(slug);`);
 
+  // Phase 7 (Job Lifecycle): Add deactivation/reactivation tracking columns
+  console.log('  Adding job lifecycle tracking columns...');
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMP;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS reactivated_at TIMESTAMP;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS reactivation_count INTEGER DEFAULT 0 NOT NULL;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS deactivation_reason TEXT;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS warning_email_sent BOOLEAN DEFAULT FALSE NOT NULL;`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS jobs_deactivated_at_idx ON jobs(deactivated_at);`);
+
+  // Backfill deactivatedAt for existing inactive jobs
+  console.log('  Backfilling deactivation timestamps for existing inactive jobs...');
+  await db.execute(sql`
+    UPDATE jobs
+    SET deactivated_at = updated_at,
+        deactivation_reason = 'manual'
+    WHERE is_active = FALSE
+      AND deactivated_at IS NULL
+      AND status IN ('approved', 'declined');
+  `);
+
+  // Phase 7 (Job Audit): Create audit log table for compliance and debugging
+  console.log('  Creating job audit log table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS job_audit_log (
+      id SERIAL PRIMARY KEY,
+      job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      action TEXT NOT NULL,
+      performed_by INTEGER NOT NULL REFERENCES users(id),
+      reason TEXT,
+      metadata JSONB,
+      timestamp TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS job_audit_log_job_id_idx ON job_audit_log(job_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS job_audit_log_timestamp_idx ON job_audit_log(timestamp);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS job_audit_log_action_idx ON job_audit_log(action);`);
+
   // Forms Feature: Create forms tables in dependency order
   console.log('  Creating forms tables...');
 

@@ -22,7 +22,7 @@ export async function setupVite(app: Express, server: Server) {
   const { createServer: createViteServer, createLogger } = await import("vite");
   const viteConfig = (await import("../vite.config"))?.default ?? {};
   const viteLogger = createLogger();
-  const serverOptions = {
+  const serverOptions: any = {
     middlewareMode: true,
     hmr: { server },
     allowedHosts: true,

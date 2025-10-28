@@ -40,13 +40,20 @@ export const jobs = pgTable("jobs", {
   reviewedBy: integer("reviewed_by").references(() => users.id),
   reviewedAt: timestamp("reviewed_at"),
   slug: text("slug"), // URL-friendly slug for SEO (e.g., "senior-developer-bangalore")
-  updatedAt: timestamp("updated_at").defaultNow().notNull()
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  // Job lifecycle tracking (deactivation/reactivation)
+  deactivatedAt: timestamp("deactivated_at"), // When job was deactivated
+  reactivatedAt: timestamp("reactivated_at"), // When job was last reactivated
+  reactivationCount: integer("reactivation_count").notNull().default(0), // Number of times job has been reactivated
+  deactivationReason: text("deactivation_reason"), // Reason for deactivation: 'manual', 'auto_expired', 'filled', 'cancelled'
+  warningEmailSent: boolean("warning_email_sent").notNull().default(false), // Warning email sent before auto-deactivation
 }, (table) => ({
   // Indexes for performance hotspots
   statusIdx: index("jobs_status_idx").on(table.status),
   postedByIdx: index("jobs_posted_by_idx").on(table.postedBy),
   isActiveIdx: index("jobs_is_active_idx").on(table.isActive),
   slugIdx: index("jobs_slug_idx").on(table.slug),
+  deactivatedAtIdx: index("jobs_deactivated_at_idx").on(table.deactivatedAt),
 }));
 
 export const userProfiles = pgTable("user_profiles", {
@@ -112,6 +119,21 @@ export const jobAnalytics = pgTable("job_analytics", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Job audit log for compliance and debugging
+export const jobAuditLog = pgTable("job_audit_log", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  action: text("action").notNull(), // 'deactivated', 'reactivated', 'created', 'approved', 'declined'
+  performedBy: integer("performed_by").notNull().references(() => users.id),
+  reason: text("reason"), // Reason for action (e.g., 'auto_expired', 'manual', 'filled')
+  metadata: jsonb("metadata"), // Additional context (e.g., { previousStatus: 'active', newStatus: 'inactive' })
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+}, (table) => ({
+  jobIdIdx: index("job_audit_log_job_id_idx").on(table.jobId),
+  timestampIdx: index("job_audit_log_timestamp_idx").on(table.timestamp),
+  actionIdx: index("job_audit_log_action_idx").on(table.action),
+}));
 
 // ATS: Pipeline stages
 export const pipelineStages = pgTable("pipeline_stages", {
@@ -369,6 +391,17 @@ export const jobAnalyticsRelations = relations(jobAnalytics, ({ one }) => ({
   }),
 }));
 
+export const jobAuditLogRelations = relations(jobAuditLog, ({ one }) => ({
+  job: one(jobs, {
+    fields: [jobAuditLog.jobId],
+    references: [jobs.id],
+  }),
+  performedBy: one(users, {
+    fields: [jobAuditLog.performedBy],
+    references: [users.id],
+  }),
+}));
+
 export const formsRelations = relations(forms, ({ one, many }) => ({
   createdBy: one(users, {
     fields: [forms.createdBy],
@@ -571,6 +604,8 @@ export type UserProfile = typeof userProfiles.$inferSelect;
 
 export type InsertJobAnalytics = z.infer<typeof insertJobAnalyticsSchema>;
 export type JobAnalytics = typeof jobAnalytics.$inferSelect;
+
+export type JobAuditLog = typeof jobAuditLog.$inferSelect;
 
 export type PipelineStage = typeof pipelineStages.$inferSelect;
 export type InsertPipelineStage = z.infer<typeof insertPipelineStageSchema>;

@@ -11,6 +11,17 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink, Plus, Mail, Calendar, BarChart, Play } from "lucide-react";
 import Layout from "@/components/Layout";
+import type { Job, Application } from "@shared/schema";
+
+// Extended types for API responses with relations
+type ApplicationWithJob = Application & {
+  job?: { title: string };
+};
+
+type JobWithCounts = Job & {
+  company?: string;
+  applicationCount?: number;
+};
 
 export default function RecruiterDashboard() {
   const { toast } = useToast();
@@ -20,12 +31,12 @@ export default function RecruiterDashboard() {
   const [newStatus, setNewStatus] = useState("");
 
   // Fetch recruiter's jobs
-  const { data: jobs = [], isLoading: jobsLoading } = useQuery({
+  const { data: jobs = [], isLoading: jobsLoading } = useQuery<JobWithCounts[]>({
     queryKey: ["/api/my-jobs"],
   });
 
   // Fetch all applications for recruiter's jobs
-  const { data: applications = [], isLoading: applicationsLoading } = useQuery({
+  const { data: applications = [], isLoading: applicationsLoading } = useQuery<ApplicationWithJob[]>({
     queryKey: ["/api/my-applications-received"],
   });
 
@@ -111,9 +122,9 @@ export default function RecruiterDashboard() {
 
   const getJobStats = () => {
     const totalJobs = jobs.length;
-    const activeJobs = jobs.filter((job: any) => job.status === 'active').length;
+    const activeJobs = jobs.filter((job) => job.status === 'active').length;
     const totalApplications = applications.length;
-    const pendingApplications = applications.filter((app: any) => app.status === 'pending').length;
+    const pendingApplications = applications.filter((app) => app.status === 'pending').length;
 
     return { totalJobs, activeJobs, totalApplications, pendingApplications };
   };
@@ -163,7 +174,7 @@ export default function RecruiterDashboard() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (jobs.length > 0) {
+                  if (jobs.length > 0 && jobs[0]) {
                     setLocation(`/jobs/${jobs[0].id}/applications`);
                   } else {
                     toast({
@@ -181,7 +192,7 @@ export default function RecruiterDashboard() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (jobs.length > 0) {
+                  if (jobs.length > 0 && jobs[0]) {
                     setLocation(`/jobs/${jobs[0].id}/applications`);
                   } else {
                     toast({
@@ -278,7 +289,7 @@ export default function RecruiterDashboard() {
                         <p className="text-white/70">No applications received yet</p>
                       </div>
                     ) : (
-                      applications.map((application: any) => (
+                      applications.map((application) => (
                         <div
                           key={application.id}
                           className="p-4 rounded-lg bg-white/5 border border-white/10 space-y-3"
@@ -410,7 +421,7 @@ export default function RecruiterDashboard() {
                         </Button>
                       </div>
                     ) : (
-                      jobs.map((job: any) => (
+                      jobs.map((job) => (
                         <div
                           key={job.id}
                           className="p-4 rounded-lg bg-white/5 border border-white/10"

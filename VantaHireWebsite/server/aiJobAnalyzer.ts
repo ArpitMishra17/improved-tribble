@@ -71,7 +71,7 @@ Return only valid JSON without any additional text.`;
       temperature: 0.3
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const result = JSON.parse(response.choices[0]?.message.content || "{}");
 
     // Validate and ensure all required fields exist
     return {

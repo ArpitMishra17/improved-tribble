@@ -14,6 +14,9 @@ import type {
   FormAnswer,
 } from '@shared/forms.types';
 
+// Re-export commonly used types for convenience
+export type { FormTemplateDTO } from '@shared/forms.types';
+
 // ==================== Error Types ====================
 
 /**
@@ -28,7 +31,7 @@ export type FormsApiError =
   | { type: 'validation_error'; status: 400; code: 'VALIDATION_ERROR'; message: string }
   | { type: 'not_found'; status: 404; code: 'NOT_FOUND'; message: string }
   | { type: 'unauthorized'; status: 401 | 403; code: 'UNAUTHORIZED'; message: string }
-  | { type: 'server_error'; status: 500; code: 'SERVER_ERROR'; message: string }
+  | { type: 'server_error'; status: number; code: 'SERVER_ERROR'; message: string }
   | { type: 'network_error'; status: 0; code: 'NETWORK_ERROR'; message: string };
 
 /**

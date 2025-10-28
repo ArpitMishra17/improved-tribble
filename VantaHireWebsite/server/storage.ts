@@ -6,6 +6,7 @@ import {
   applications,
   userProfiles,
   jobAnalytics,
+  jobAuditLog,
   pipelineStages,
   applicationStageHistory,
   emailTemplates,
@@ -22,6 +23,7 @@ import {
   type InsertUserProfile,
   type JobAnalytics,
   type InsertJobAnalytics,
+  type JobAuditLog,
   type PipelineStage,
   type InsertPipelineStage,
   type EmailTemplate,
@@ -57,13 +59,14 @@ export interface IStorage {
     search?: string;
     status?: string;
   }): Promise<{ jobs: Job[]; total: number }>;
-  updateJobStatus(id: number, isActive: boolean): Promise<Job | undefined>;
+  updateJobStatus(id: number, isActive: boolean, reason?: string, performedBy?: number): Promise<Job | undefined>;
+  logJobAction(data: { jobId: number; action: string; performedBy: number; reason?: string; metadata?: any }): Promise<JobAuditLog>;
   getJobsByUser(userId: number): Promise<Job[]>;
   reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined>;
   getJobsByStatus(status: string, page?: number, limit?: number): Promise<{ jobs: Job[]; total: number }>;
   
   // Application operations
-  createApplication(application: InsertApplication & { jobId: number; resumeUrl: string }): Promise<Application>;
+  createApplication(application: InsertApplication & { jobId: number; resumeUrl: string; resumeFilename?: string | null }): Promise<Application>;
   getApplicationsByJob(jobId: number): Promise<Application[]>;
   getApplicationsByUser(email: string): Promise<Application[]>;
   getApplication(id: number): Promise<Application | undefined>;
@@ -228,8 +231,13 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (filters.skills && filters.skills.length > 0) {
-      // Use array overlap operator for skills filtering
-      whereConditions.push(sql`${jobs.skills} && ${filters.skills}`);
+      // Check if job skills array contains any of the filter skills
+      // Using OR conditions to check each skill individually
+      // Also ensure skills column is not null
+      const skillConditions = filters.skills.map(skill =>
+        sql`${jobs.skills} IS NOT NULL AND ${skill} = ANY(${jobs.skills})`
+      );
+      whereConditions.push(or(...skillConditions));
     }
     
     const whereClause = whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0];
@@ -249,16 +257,84 @@ export class DatabaseStorage implements IStorage {
     };
   }
   
-  async updateJobStatus(id: number, isActive: boolean): Promise<Job | undefined> {
+  async updateJobStatus(id: number, isActive: boolean, reason?: string, performedBy?: number): Promise<Job | undefined> {
+    // Get current job state
+    const currentJob = await this.getJob(id);
+    if (!currentJob) return undefined;
+
+    const now = new Date();
+    const updates: Partial<Job> = {
+      isActive,
+      updatedAt: now
+    };
+
+    // Track lifecycle transitions
+    if (currentJob.isActive && !isActive) {
+      // Deactivating job
+      updates.deactivatedAt = now;
+      updates.deactivationReason = reason || 'manual';
+      updates.warningEmailSent = false; // Reset for next cycle
+    } else if (!currentJob.isActive && isActive) {
+      // Reactivating job
+      updates.reactivatedAt = now;
+      updates.reactivationCount = (currentJob.reactivationCount || 0) + 1;
+      updates.deactivationReason = null; // Clear reason on reactivation
+    }
+
     const [job] = await db
       .update(jobs)
-      .set({
-        isActive,
-        updatedAt: new Date()
-      })
+      .set(updates)
       .where(eq(jobs.id, id))
       .returning();
+
+    // Log audit trail if performedBy provided
+    if (job && performedBy) {
+      const metadata = {
+        previousStatus: currentJob.isActive ? 'active' : 'inactive',
+        newStatus: isActive ? 'active' : 'inactive',
+        reactivationCount: job.reactivationCount || 0
+      };
+      if (reason) {
+        await this.logJobAction({
+          jobId: id,
+          action: isActive ? 'reactivated' : 'deactivated',
+          performedBy,
+          reason,
+          metadata,
+        });
+      } else {
+        await this.logJobAction({
+          jobId: id,
+          action: isActive ? 'reactivated' : 'deactivated',
+          performedBy,
+          metadata,
+        });
+      }
+    }
+
     return job || undefined;
+  }
+
+  // Job audit logging for compliance and debugging
+  async logJobAction(data: {
+    jobId: number;
+    action: 'created' | 'approved' | 'declined' | 'deactivated' | 'reactivated';
+    performedBy: number;
+    reason?: string;
+    metadata?: any;
+  }): Promise<JobAuditLog> {
+    const [log] = await db
+      .insert(jobAuditLog)
+      .values({
+        jobId: data.jobId,
+        action: data.action,
+        performedBy: data.performedBy,
+        reason: data.reason || null,
+        metadata: data.metadata || null,
+        timestamp: new Date()
+      })
+      .returning();
+    return log;
   }
   
   async getJobsByUser(userId: number): Promise<Job[]> {
@@ -320,18 +396,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined> {
+    // Get current job state to track lifecycle transitions
+    const currentJob = await this.getJob(id);
+    if (!currentJob) return undefined;
+
+    const now = new Date();
+    const updates: Partial<Job> = {
+      status,
+      reviewComments,
+      reviewedBy,
+      reviewedAt: now,
+      updatedAt: now,
+      isActive: status === 'approved' // Only active when approved
+    };
+
+    // If approving the job, set lifecycle timestamps
+    if (status === 'approved' && !currentJob.isActive) {
+      updates.reactivatedAt = now;
+      updates.reactivationCount = (currentJob.reactivationCount || 0) + 1;
+      updates.deactivationReason = null; // Clear reason on approval/reactivation
+    }
+
     const [job] = await db
       .update(jobs)
-      .set({
-        status,
-        reviewComments,
-        reviewedBy,
-        reviewedAt: new Date(),
-        updatedAt: new Date(),
-        isActive: status === 'approved' // Only active when approved
-      })
+      .set(updates)
       .where(eq(jobs.id, id))
       .returning();
+
+    // Create audit log entry for approval/reactivation
+    if (job && reviewedBy && status === 'approved' && !currentJob.isActive) {
+      await this.logJobAction({
+        jobId: id,
+        action: 'reactivated',
+        performedBy: reviewedBy,
+        reason: 'admin_approval',
+        metadata: {
+          previousStatus: currentJob.status,
+          newStatus: status,
+          reactivationCount: job.reactivationCount || 0,
+          reviewComments: reviewComments || null
+        }
+      });
+    }
+
     return job || undefined;
   }
 
@@ -354,7 +461,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Application methods
-  async createApplication(application: InsertApplication & { jobId: number; resumeUrl: string }): Promise<Application> {
+  async createApplication(application: InsertApplication & { jobId: number; resumeUrl: string; resumeFilename?: string | null }): Promise<Application> {
     const [result] = await db
       .insert(applications)
       .values({
@@ -507,7 +614,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(jobs.postedBy, recruiterId))
       .orderBy(desc(applications.appliedAt));
 
-    return results.map(result => ({
+    return results.map((result: any) => ({
       ...result,
       job: result.job
     }));
@@ -575,12 +682,12 @@ export class DatabaseStorage implements IStorage {
       .from(applications)
       .groupBy(applications.jobId);
 
-    const applicationCountMap = jobApplicationCounts.reduce((acc, item) => {
+    const applicationCountMap = jobApplicationCounts.reduce((acc: Record<number, number>, item: any) => {
       acc[item.jobId] = Number(item.count);
       return acc;
     }, {} as Record<number, number>);
 
-    return jobsWithDetails.map(job => ({
+    return jobsWithDetails.map((job: any) => ({
       ...job,
       company: "VantaHire", // Default company name since field doesn't exist in schema
       applicationCount: applicationCountMap[job.id] || 0,
@@ -609,7 +716,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
       .orderBy(desc(applications.appliedAt));
 
-    return applicationsWithDetails.map(app => ({
+    return applicationsWithDetails.map((app: any) => ({
       ...app,
       fullName: app.name, // Map name to fullName for frontend consistency
       job: {
@@ -647,7 +754,7 @@ export class DatabaseStorage implements IStorage {
       .from(jobs)
       .groupBy(jobs.postedBy);
 
-    const jobCountMap = jobCounts.reduce((acc, item) => {
+    const jobCountMap = jobCounts.reduce((acc: Record<number, number>, item: any) => {
       acc[item.userId] = Number(item.count);
       return acc;
     }, {} as Record<number, number>);
@@ -661,12 +768,12 @@ export class DatabaseStorage implements IStorage {
       .from(applications)
       .groupBy(applications.email);
 
-    const applicationCountMap = applicationCounts.reduce((acc, item) => {
+    const applicationCountMap = applicationCounts.reduce((acc: Record<string, number>, item: any) => {
       acc[item.email] = Number(item.count);
       return acc;
     }, {} as Record<string, number>);
 
-    return usersWithDetails.map(user => {
+    return usersWithDetails.map((user: any) => {
       const result: any = {
         ...user,
         createdAt: new Date().toISOString(), // Mock createdAt since field doesn't exist
@@ -883,7 +990,7 @@ export class DatabaseStorage implements IStorage {
 
     const results = await query.orderBy(desc(jobs.createdAt));
 
-    return results.map(row => ({
+    return results.map((row: any) => ({
       ...row,
       analytics: row.analytics || { views: 0, applyClicks: 0, conversionRate: "0.00" }
     }));
@@ -901,7 +1008,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateApplicationStage(appId: number, newStageId: number, changedBy: number, notes?: string): Promise<void> {
     // Use transaction to ensure atomicity of stage change + history insert
-    await db.transaction(async (tx) => {
+    await db.transaction(async (tx: any) => {
       // Get current application state
       const app = await tx.query.applications.findFirst({
         where: eq(applications.id, appId)

@@ -116,7 +116,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
 
         const createdFields = await db.insert(formFields).values(fieldsData).returning();
 
-        res.status(201).json({
+        return res.status(201).json({
           ...form,
           fields: createdFields.sort((a: any, b: any) => a.order - b.order),
         });
@@ -125,7 +125,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
           return res.status(400).json({ error: 'Invalid request data', details: error.errors });
         }
         console.error('Error creating form template:', error);
-        res.status(500).json({ error: 'Failed to create form template' });
+        return res.status(500).json({ error: 'Failed to create form template' });
       }
     }
   );
@@ -171,7 +171,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
     requireRole(['recruiter', 'admin']),
     async (req: Request, res: Response) => {
       try {
-        const formId = parseInt(req.params.id, 10);
+        const formId = parseInt(req.params.id ?? '', 10);
 
         const form = await db.query.forms.findFirst({
           where: eq(forms.id, formId),
@@ -191,10 +191,10 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
           return res.status(403).json({ error: 'Unauthorized' });
         }
 
-        res.json(form);
+        return res.json(form);
       } catch (error: any) {
         console.error('Error fetching form template:', error);
-        res.status(500).json({ error: 'Failed to fetch form template' });
+        return res.status(500).json({ error: 'Failed to fetch form template' });
       }
     }
   );
@@ -207,7 +207,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
     csrf,
     async (req: Request, res: Response) => {
       try {
-        const formId = parseInt(req.params.id, 10);
+        const formId = parseInt(req.params.id ?? '', 10);
         const body = updateTemplateSchema.parse(req.body);
 
         // Check ownership
@@ -266,7 +266,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
           orderBy: (fields: any, { asc }: any) => [asc(fields.order)],
         });
 
-        res.json({
+        return res.json({
           ...updatedForm,
           fields: existingFields,
         });
@@ -275,7 +275,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
           return res.status(400).json({ error: 'Invalid request data', details: error.errors });
         }
         console.error('Error updating form template:', error);
-        res.status(500).json({ error: 'Failed to update form template' });
+        return res.status(500).json({ error: 'Failed to update form template' });
       }
     }
   );
@@ -288,7 +288,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
     csrf,
     async (req: Request, res: Response) => {
       try {
-        const formId = parseInt(req.params.id, 10);
+        const formId = parseInt(req.params.id ?? '', 10);
 
         // Check ownership
         const existingForm = await db.query.forms.findFirst({
@@ -319,10 +319,10 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
         // Delete form (fields will cascade)
         await db.delete(forms).where(eq(forms.id, formId));
 
-        res.json({ success: true, message: 'Template deleted successfully' });
+        return res.json({ success: true, message: 'Template deleted successfully' });
       } catch (error: any) {
         console.error('Error deleting form template:', error);
-        res.status(500).json({ error: 'Failed to delete form template' });
+        return res.status(500).json({ error: 'Failed to delete form template' });
       }
     }
   );
@@ -353,8 +353,11 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
       if (!emailService) {
         console.warn('[Forms] No email service configured, using preview mode');
         // In development without email config, generate a preview URL
-        const previewUrl = isDevelopment ? `http://ethereal.email/message/${Date.now()}` : undefined;
-        return { success: false, error: 'Email service not configured', previewUrl };
+        if (isDevelopment) {
+          return { success: false, error: 'Email service not configured', previewUrl: `http://ethereal.email/message/${Date.now()}` };
+        } else {
+          return { success: false, error: 'Email service not configured' };
+        }
       }
 
       const subject = `Form Request: ${formName}`;
@@ -376,13 +379,31 @@ VantaHire Team`;
         text,
       });
 
-      const previewUrl = isDevelopment ? `http://ethereal.email/messages` : undefined;
-
-      return {
-        success: emailSent,
-        error: emailSent ? undefined : 'Failed to send email',
-        previewUrl,
-      };
+      if (emailSent) {
+        if (isDevelopment) {
+          return {
+            success: true,
+            previewUrl: `http://ethereal.email/messages`,
+          };
+        } else {
+          return {
+            success: true,
+          };
+        }
+      } else {
+        if (isDevelopment) {
+          return {
+            success: false,
+            error: 'Failed to send email',
+            previewUrl: `http://ethereal.email/messages`,
+          };
+        } else {
+          return {
+            success: false,
+            error: 'Failed to send email',
+          };
+        }
+      }
     } catch (error: any) {
       console.error('[Forms] Error sending invitation email:', error);
       return {
@@ -532,7 +553,7 @@ VantaHire Team`;
           previewUrl: emailResult.previewUrl,
         });
 
-        res.status(201).json({
+        return res.status(201).json({
           invitation: updatedInvitation,
           emailStatus: emailResult.success ? 'sent' : 'failed',
           previewUrl: emailResult.previewUrl,
@@ -542,7 +563,7 @@ VantaHire Team`;
           return res.status(400).json({ error: 'Invalid request data', details: error.errors });
         }
         console.error('Error creating form invitation:', error);
-        res.status(500).json({ error: 'Failed to create form invitation' });
+        return res.status(500).json({ error: 'Failed to create form invitation' });
       }
     }
   );
@@ -583,10 +604,10 @@ VantaHire Team`;
           orderBy: (invitations: any, { desc }: any) => [desc(invitations.createdAt)],
         });
 
-        res.json({ invitations });
+        return res.json({ invitations });
       } catch (error: any) {
         console.error('Error fetching form invitations:', error);
-        res.status(500).json({ error: 'Failed to fetch form invitations' });
+        return res.status(500).json({ error: 'Failed to fetch form invitations' });
       }
     }
   );
@@ -603,7 +624,7 @@ VantaHire Team`;
 
         // Lookup invitation by token
         const invitation = await db.query.formInvitations.findFirst({
-          where: eq(formInvitations.token, token),
+          where: eq(formInvitations.token, token ?? ''),
         });
 
         if (!invitation) {
@@ -636,7 +657,7 @@ VantaHire Team`;
         // Parse and return field snapshot (no PII beyond what's in snapshot)
         const snapshot: FormSnapshot = parseFormSnapshot(invitation.fieldSnapshot);
 
-        res.json({
+        return res.json({
           formName: snapshot.formName,
           formDescription: snapshot.formDescription,
           fields: snapshot.fields,
@@ -644,7 +665,7 @@ VantaHire Team`;
         });
       } catch (error: any) {
         console.error('[Forms] Error fetching public form:', error);
-        res.status(500).json({ error: 'Failed to load form' });
+        return res.status(500).json({ error: 'Failed to load form' });
       }
     }
   );
@@ -664,7 +685,7 @@ VantaHire Team`;
 
         // Validate token and check status (similar to form GET)
         const invitation = await db.query.formInvitations.findFirst({
-          where: eq(formInvitations.token, token),
+          where: eq(formInvitations.token, token ?? ''),
         });
 
         if (!invitation) {
@@ -697,10 +718,10 @@ VantaHire Team`;
           filename: req.file.originalname,
           size: req.file.size,
         };
-        res.json(result);
+        return res.json(result);
       } catch (error: any) {
         console.error('[Forms] Error uploading file:', error);
-        res.status(500).json({ error: 'Failed to upload file' });
+        return res.status(500).json({ error: 'Failed to upload file' });
       }
     }
   );
@@ -723,7 +744,7 @@ VantaHire Team`;
           // Lock invitation row
           const [invitation] = await tx.select()
             .from(formInvitations)
-            .where(eq(formInvitations.token, token))
+            .where(eq(formInvitations.token, token ?? ''))
             .for('update');
 
           if (!invitation) {
@@ -747,7 +768,7 @@ VantaHire Team`;
 
           // Parse field snapshot for validation
           const snapshot: FormSnapshot = parseFormSnapshot(invitation.fieldSnapshot);
-          const fields: FormFieldSnapshot[] = snapshot.fields;
+          const fields: readonly FormFieldSnapshot[] = snapshot.fields;
 
           // Validate answers against snapshot
           const typedAnswers: FormAnswer[] = answers;
@@ -835,7 +856,7 @@ VantaHire Team`;
             .where(eq(formInvitations.id, invitation.id));
         });
 
-        res.json({
+        return res.json({
           success: true,
           message: 'Thank you! Your response has been submitted successfully.',
         });
@@ -849,7 +870,7 @@ VantaHire Team`;
         }
 
         console.error('[Forms] Error submitting public form:', error);
-        res.status(500).json({ error: 'Failed to submit form' });
+        return res.status(500).json({ error: 'Failed to submit form' });
       }
     }
   );
@@ -908,10 +929,10 @@ VantaHire Team`;
           };
         });
 
-        res.json({ responses: responseSummaries });
+        return res.json({ responses: responseSummaries });
       } catch (error: any) {
         console.error('[Forms] Error fetching responses:', error);
-        res.status(500).json({ error: 'Failed to fetch responses' });
+        return res.status(500).json({ error: 'Failed to fetch responses' });
       }
     }
   );
@@ -923,7 +944,7 @@ VantaHire Team`;
     requireRole(['recruiter', 'admin']),
     async (req: Request, res: Response) => {
       try {
-        const responseId = parseInt(req.params.id, 10);
+        const responseId = parseInt(req.params.id ?? '', 10);
 
         // Fetch response with invitation and answers
         const response = await db.query.formResponses.findFirst({
@@ -964,7 +985,7 @@ VantaHire Team`;
           };
         });
 
-        res.json({
+        return res.json({
           id: response.id,
           formName: snapshot.formName,
           formDescription: snapshot.formDescription,
@@ -975,7 +996,7 @@ VantaHire Team`;
         });
       } catch (error: any) {
         console.error('[Forms] Error fetching response detail:', error);
-        res.status(500).json({ error: 'Failed to fetch response detail' });
+        return res.status(500).json({ error: 'Failed to fetch response detail' });
       }
     }
   );
@@ -1072,10 +1093,10 @@ VantaHire Team`;
 
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.send(csvContent);
+        return res.send(csvContent);
       } catch (error: any) {
         console.error('[Forms] Error exporting responses:', error);
-        res.status(500).json({ error: 'Failed to export responses' });
+        return res.status(500).json({ error: 'Failed to export responses' });
       }
     }
   );

@@ -93,6 +93,8 @@ export interface FormResponseSummaryDTO {
   id: number;
   formName: string;
   submittedAt: string;
+  invitationId: number;
+  answeredAt?: string | null;
 }
 
 export interface FormResponseDetailDTO {

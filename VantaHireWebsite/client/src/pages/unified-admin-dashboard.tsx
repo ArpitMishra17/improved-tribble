@@ -275,12 +275,15 @@ export default function UnifiedAdminDashboard() {
   const runAllTests = async () => {
     setIsRunningAllTests(true);
     setOverallProgress(0);
-    
+
     for (let i = 0; i < testSuites.length; i++) {
-      await runTestSuite(testSuites[i].id);
+      const suite = testSuites[i];
+      if (suite) {
+        await runTestSuite(suite.id);
+      }
       setOverallProgress(((i + 1) / testSuites.length) * 100);
     }
-    
+
     setIsRunningAllTests(false);
   };
 

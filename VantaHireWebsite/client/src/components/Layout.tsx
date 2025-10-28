@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
 import QuickAccessBar from "@/components/QuickAccessBar";
 import FloatingActionButton from "@/components/FloatingActionButton";
+import type { User as SelectUser } from "@shared/schema";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,12 @@ const Layout = ({ children }: LayoutProps) => {
   const { user, logoutMutation } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
+
+  // Type guard to help TypeScript narrow the user type
+  const isRecruiter = user?.role === 'recruiter';
+  const isAdmin = user?.role === 'admin';
+  const isCandidate = user?.role === 'candidate';
+  const displayName = user?.firstName || user?.username || 'User';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -99,9 +106,9 @@ const Layout = ({ children }: LayoutProps) => {
                   ></span>
                 </a>
 
-                {user && (user.role === 'recruiter' || user.role === 'admin') && (
-                  <a 
-                    href="/jobs/post" 
+                {user && (isRecruiter || isAdmin) && (
+                  <a
+                    href="/jobs/post"
                     className={`relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group ${
                       location === "/jobs/post" ? 'text-white font-medium' : 'text-white/70'
                     }`}
@@ -111,8 +118,8 @@ const Layout = ({ children }: LayoutProps) => {
                       <Plus className="h-4 w-4" />
                       Post Job
                     </span>
-                    <span 
-                      className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 
+                    <span
+                      className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300
                                 ${location === "/jobs/post" ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}
                     ></span>
                   </a>
@@ -179,7 +186,7 @@ const Layout = ({ children }: LayoutProps) => {
             )}
 
             {/* Dashboard links for authenticated users based on role */}
-            {user && user.role === 'candidate' && (
+            {user && isCandidate && (
               <a 
                 href="/my-dashboard" 
                 className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
@@ -190,7 +197,7 @@ const Layout = ({ children }: LayoutProps) => {
               </a>
             )}
 
-            {user && user.role === 'recruiter' && (
+            {user && isRecruiter && (
               <a
                 href="/recruiter-dashboard"
                 className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
@@ -202,7 +209,7 @@ const Layout = ({ children }: LayoutProps) => {
             )}
 
             {/* Forms link (for both admin and recruiter) */}
-            {user && (user.role === 'admin' || user.role === 'recruiter') && (
+            {user && (isAdmin || isRecruiter) && (
               <a
                 href="/admin/forms"
                 className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
@@ -214,7 +221,7 @@ const Layout = ({ children }: LayoutProps) => {
             )}
 
             {/* Admin links */}
-            {user && user.role === 'admin' && (
+            {user && isAdmin && (
               <>
                 <a 
                   href="/admin" 
@@ -239,7 +246,7 @@ const Layout = ({ children }: LayoutProps) => {
             {user ? (
               <div className="flex items-center gap-4">
                 <span className="text-white/70 text-sm">
-                  Welcome, {user.firstName || user.username}
+                  Welcome, {displayName}
                 </span>
                 <Button
                   onClick={handleLogout}
@@ -319,7 +326,7 @@ const Layout = ({ children }: LayoutProps) => {
                   >
                     Jobs
                   </a>
-                  {user && (user.role === 'recruiter' || user.role === 'admin') && (
+                  {user && (isRecruiter || isAdmin) && (
                     <a 
                       href="/jobs/post" 
                       className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
@@ -372,7 +379,7 @@ const Layout = ({ children }: LayoutProps) => {
               )}
               
               {/* Mobile dashboard links based on role */}
-              {user && user.role === 'candidate' && (
+              {user && isCandidate && (
                 <a 
                   href="/my-dashboard" 
                   className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
@@ -382,7 +389,7 @@ const Layout = ({ children }: LayoutProps) => {
                 </a>
               )}
 
-              {user && user.role === 'recruiter' && (
+              {user && isRecruiter && (
                 <a
                   href="/recruiter-dashboard"
                   className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
@@ -393,7 +400,7 @@ const Layout = ({ children }: LayoutProps) => {
               )}
 
               {/* Forms link (for both admin and recruiter) */}
-              {user && (user.role === 'admin' || user.role === 'recruiter') && (
+              {user && (isAdmin || isRecruiter) && (
                 <a
                   href="/admin/forms"
                   className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
@@ -403,7 +410,7 @@ const Layout = ({ children }: LayoutProps) => {
                 </a>
               )}
 
-              {user && user.role === 'admin' && (
+              {user && isAdmin && (
                 <>
                   <a 
                     href="/admin" 

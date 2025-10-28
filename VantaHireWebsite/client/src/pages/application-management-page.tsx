@@ -321,7 +321,11 @@ export default function ApplicationManagementPage() {
   });
 
   const handleStatusUpdate = (applicationId: number, status: string, notes?: string) => {
-    updateStatusMutation.mutate({ applicationId, status, notes });
+    updateStatusMutation.mutate({
+      applicationId,
+      status,
+      ...(notes !== undefined && { notes })
+    });
   };
 
   const handleBulkUpdate = () => {
@@ -1074,11 +1078,13 @@ export default function ApplicationManagementPage() {
         )}
 
         {/* Add Candidate Modal */}
-        <AddCandidateModal
-          jobId={jobId}
-          open={addCandidateModalOpen}
-          onOpenChange={setAddCandidateModalOpen}
-        />
+        {jobId && (
+          <AddCandidateModal
+            jobId={jobId}
+            open={addCandidateModalOpen}
+            onOpenChange={setAddCandidateModalOpen}
+          />
+        )}
       </div>
     </Layout>
   );

@@ -90,7 +90,7 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
           '@type': 'Place',
           address: {
             '@type': 'PostalAddress',
-            addressLocality: job.location?.split('/')[0].trim(),
+            addressLocality: job.location?.split('/')[0]?.trim() || job.location,
             addressCountry: 'IN',
           },
         },

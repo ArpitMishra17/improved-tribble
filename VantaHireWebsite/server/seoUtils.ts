@@ -1,11 +1,23 @@
-import DOMPurify from 'isomorphic-dompurify';
-
 /**
  * Sanitize HTML description to plain text for structured data
+ * Simple HTML tag stripping for SEO purposes
  */
 export function sanitizeDescription(html: string): string {
-  // Remove HTML tags completely
-  const plainText = DOMPurify.sanitize(html, { ALLOWED_TAGS: [] });
+  if (!html) return '';
+
+  // Remove HTML tags using regex
+  // This is safe for our use case (converting to plain text for SEO)
+  let plainText = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags and content
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove style tags and content
+    .replace(/<[^>]+>/g, '') // Remove all HTML tags
+    .replace(/&nbsp;/g, ' ') // Replace &nbsp; with space
+    .replace(/&amp;/g, '&') // Replace &amp; with &
+    .replace(/&lt;/g, '<') // Replace &lt; with <
+    .replace(/&gt;/g, '>') // Replace &gt; with >
+    .replace(/&quot;/g, '"') // Replace &quot; with "
+    .replace(/&#039;/g, "'"); // Replace &#039; with '
+
   // Normalize whitespace
   return plainText.replace(/\s+/g, ' ').trim();
 }
@@ -53,7 +65,7 @@ export function parseJobLocation(location: string | null) {
   }
 
   // Handle multiple locations (e.g., "Bangalore/Mumbai") - use first one
-  const firstLocation = location.split('/')[0].split(',')[0].trim();
+  const firstLocation = location.split('/')[0]?.split(',')[0]?.trim() || '';
 
   // Default to India for APAC region
   // In future, can add country detection logic

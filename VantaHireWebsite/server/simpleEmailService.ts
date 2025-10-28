@@ -4,7 +4,7 @@ import type { ContactSubmission } from '@shared/schema';
 // Simple interface for our email service
 export interface EmailService {
   sendContactNotification(submission: ContactSubmission): Promise<boolean>;
-  sendEmail(opts: { to: string; subject: string; text: string }): Promise<boolean>;
+  sendEmail(opts: { to: string; subject: string; text?: string; html?: string }): Promise<boolean>;
 }
 
 // Generic SMTP email service (Brevo-compatible)
@@ -30,7 +30,7 @@ export class SMTPEmailService implements EmailService {
       auth: opts.auth,
     });
     this.fromEmail = opts.fromEmail;
-    this.fromName = opts.fromName;
+    this.fromName = opts.fromName ?? '';
     this.notificationsTo = opts.notificationsTo;
   }
 
@@ -67,13 +67,14 @@ export class SMTPEmailService implements EmailService {
     }
   }
 
-  async sendEmail(opts: { to: string; subject: string; text: string }): Promise<boolean> {
+  async sendEmail(opts: { to: string; subject: string; text?: string; html?: string }): Promise<boolean> {
     try {
       const info = await this.transporter.sendMail({
         from: this.buildFrom(),
         to: opts.to,
         subject: opts.subject,
         text: opts.text,
+        html: opts.html,
       });
       console.log('Email sent:', info.messageId);
       return true;
@@ -92,7 +93,9 @@ export class TestEmailService implements EmailService {
   private notificationsTo?: string;
 
   constructor(notificationsTo?: string) {
-    this.notificationsTo = notificationsTo;
+    if (notificationsTo !== undefined) {
+      this.notificationsTo = notificationsTo;
+    }
   }
 
   private async ensureTransporter() {
@@ -129,7 +132,7 @@ export class TestEmailService implements EmailService {
     }
   }
 
-  async sendEmail(opts: { to: string; subject: string; text: string }): Promise<boolean> {
+  async sendEmail(opts: { to: string; subject: string; text?: string; html?: string }): Promise<boolean> {
     try {
       await this.ensureTransporter();
       const info = await this.transporter!.sendMail({
@@ -137,6 +140,7 @@ export class TestEmailService implements EmailService {
         to: opts.to,
         subject: opts.subject,
         text: opts.text,
+        html: opts.html,
       });
       console.log('Ethereal preview URL:', nodemailer.getTestMessageUrl(info));
       return true;
@@ -168,15 +172,43 @@ export async function getEmailService(): Promise<EmailService | null> {
       console.warn('Brevo SMTP not fully configured. Falling back to Ethereal.');
     } else {
       console.log('Using Brevo SMTP for email sending');
-      emailServiceInstance = new SMTPEmailService({
-        host,
-        port,
-        secure,
-        auth: { user, pass },
-        fromEmail,
-        fromName,
-        notificationsTo,
-      });
+      if (fromName !== undefined && notificationsTo !== undefined) {
+        emailServiceInstance = new SMTPEmailService({
+          host,
+          port,
+          secure,
+          auth: { user, pass },
+          fromEmail,
+          fromName,
+          notificationsTo,
+        });
+      } else if (fromName !== undefined) {
+        emailServiceInstance = new SMTPEmailService({
+          host,
+          port,
+          secure,
+          auth: { user, pass },
+          fromEmail,
+          fromName,
+        });
+      } else if (notificationsTo !== undefined) {
+        emailServiceInstance = new SMTPEmailService({
+          host,
+          port,
+          secure,
+          auth: { user, pass },
+          fromEmail,
+          notificationsTo,
+        });
+      } else {
+        emailServiceInstance = new SMTPEmailService({
+          host,
+          port,
+          secure,
+          auth: { user, pass },
+          fromEmail,
+        });
+      }
       return emailServiceInstance;
     }
   }

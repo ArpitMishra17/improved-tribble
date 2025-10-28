@@ -30,7 +30,7 @@ interface FieldData {
   type: string;
   label: string;
   required: boolean;
-  options?: string;
+  options: string | undefined;
   order: number;
 }
 
@@ -62,8 +62,8 @@ export function TemplateEditorModal({ open, onOpenChange, template }: TemplateEd
         setIsPublished(template.isPublished);
         setFields(
           template.fields
-            .sort((a, b) => a.order - b.order)
-            .map((f) => ({
+            .sort((a: typeof template.fields[number], b: typeof template.fields[number]) => a.order - b.order)
+            .map((f: typeof template.fields[number]) => ({
               type: f.type,
               label: f.label,
               required: f.required,
@@ -166,20 +166,27 @@ export function TemplateEditorModal({ open, onOpenChange, template }: TemplateEd
       return;
     }
 
+    const descriptionValue = description.trim();
     const data: CreateTemplateRequest = {
       name: name.trim(),
-      description: description.trim() || undefined,
+      ...(descriptionValue && { description: descriptionValue }),
       isPublished,
-      fields: fields.map((field, index) => ({
-        type: field.type,
-        label: field.label.trim(),
-        required: field.required,
-        // Convert comma-separated options to JSON array for select fields
-        options: field.type === "select" && field.options
-          ? JSON.stringify(field.options.split(',').map(opt => opt.trim()).filter(Boolean))
-          : undefined,
-        order: index, // Use array index for order
-      })),
+      fields: fields.map((field, index) => {
+        const baseField = {
+          type: field.type,
+          label: field.label.trim(),
+          required: field.required,
+          order: index, // Use array index for order
+        };
+        // Only add options if it exists for select fields
+        if (field.type === "select" && field.options) {
+          return {
+            ...baseField,
+            options: JSON.stringify(field.options.split(',').map(opt => opt.trim()).filter(Boolean))
+          };
+        }
+        return baseField;
+      }),
     };
 
     if (template) {
@@ -196,6 +203,7 @@ export function TemplateEditorModal({ open, onOpenChange, template }: TemplateEd
         type: "short_text",
         label: "",
         required: false,
+        options: undefined,
         order: fields.length,
       },
     ]);
@@ -212,11 +220,15 @@ export function TemplateEditorModal({ open, onOpenChange, template }: TemplateEd
   const moveField = (index: number, direction: "up" | "down") => {
     if (direction === "up" && index > 0) {
       const newFields = [...fields];
-      [newFields[index - 1], newFields[index]] = [newFields[index], newFields[index - 1]];
+      const temp = newFields[index - 1]!;
+      newFields[index - 1] = newFields[index]!;
+      newFields[index] = temp;
       setFields(newFields);
     } else if (direction === "down" && index < fields.length - 1) {
       const newFields = [...fields];
-      [newFields[index], newFields[index + 1]] = [newFields[index + 1], newFields[index]];
+      const temp = newFields[index]!;
+      newFields[index] = newFields[index + 1]!;
+      newFields[index + 1] = temp;
       setFields(newFields);
     }
   };

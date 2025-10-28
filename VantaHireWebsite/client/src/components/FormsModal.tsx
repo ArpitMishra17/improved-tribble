@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Application } from "@shared/schema";
-import type { FormResponseDetailDTO } from "@shared/forms.types";
+import type { FormResponseDetailDTO, FormResponseSummaryDTO } from "@shared/forms.types";
 import { formsApi, formsQueryKeys, type CreateInvitationRequest } from "@/lib/formsApi";
 
 interface FormsModalProps {
@@ -40,7 +40,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
   const { toast } = useToast();
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
   const [customMessage, setCustomMessage] = useState("");
-  const [selectedResponse, setSelectedResponse] = useState<FormResponseDetailDTO | null>(null);
+  const [selectedResponse, setSelectedResponse] = useState<FormResponseSummaryDTO | null>(null);
 
   // Fetch templates - types inferred from formsApi.listTemplates()
   const { data: templatesData } = useQuery({
@@ -101,11 +101,14 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
       return;
     }
 
-    sendInvitationMutation.mutate({
+    const payload: CreateInvitationRequest = {
       applicationId: application.id,
       formId: selectedTemplateId,
-      customMessage: customMessage || undefined,
-    });
+    };
+    if (customMessage) {
+      payload.customMessage = customMessage;
+    }
+    sendInvitationMutation.mutate(payload);
   };
 
   const handleExportCSV = async () => {
@@ -146,7 +149,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
       failed: { color: "bg-red-500/20 text-red-300", icon: XCircle, label: "Failed" },
     };
 
-    const config = statusConfig[status] || statusConfig.pending;
+    const config = statusConfig[status] ?? statusConfig.pending!;
     const Icon = config.icon;
 
     return (
