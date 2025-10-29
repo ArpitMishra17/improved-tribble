@@ -122,6 +122,14 @@ export function setupAuth(app: Express) {
         return;
       }
 
+      // Security: Only allow candidate or recruiter roles via public registration
+      // Admin and superadmin accounts must be created manually by existing admins
+      const allowedRoles = ['candidate', 'recruiter'];
+      if (!allowedRoles.includes(role)) {
+        res.status(403).json({ error: "Invalid role. Public registration only allows 'candidate' or 'recruiter' roles." });
+        return;
+      }
+
       // Password strength validation
       if (password.length < 10) {
         res.status(400).json({ error: "Password must be at least 10 characters long" });

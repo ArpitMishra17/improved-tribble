@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, LogIn, Briefcase, Users, Star, Shield, Rocket } from "lucide-react";
 import Layout from "@/components/Layout";
 
@@ -183,19 +182,6 @@ export default function AuthPage() {
                         className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
                         placeholder="Create a strong password"
                       />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="role" className="text-white">Role</Label>
-                      <Select value={registerData.role} onValueChange={(value) => setRegisterData({ ...registerData, role: value })}>
-                        <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="recruiter">Recruiter</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
 
                     <Button
