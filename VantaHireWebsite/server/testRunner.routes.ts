@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { requireRole } from "./auth";
 import rateLimit from "express-rate-limit";
-import { spawn } from "child_process";
+import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 
 // Rate limit test execution to prevent abuse
@@ -153,7 +153,7 @@ async function runTestSuite(suite: string): Promise<TestSuiteResult> {
     const projectRoot = path.resolve(process.cwd());
 
     // Spawn process with explicit cwd and env
-    const child = spawn(command, args, {
+    const child: ChildProcess = spawn(command, args, {
       cwd: projectRoot,
       env: {
         ...process.env,
@@ -162,30 +162,32 @@ async function runTestSuite(suite: string): Promise<TestSuiteResult> {
       },
       shell: false, // Explicitly no shell for security
       timeout: 300000, // 5 minute timeout
-      maxBuffer: 10 * 1024 * 1024, // 10MB buffer
     });
 
     let stdout = '';
     let stderr = '';
 
-    child.stdout?.on('data', (data) => {
+    // Enforce 10MB buffer limit manually since spawn doesn't have maxBuffer
+    const MAX_BUFFER = 10 * 1024 * 1024;
+
+    child.stdout?.on('data', (data: Buffer) => {
       stdout += data.toString();
       // Enforce max buffer
-      if (stdout.length > 10 * 1024 * 1024) {
+      if (stdout.length > MAX_BUFFER) {
         child.kill('SIGTERM');
         reject(new Error('Output exceeded 10MB buffer limit'));
       }
     });
 
-    child.stderr?.on('data', (data) => {
+    child.stderr?.on('data', (data: Buffer) => {
       stderr += data.toString();
-      if (stderr.length > 10 * 1024 * 1024) {
+      if (stderr.length > MAX_BUFFER) {
         child.kill('SIGTERM');
         reject(new Error('Error output exceeded 10MB buffer limit'));
       }
     });
 
-    child.on('close', (code) => {
+    child.on('close', (code: number | null) => {
       const output = stdout + stderr;
       const tests = parser(output);
       const duration = Date.now() - startTime;
@@ -197,14 +199,14 @@ async function runTestSuite(suite: string): Promise<TestSuiteResult> {
       // Extract coverage if available
       let coverage: number | undefined;
       const coverageMatch = output.match(/All files\s*\|\s*([\d.]+)/);
-      if (coverageMatch) {
+      if (coverageMatch && coverageMatch[1]) {
         coverage = parseFloat(coverageMatch[1]);
       }
 
       // Tests may exit with non-zero code but still have results
       if (code !== 0 && tests.length === 0) {
-        resolve({
-          suite,
+        const result: TestSuiteResult = {
+          suite: suite,
           totalTests: 1,
           passedTests: 0,
           failedTests: 1,
@@ -213,25 +215,27 @@ async function runTestSuite(suite: string): Promise<TestSuiteResult> {
             id: 'error',
             name: 'Test Execution Error',
             status: 'failed',
-            details: `Process exited with code ${code}`,
+            details: `Process exited with code ${code ?? 'unknown'}`,
           }],
           rawOutput: output.slice(0, 5000),
-        });
+        };
+        resolve(result);
       } else {
-        resolve({
-          suite,
+        const result: TestSuiteResult = {
+          suite: suite,
           totalTests: tests.length,
           passedTests,
           failedTests,
           duration,
-          coverage,
+          ...(coverage !== undefined && { coverage }), // Only include if defined
           tests,
           rawOutput: output.slice(0, 5000), // Limit output size
-        });
+        };
+        resolve(result);
       }
     });
 
-    child.on('error', (error) => {
+    child.on('error', (error: Error) => {
       reject(new Error(`Failed to spawn test process: ${error.message}`));
     });
   });
@@ -272,9 +276,11 @@ export function registerTestRunnerRoutes(
         console.log(`[TEST RUNNER] Completed ${suite} tests: ${result.passedTests}/${result.totalTests} passed in ${result.duration}ms`);
 
         res.json(result);
+        return;
       } catch (error) {
         console.error('[TEST RUNNER] Error:', error);
         next(error);
+        return;
       }
     }
   );
