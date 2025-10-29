@@ -31,7 +31,9 @@ export class SMTPEmailService implements EmailService {
     });
     this.fromEmail = opts.fromEmail;
     this.fromName = opts.fromName ?? '';
-    this.notificationsTo = opts.notificationsTo;
+    if (opts.notificationsTo !== undefined) {
+      this.notificationsTo = opts.notificationsTo;
+    }
   }
 
   private buildFrom() {

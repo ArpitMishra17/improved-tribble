@@ -66,7 +66,19 @@ export interface IStorage {
   getJobsByStatus(status: string, page?: number, limit?: number): Promise<{ jobs: Job[]; total: number }>;
   
   // Application operations
-  createApplication(application: InsertApplication & { jobId: number; resumeUrl: string; resumeFilename?: string | null }): Promise<Application>;
+  createApplication(application: InsertApplication & {
+    jobId: number;
+    resumeUrl: string;
+    resumeFilename?: string | null;
+    userId?: number | null;
+    submittedByRecruiter?: boolean;
+    createdByUserId?: number;
+    source?: string;
+    sourceMetadata?: any;
+    currentStage?: number;
+    stageChangedAt?: Date;
+    stageChangedBy?: number;
+  }): Promise<Application>;
   getApplicationsByJob(jobId: number): Promise<Application[]>;
   getApplicationsByUser(email: string): Promise<Application[]>;
   getApplication(id: number): Promise<Application | undefined>;
@@ -237,7 +249,10 @@ export class DatabaseStorage implements IStorage {
       const skillConditions = filters.skills.map(skill =>
         sql`${jobs.skills} IS NOT NULL AND ${skill} = ANY(${jobs.skills})`
       );
-      whereConditions.push(or(...skillConditions));
+      const skillsOr = or(...skillConditions);
+      if (skillsOr) {
+        whereConditions.push(skillsOr);
+      }
     }
     
     const whereClause = whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0];
@@ -403,8 +418,8 @@ export class DatabaseStorage implements IStorage {
     const now = new Date();
     const updates: Partial<Job> = {
       status,
-      reviewComments,
-      reviewedBy,
+      ...(reviewComments !== undefined && { reviewComments }),
+      ...(reviewedBy !== undefined && { reviewedBy }),
       reviewedAt: now,
       updatedAt: now,
       isActive: status === 'approved' // Only active when approved
@@ -461,7 +476,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Application methods
-  async createApplication(application: InsertApplication & { jobId: number; resumeUrl: string; resumeFilename?: string | null }): Promise<Application> {
+  async createApplication(application: InsertApplication & {
+    jobId: number;
+    resumeUrl: string;
+    resumeFilename?: string | null;
+    userId?: number | null;
+    submittedByRecruiter?: boolean;
+    createdByUserId?: number;
+    source?: string;
+    sourceMetadata?: any;
+    currentStage?: number;
+    stageChangedAt?: Date;
+    stageChangedBy?: number;
+  }): Promise<Application> {
     const [result] = await db
       .insert(applications)
       .values({

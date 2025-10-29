@@ -122,10 +122,15 @@ class TestClient {
       if (setCookie) {
         setCookie.forEach((cookie: string) => {
           const cookieName = cookie.split('=')[0];
-          // Remove old cookie with same name
-          this.cookies = this.cookies.filter(c => !c.startsWith(cookieName + '='));
-          // Add new cookie
-          this.cookies.push(cookie.split(';')[0]);
+          if (cookieName) {
+            // Remove old cookie with same name
+            this.cookies = this.cookies.filter(c => !c.startsWith(cookieName + '='));
+            // Add new cookie
+            const cookieValue = cookie.split(';')[0];
+            if (cookieValue) {
+              this.cookies.push(cookieValue);
+            }
+          }
         });
       }
       return response;

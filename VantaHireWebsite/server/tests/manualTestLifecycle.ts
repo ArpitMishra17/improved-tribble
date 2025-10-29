@@ -107,7 +107,7 @@ async function runTests() {
     await storage.updateJobStatus(testJobId!, false, 'test_api', testUserId);
 
     const response = await fetch(`http://localhost:5001/api/jobs/${testJobId}`);
-    const data = await response.json();
+    const data = await response.json() as { error?: string };
 
     console.log(`   ✓ Response status: ${response.status}`);
     console.log(`   ✓ Response body: ${JSON.stringify(data)}`);

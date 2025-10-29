@@ -134,20 +134,35 @@ export async function deleteFromCloudinary(publicId: string): Promise<void> {
  */
 export function rewriteCloudinaryUrlForDownload(url: string, filename?: string | null): string {
   // Only transform URLs with Cloudinary /upload/ segment
-  if (!url.includes('/upload/')) {
-    return url;
-  }
+  const uploadIdx = url.indexOf('/upload/');
+  if (uploadIdx === -1) return url;
 
-  // Use provided filename or fallback to safe default
   const safeFilename = filename || 'resume.pdf';
   const attachmentFlag = `fl_attachment:${encodeURIComponent(safeFilename)}`;
 
-  // Insert fl_attachment after /upload/, preserving any existing transformations
-  return url.replace(/\/upload\/([^/]*)/, (match, existingTransforms) => {
-    // If there are existing transforms, prepend fl_attachment
-    // Otherwise, just add fl_attachment with trailing slash
-    return existingTransforms
-      ? `/upload/${attachmentFlag},${existingTransforms}`
-      : `/upload/${attachmentFlag}/`;
-  });
+  const before = url.slice(0, uploadIdx + '/upload/'.length); // includes '/upload/'
+  const after = url.slice(uploadIdx + '/upload/'.length); // e.g. 'v123/..' or 'w_200/v123/..' or just 'folder/file'
+
+  // Split out optional transforms and version segment. Version must NOT be treated as a transform.
+  // Patterns:
+  //  - 'v1234/folder/file.ext'
+  //  - 'w_200,h_300/v1234/folder/file.ext'
+  //  - 'folder/file.ext' (no version)
+  let transforms = '';
+  let restWithVersion = after;
+
+  // If transforms exist, they appear before the version segment 'v123...'
+  const m = after.match(/^([^/]+)\/(v\d+\/.*)$/); // transforms + '/v123/...'
+  if (m && m[1] && m[2]) {
+    transforms = m[1];
+    restWithVersion = m[2];
+  } else {
+    // No explicit transforms before version; ensure we don't treat 'v123...' as transforms
+    // If it starts with 'v123/', keep as restWithVersion; otherwise it's just 'folder/file'
+  }
+
+  // Build new URL: insert fl_attachment before any transforms and before version segment
+  const transformPart = transforms ? `${attachmentFlag},${transforms}` : `${attachmentFlag}`;
+  const slash = restWithVersion.startsWith('v') || restWithVersion.length > 0 ? '/' : '';
+  return `${before}${transformPart}${slash}${restWithVersion}`;
 }

@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -24,7 +24,11 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
+  const parts = stored.split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error("Invalid stored password format");
+  }
+  const [hashed, salt] = parts;
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
@@ -109,17 +113,19 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  app.post("/api/register", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { username, password, firstName, lastName, role = 'recruiter' } = req.body;
-      
+
       if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
+        res.status(400).json({ error: "Username and password are required" });
+        return;
       }
 
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
-        return res.status(400).json({ error: "Username already exists" });
+        res.status(400).json({ error: "Username already exists" });
+        return;
       }
 
       const user = await storage.createUser({
@@ -131,7 +137,10 @@ export function setupAuth(app: Express) {
       });
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          next(err);
+          return;
+        }
         res.status(201).json({
           id: user.id,
           username: user.username,
@@ -156,15 +165,21 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.post("/api/logout", (req, res, next) => {
+  app.post("/api/logout", (req: Request, res: Response, next: NextFunction): void => {
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        next(err);
+        return;
+      }
       res.sendStatus(200);
     });
   });
 
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/user", (req: Request, res: Response): void => {
+    if (!req.isAuthenticated()) {
+      res.sendStatus(401);
+      return;
+    }
     const user = req.user!;
     res.json({
       id: user.id,

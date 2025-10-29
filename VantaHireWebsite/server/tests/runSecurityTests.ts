@@ -30,14 +30,19 @@ function recordTest(
   severity?: 'critical' | 'high' | 'medium' | 'low',
   recommendation?: string
 ) {
-  testResults.push({
+  const result: TestResult = {
     category,
     testName,
     passed,
     details,
-    severity,
-    recommendation
-  });
+  };
+  if (severity !== undefined) {
+    result.severity = severity;
+  }
+  if (recommendation !== undefined) {
+    result.recommendation = recommendation;
+  }
+  testResults.push(result);
   totalTests++;
   if (passed) passedTests++;
 
@@ -91,14 +96,14 @@ async function createTestSession(): Promise<{
   const sessionCookie = cookies.split(';')[0];
 
   const csrfResponse = await makeRequest('/api/csrf-token', {
-    headers: { Cookie: sessionCookie },
+    headers: sessionCookie ? { Cookie: sessionCookie } : {},
   });
 
-  const csrfData = await csrfResponse.json();
+  const csrfData = await csrfResponse.json() as { token: string };
   const csrfCookie = csrfResponse.headers.get('set-cookie') || '';
   const fullCookie = `${sessionCookie}; ${csrfCookie.split(';')[0]}`;
 
-  const userData = await registerResponse.json();
+  const userData = await registerResponse.json() as { id: number };
 
   return {
     cookie: fullCookie,
@@ -128,10 +133,10 @@ async function createAdminSession(): Promise<{
   const sessionCookie = cookies.split(';')[0];
 
   const csrfResponse = await makeRequest('/api/csrf-token', {
-    headers: { Cookie: sessionCookie },
+    headers: sessionCookie ? { Cookie: sessionCookie } : {},
   });
 
-  const csrfData = await csrfResponse.json();
+  const csrfData = await csrfResponse.json() as { token: string };
   const csrfCookie = csrfResponse.headers.get('set-cookie') || '';
   const fullCookie = `${sessionCookie}; ${csrfCookie.split(';')[0]}`;
 

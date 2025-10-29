@@ -651,19 +651,19 @@ New job application received:
           name: applicationData.name,
           email: applicationData.email,
           phone: applicationData.phone,
-          coverLetter: applicationData.coverLetter ?? undefined,
+          ...(applicationData.coverLetter && { coverLetter: applicationData.coverLetter }),
           jobId,
           resumeUrl,
           resumeFilename: req.file.originalname,
           submittedByRecruiter: true,
           createdByUserId: req.user!.id,
           source: applicationData.source,
-          // Pass object directly to JSONB column; driver serializes to JSON
-          sourceMetadata: applicationData.sourceMetadata ?? undefined,
-          currentStage: initialStage ?? undefined,
-          stageChangedAt: initialStage ? new Date() : undefined,
-          stageChangedBy: initialStage ? req.user!.id : undefined,
-          userId: undefined, // No candidate account yet
+          ...(applicationData.sourceMetadata && { sourceMetadata: applicationData.sourceMetadata }),
+          ...(initialStage !== null && {
+            currentStage: initialStage,
+            stageChangedAt: new Date(),
+            stageChangedBy: req.user!.id,
+          }),
         });
 
         // Log initial stage assignment to history table
