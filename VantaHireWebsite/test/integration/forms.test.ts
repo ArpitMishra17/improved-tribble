@@ -82,7 +82,15 @@ afterAll(async () => {
   server?.close();
 });
 
-describe('Forms Feature Integration Tests', () => {
+// Gate DB-dependent tests - skip when DATABASE_URL not set
+const HAS_DB = !!process.env.DATABASE_URL;
+const maybeDescribe = HAS_DB ? describe : describe.skip;
+
+if (!HAS_DB) {
+  console.warn('[TEST] Skipping Forms Integration tests: DATABASE_URL not set');
+}
+
+maybeDescribe('Forms Feature Integration Tests', () => {
 
   // ==================== Template CRUD Tests ====================
 

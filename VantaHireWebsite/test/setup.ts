@@ -74,7 +74,11 @@ export const server = setupServer(
   }),
   // Contact form endpoint
   http.post('/api/contact', () => {
-    return HttpResponse.json({ message: 'Contact form submitted successfully' });
+    return HttpResponse.json({ success: true, id: 1 }, { status: 201 });
+  }),
+  // Job application submission endpoint
+  http.post('/api/jobs/:id/apply', () => {
+    return HttpResponse.json({ success: true, applicationId: 123 }, { status: 201 });
   }),
   // Pipeline stages endpoint
   http.get('/api/pipeline/stages', () => {

@@ -16,7 +16,15 @@ afterAll(() => {
   server?.close();
 });
 
-describe('API Integration Tests', () => {
+// Gate DB-dependent tests - skip when DATABASE_URL not set
+const HAS_DB = !!process.env.DATABASE_URL;
+const maybeDescribe = HAS_DB ? describe : describe.skip;
+
+if (!HAS_DB) {
+  console.warn('[TEST] Skipping API Integration tests: DATABASE_URL not set');
+}
+
+maybeDescribe('API Integration Tests', () => {
   describe('Jobs API', () => {
     it('retrieves jobs list with proper pagination', async () => {
       const response = await request(app)

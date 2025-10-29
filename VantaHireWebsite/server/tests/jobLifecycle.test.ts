@@ -4,7 +4,15 @@ import { db } from '../db';
 import { jobs, jobAuditLog, users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
-describe('Job Lifecycle System', () => {
+// Gate DB-dependent tests - skip when DATABASE_URL not set
+const HAS_DB = !!process.env.DATABASE_URL;
+const maybeDescribe = HAS_DB ? describe : describe.skip;
+
+if (!HAS_DB) {
+  console.warn('[TEST] Skipping Job Lifecycle tests: DATABASE_URL not set');
+}
+
+maybeDescribe('Job Lifecycle System', () => {
   let testUserId: number;
   let testJobId: number;
 
