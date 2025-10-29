@@ -4,20 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Play, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Shield, 
-  Zap, 
-  Globe, 
+import {
+  Play,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Shield,
+  Zap,
+  Globe,
   BarChart3,
   RefreshCw,
   AlertTriangle,
   Activity
 } from "lucide-react";
 import Layout from "@/components/Layout";
+import { getCsrfToken } from "@/lib/csrf";
 
 interface TestResult {
   id: string;
@@ -154,11 +155,15 @@ export default function AdminTestingPage() {
     ));
 
     try {
+      // Get CSRF token for security
+      const csrf = await getCsrfToken();
+
       // Call real backend API
       const response = await fetch('/api/admin/run-tests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrf,
         },
         credentials: 'include',
         body: JSON.stringify({ suite: suiteId }),

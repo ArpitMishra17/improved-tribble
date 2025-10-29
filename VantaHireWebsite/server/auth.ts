@@ -122,6 +122,31 @@ export function setupAuth(app: Express) {
         return;
       }
 
+      // Password strength validation
+      if (password.length < 10) {
+        res.status(400).json({ error: "Password must be at least 10 characters long" });
+        return;
+      }
+
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasLowercase = /[a-z]/.test(password);
+      const hasDigit = /\d/.test(password);
+      const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+      if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+        res.status(400).json({
+          error: "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character"
+        });
+        return;
+      }
+
+      // Common password blacklist
+      const commonPasswords = ['password', 'qwerty', '12345678', '123456789', '1234567890', 'abc123', 'password123'];
+      if (commonPasswords.includes(password.toLowerCase())) {
+        res.status(400).json({ error: "Password is too common. Please choose a stronger password" });
+        return;
+      }
+
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         res.status(400).json({ error: "Username already exists" });
