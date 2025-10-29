@@ -7,7 +7,7 @@ import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruite
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
-import { upload, uploadToCloudinary, rewriteCloudinaryUrlForDownload } from "./cloudinary";
+import { upload, uploadToGCS, getSignedDownloadUrl } from "./gcs-storage";
 import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
@@ -486,13 +486,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Increment apply click count for analytics (after duplicate check)
       await storage.incrementApplyClicks(jobId);
 
-      // Upload resume to Cloudinary or use placeholder if not configured
+      // Upload resume to Google Cloud Storage or use placeholder if not configured
       let resumeUrl = 'placeholder-resume.pdf';
       if (req.file) {
         try {
-          resumeUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+          resumeUrl = await uploadToGCS(req.file.buffer, req.file.originalname);
         } catch (error) {
-          console.log('Cloudinary not configured, using placeholder resume URL');
+          console.log('Google Cloud Storage not configured, using placeholder resume URL');
           resumeUrl = `resume-${Date.now()}-${req.file.originalname}`;
         }
       }
@@ -625,9 +625,9 @@ New job application received:
         // Upload resume
         let resumeUrl = 'placeholder-resume.pdf';
         try {
-          resumeUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+          resumeUrl = await uploadToGCS(req.file.buffer, req.file.originalname);
         } catch (error) {
-          console.log('Cloudinary not configured, using placeholder resume URL');
+          console.log('Google Cloud Storage not configured, using placeholder resume URL');
           resumeUrl = `resume-${Date.now()}-${req.file.originalname}`;
         }
 
@@ -786,8 +786,10 @@ New job application received:
         return;
       }
 
-      // Transform Cloudinary URL to force download with proper filename
-      const downloadUrl = rewriteCloudinaryUrlForDownload(url, appRecord.resumeFilename);
+      // Generate signed download URL for GCS (or return URL directly for non-GCS URLs)
+      const downloadUrl = url.startsWith('gs://')
+        ? await getSignedDownloadUrl(url, appRecord.resumeFilename)
+        : url;
 
       res.redirect(302, downloadUrl);
       return;
