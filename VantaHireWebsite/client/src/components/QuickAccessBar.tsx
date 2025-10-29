@@ -61,7 +61,7 @@ export default function QuickAccessBar() {
         {
           label: "Dashboard",
           icon: Home,
-          path: "/candidate-dashboard",
+          path: "/my-dashboard",
           shortcut: "D"
         },
         {
@@ -74,7 +74,7 @@ export default function QuickAccessBar() {
         {
           label: "My Applications",
           icon: FileText,
-          path: "/candidate-dashboard",
+          path: "/my-dashboard",
           shortcut: "M"
         },
       ];
