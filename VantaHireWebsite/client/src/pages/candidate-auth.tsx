@@ -32,7 +32,7 @@ export default function CandidateAuth() {
   // Redirect if already logged in as candidate
   useEffect(() => {
     if (user && user.role === "candidate") {
-      setLocation("/");
+      setLocation("/my-dashboard");
     } else if (user && user.role !== "candidate") {
       toast({
         title: "Access Denied",
