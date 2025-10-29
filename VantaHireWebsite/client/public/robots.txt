@@ -8,7 +8,7 @@ Disallow: /admin-dashboard
 Disallow: /admin-super-dashboard
 Disallow: /unified-admin-dashboard
 Disallow: /recruiter-dashboard
-Disallow: /candidate-dashboard
+Disallow: /my-dashboard
 Disallow: /application-management
 Disallow: /api/
 
