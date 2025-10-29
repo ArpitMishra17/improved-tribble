@@ -167,12 +167,13 @@ export async function getSignedDownloadUrl(
   const file = storage.bucket(bucket).file(filepath);
 
   // Generate signed URL valid for specified duration
+  // Note: GCS SDK handles encoding of the responseDisposition parameter
   const [signedUrl] = await file.getSignedUrl({
     version: 'v4',
     action: 'read',
     expires: Date.now() + expiresInMinutes * 60 * 1000,
     responseDisposition: filename
-      ? `attachment; filename="${encodeURIComponent(filename)}"`
+      ? `attachment; filename="${filename}"`
       : 'attachment',
   });
 

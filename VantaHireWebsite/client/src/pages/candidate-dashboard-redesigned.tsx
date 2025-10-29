@@ -244,11 +244,11 @@ export default function CandidateDashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {application.resumeUrl && (
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                onClick={() => window.open(application.resumeUrl, '_blank')}
+                onClick={() => window.open(`/api/applications/${application.id}/resume`, '_blank')}
               >
                 <Download className="w-4 h-4 mr-1" />
                 View Resume

@@ -365,6 +365,7 @@ export default function PublicFormPage() {
                 <Input
                   {...commonProps}
                   type="file"
+                  accept=".pdf,.doc,.docx"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {

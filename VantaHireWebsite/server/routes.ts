@@ -531,7 +531,7 @@ New job application received:
 - Email: ${application.email}
 - Phone: ${application.phone}
 - Job: ${job.title}
-- Resume: ${resumeUrl}
+- Resume: ${BASE_URL}/api/applications/${application.id}/resume
 - Cover Letter: ${application.coverLetter || 'Not provided'}
             `,
             submittedAt: application.appliedAt
@@ -781,15 +781,21 @@ New job application received:
       }
 
       const url = appRecord.resumeUrl;
-      if (!url || !/^https?:\/\//i.test(url)) {
+      if (!url) {
         res.status(404).json({ error: 'Resume not available' });
         return;
       }
 
-      // Generate signed download URL for GCS (or return URL directly for non-GCS URLs)
-      const downloadUrl = url.startsWith('gs://')
-        ? await getSignedDownloadUrl(url, appRecord.resumeFilename)
-        : url;
+      // Generate signed download URL for GCS paths, validate http(s) URLs, reject others
+      let downloadUrl: string;
+      if (url.startsWith('gs://')) {
+        downloadUrl = await getSignedDownloadUrl(url, appRecord.resumeFilename);
+      } else if (/^https?:\/\//i.test(url)) {
+        downloadUrl = url;
+      } else {
+        res.status(404).json({ error: 'Resume not available' });
+        return;
+      }
 
       res.redirect(302, downloadUrl);
       return;

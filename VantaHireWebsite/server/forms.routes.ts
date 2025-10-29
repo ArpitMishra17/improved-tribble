@@ -8,7 +8,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import rateLimit from "express-rate-limit";
 import { getEmailService } from "./simpleEmailService";
-import { upload, uploadToCloudinary } from "./cloudinary";
+import { upload, uploadToGCS } from "./gcs-storage";
 import type { FormSnapshot, FormFieldSnapshot, FormAnswer, FileUploadResult } from "@shared/forms.types";
 import { parseFormSnapshot, isValidFieldType, parseSelectOptions, normalizeYesNoValue } from "@shared/forms.types";
 
@@ -702,8 +702,8 @@ VantaHire Team`;
           return res.status(409).json(FORM_ERRORS.ALREADY_SUBMITTED);
         }
 
-        // Upload to Cloudinary (uses magic byte validation)
-        const fileUrl = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+        // Upload to GCS (uses magic byte validation)
+        const fileUrl = await uploadToGCS(req.file.buffer, req.file.originalname);
 
         if (!fileUrl) {
           return res.status(500).json({
