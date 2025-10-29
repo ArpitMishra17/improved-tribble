@@ -92,8 +92,10 @@ export interface IStorage {
   createUserProfile(profile: InsertUserProfile & { userId: number }): Promise<UserProfile>;
   updateUserProfile(userId: number, profile: Partial<InsertUserProfile>): Promise<UserProfile | undefined>;
   getApplicationsByEmail(email: string): Promise<(Application & { job: Job })[]>;
+  getApplicationsByUserId(userId: number): Promise<(Application & { job: Job })[]>;
   withdrawApplication(applicationId: number, userId: number): Promise<boolean>;
   getRecruiterApplications(recruiterId: number): Promise<(Application & { job: Job })[]>;
+  claimApplicationsForUser(userId: number, username: string): Promise<number>;
   
   // Admin operations
   getAdminStats(): Promise<{
@@ -589,6 +591,51 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getApplicationsByUserId(userId: number): Promise<(Application & { job: Job })[]> {
+    const results = await db
+      .select({
+        id: applications.id,
+        jobId: applications.jobId,
+        name: applications.name,
+        email: applications.email,
+        phone: applications.phone,
+        resumeUrl: applications.resumeUrl,
+        coverLetter: applications.coverLetter,
+        status: applications.status,
+        notes: applications.notes,
+        lastViewedAt: applications.lastViewedAt,
+        downloadedAt: applications.downloadedAt,
+        appliedAt: applications.appliedAt,
+        updatedAt: applications.updatedAt,
+        job: {
+          id: jobs.id,
+          title: jobs.title,
+          location: jobs.location,
+          type: jobs.type,
+          description: jobs.description,
+          skills: jobs.skills,
+          deadline: jobs.deadline,
+          postedBy: jobs.postedBy,
+          createdAt: jobs.createdAt,
+          isActive: jobs.isActive,
+          status: jobs.status,
+          reviewComments: jobs.reviewComments,
+          expiresAt: jobs.expiresAt,
+          reviewedBy: jobs.reviewedBy,
+          reviewedAt: jobs.reviewedAt
+        }
+      })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .where(eq(applications.userId, userId))
+      .orderBy(desc(applications.appliedAt));
+
+    return results.map((result: any) => ({
+      ...result,
+      job: result.job
+    }));
+  }
+
   async withdrawApplication(applicationId: number, userId: number): Promise<boolean> {
     // First verify the application belongs to the user (bound by userId, not email)
     const application = await this.getApplication(applicationId);
@@ -645,6 +692,22 @@ export class DatabaseStorage implements IStorage {
       ...result,
       job: result.job
     }));
+  }
+
+  async claimApplicationsForUser(userId: number, username: string): Promise<number> {
+    try {
+      const result: any = await db.execute(
+        sql`UPDATE applications SET user_id = ${userId}
+            WHERE user_id IS NULL AND LOWER(email) = LOWER(${username})`
+      );
+      // Some drivers return rowCount, fallback to 0 if unavailable
+      const updated = typeof result?.rowCount === 'number' ? result.rowCount : 0;
+      return updated;
+    } catch (err) {
+      // Non-fatal; do not block login
+      console.error('[claimApplicationsForUser] error:', err);
+      return 0;
+    }
   }
 
   // ============= PHASE 5: ADMIN SUPER DASHBOARD METHODS =============

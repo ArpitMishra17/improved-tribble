@@ -206,14 +206,29 @@ export function setupAuth(app: Express) {
           next(loginErr);
           return;
         }
-        res.status(200).json({
-          id: user.id,
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
+        // Link any existing applications (by email) to this user account for proper candidate access
+        // Await to ensure immediate visibility on first dashboard load; log but do not fail login
+        storage.claimApplicationsForUser(user.id, user.username)
+          .then(() => {
+            res.status(200).json({
+              id: user.id,
+              username: user.username,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              role: user.role
+            });
+          })
+          .catch((e) => {
+            console.error('claimApplicationsForUser error:', e);
+            res.status(200).json({
+              id: user.id,
+              username: user.username,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              role: user.role
+            });
+          });
         });
-      });
     })(req, res, next);
   });
 

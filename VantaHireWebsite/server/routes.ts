@@ -1713,10 +1713,10 @@ New job application received:
     }
   });
 
-  // Get user's applications
+  // Get user's applications (bound to userId)
   app.get("/api/my-applications", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applications = await storage.getApplicationsByEmail(req.user!.username);
+      const applications = await storage.getApplicationsByUserId(req.user!.id);
       res.json(applications);
       return;
     } catch (error) {
