@@ -147,36 +147,63 @@ export default function AdminTestingPage() {
     if (!suite) return;
 
     // Update suite status to running
-    setTestSuites(prev => prev.map(s => 
-      s.id === suiteId 
+    setTestSuites(prev => prev.map(s =>
+      s.id === suiteId
         ? { ...s, tests: s.tests.map(t => ({ ...t, status: 'running' as const })) }
         : s
     ));
 
-    // Simulate running tests
-    for (let i = 0; i < suite.tests.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-      
-      const isSuccess = Math.random() > 0.2; // 80% success rate
-      const duration = Math.floor(Math.random() * 3000) + 500;
-      
-      setTestSuites(prev => prev.map(s => 
-        s.id === suiteId 
+    try {
+      // Call real backend API
+      const response = await fetch('/api/admin/run-tests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ suite: suiteId }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Test execution failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Update suite with real results
+      setTestSuites(prev => prev.map(s =>
+        s.id === suiteId
           ? {
               ...s,
-              tests: s.tests.map((t, idx) => 
-                idx === i 
-                  ? { 
-                      ...t, 
-                      status: isSuccess ? 'passed' : 'failed',
-                      duration,
-                      details: isSuccess ? 'All assertions passed' : 'Test failed - assertion error'
-                    }
-                  : t
-              ),
-              passedTests: s.tests.slice(0, i + 1).filter((_, idx) => idx <= i && (idx < i || isSuccess)).length,
-              failedTests: s.tests.slice(0, i + 1).filter((_, idx) => idx <= i && (idx < i || !isSuccess)).length,
-              coverage: Math.min(95, Math.floor(Math.random() * 15) + 80)
+              tests: result.tests.map((t: any) => ({
+                id: t.id,
+                name: t.name,
+                status: t.status,
+                duration: t.duration,
+                details: t.details,
+              })),
+              totalTests: result.totalTests,
+              passedTests: result.passedTests,
+              failedTests: result.failedTests,
+              coverage: result.coverage || s.coverage,
+            }
+          : s
+      ));
+    } catch (error) {
+      console.error('Test execution error:', error);
+
+      // Mark all tests as failed on error
+      setTestSuites(prev => prev.map(s =>
+        s.id === suiteId
+          ? {
+              ...s,
+              tests: s.tests.map(t => ({
+                ...t,
+                status: 'failed' as const,
+                details: error instanceof Error ? error.message : 'Test execution failed',
+              })),
+              passedTests: 0,
+              failedTests: s.totalTests,
             }
           : s
       ));
@@ -442,25 +469,37 @@ export default function AdminTestingPage() {
                 <div className="space-y-2">
                   <h4 className="text-white font-medium">Unit Tests</h4>
                   <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
-                    npx vitest run test/unit
+                    npm test test/unit
                   </code>
                 </div>
                 <div className="space-y-2">
                   <h4 className="text-white font-medium">Integration Tests</h4>
                   <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
-                    npx vitest run test/integration
+                    npm test test/integration
                   </code>
                 </div>
                 <div className="space-y-2">
                   <h4 className="text-white font-medium">E2E Tests</h4>
                   <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
-                    npx playwright test
+                    npm test test/e2e
+                  </code>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-white font-medium">Security Tests</h4>
+                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                    npm run test:security
                   </code>
                 </div>
                 <div className="space-y-2">
                   <h4 className="text-white font-medium">Performance Tests</h4>
                   <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
-                    k6 run test/performance/load-test.js
+                    npm run test:load:smoke
+                  </code>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-white font-medium">Load Tests (Full)</h4>
+                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                    npm run test:load
                   </code>
                 </div>
               </div>

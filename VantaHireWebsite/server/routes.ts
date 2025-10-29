@@ -14,6 +14,7 @@ import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sen
 import { generateJobsSitemapXML } from "./seoUtils";
 import helmet from "helmet";
 import { registerFormsRoutes } from "./forms.routes";
+import { registerTestRunnerRoutes } from "./testRunner.routes";
 // Import csrf-csrf with compatibility for CJS/ESM builds
 import { createRequire } from "module";
 import { randomBytes } from "crypto";
@@ -181,13 +182,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dynamic jobs sitemap for SEO
-  app.get("/sitemap-jobs.xml", async (_req: Request, res: Response) => {
+  app.get("/sitemap-jobs.xml", async (_req: Request, res: Response): Promise<void> => {
     try {
       // Check if sitemap generation is enabled via feature flag
       const enableSitemap = process.env.SEO_ENABLE_SITEMAP_JOBS !== 'false'; // Default to true
 
       if (!enableSitemap) {
-        return res.status(404).send('Not found');
+        res.status(404).send('Not found');
+        return;
       }
 
       // Query only approved and active jobs (using typed columns)
@@ -202,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           updatedAt: true,
           createdAt: true,
         },
-        orderBy: (jobs, { desc }) => [desc(jobs.createdAt)],
+        orderBy: (jobs: any, { desc }: { desc: any }) => [desc(jobs.createdAt)],
         limit: 50000, // Google sitemap limit
       });
 
@@ -212,9 +214,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.header('Content-Type', 'application/xml');
       res.header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
       res.send(sitemapXML);
+      return;
     } catch (error) {
       console.error('Error generating jobs sitemap:', error);
       res.status(500).send('Error generating sitemap');
+      return;
     }
   });
 
@@ -233,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Contact form submission endpoint
-  app.post("/api/contact", doubleCsrfProtection, async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/contact", doubleCsrfProtection, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Extend the schema with additional validation
       const contactValidationSchema = insertContactSchema.extend({
@@ -262,20 +266,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the request if email sending fails
       }
       
-      res.status(201).json({ 
-        success: true, 
+      res.status(201).json({
+        success: true,
         message: "Thank you for your message! We'll get back to you soon.",
-        id: submission.id 
+        id: submission.id
       });
+      return;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ 
+        res.status(400).json({
           success: false,
-          error: error.errors.map(e => ({ 
-            field: e.path.join('.'), 
-            message: e.message 
+          error: error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message
           }))
         });
+        return;
       } else {
         next(error);
       }
@@ -283,17 +289,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all contact submissions (admin access)
-  app.get("/api/contact", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/contact", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const submissions = await storage.getAllContactSubmissions();
       res.json(submissions);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Test email notification (for admin use)
-  app.get("/api/test-email", requireRole(['admin']), async (req: Request, res: Response) => {
+  app.get("/api/test-email", requireRole(['admin']), async (req: Request, res: Response): Promise<void> => {
     try {
       const emailService = await getEmailService();
       
@@ -308,50 +315,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "This is a test email from VantaHire.",
           submittedAt: new Date()
         };
-        
+
         const result = await emailService.sendContactNotification(testSubmission);
-        
+
         if (result) {
           res.json({ success: true, message: "Test email sent successfully" });
+          return;
         } else {
           res.status(500).json({ success: false, message: "Failed to send test email" });
+          return;
         }
       } else {
-        res.status(400).json({ 
-          success: false, 
-          message: "Email service not available. Please check server logs for details." 
+        res.status(400).json({
+          success: false,
+          message: "Email service not available. Please check server logs for details."
         });
+        return;
       }
     } catch (error) {
-      res.status(500).json({ 
-        success: false, 
-        message: "Error sending test email", 
-        error: String(error) 
+      res.status(500).json({
+        success: false,
+        message: "Error sending test email",
+        error: String(error)
       });
+      return;
     }
   });
 
   // ============= JOB MANAGEMENT ROUTES =============
   
   // Create a new job posting (recruiters/admins only)
-  app.post("/api/jobs", jobPostingRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/jobs", jobPostingRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const jobData = insertJobSchema.parse(req.body);
       const job = await storage.createJob({
         ...jobData,
         postedBy: req.user!.id
       });
-      
+
       res.status(201).json(job);
+      return;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Validation error',
-          details: error.errors.map(e => ({ 
-            field: e.path.join('.'), 
-            message: e.message 
+          details: error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message
           }))
         });
+        return;
       } else {
         next(error);
       }
@@ -359,23 +372,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all jobs with filtering and pagination
-  app.get("/api/jobs", async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/jobs", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const location = req.query.location as string;
       const type = req.query.type as string;
       const search = req.query.search as string;
-      const skills = req.query.skills ? (req.query.skills as string).split(',') : undefined;
+      const skills = req.query.skills as string;
 
-      const result = await storage.getJobs({
-        page,
-        limit,
-        location,
-        type,
-        search,
-        skills
-      });
+      const filters = {
+        ...(page !== undefined && { page: Number(page) }),
+        ...(limit !== undefined && { limit: Number(limit) }),
+        ...(location && { location }),
+        ...(type && { type }),
+        ...(search && { search }),
+        ...(skills && { skills: skills.split(',').map(s => s.trim()).filter(Boolean) })
+      };
+
+      const result = await storage.getJobs(filters);
 
       res.json({
         jobs: result.jobs,
@@ -386,49 +401,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalPages: Math.ceil(result.total / limit)
         }
       });
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Get a specific job by ID
-  app.get("/api/jobs/:id", async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/jobs/:id", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const jobId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = parseInt(idParam, 10);
       if (isNaN(jobId)) {
-        return res.status(400).json({ error: 'Invalid job ID' });
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
       }
 
       const job = await storage.getJob(jobId);
       if (!job) {
-        return res.status(404).json({ error: 'Job not found' });
+        res.status(404).json({ error: 'Job not found' });
+        return;
       }
 
       // Increment view count for analytics
       await storage.incrementJobViews(jobId);
 
       res.json(job);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Submit job application with resume upload
-  app.post("/api/jobs/:id/apply", applicationRateLimit, doubleCsrfProtection, upload.single('resume'), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/jobs/:id/apply", applicationRateLimit, doubleCsrfProtection, upload.single('resume'), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const jobId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = parseInt(idParam, 10);
       if (isNaN(jobId)) {
-        return res.status(400).json({ error: 'Invalid job ID' });
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
       }
 
       // Check if job exists
       const job = await storage.getJob(jobId);
       if (!job) {
-        return res.status(404).json({ error: 'Job not found' });
+        res.status(404).json({ error: 'Job not found' });
+        return;
       }
 
       if (!req.file) {
-        return res.status(400).json({ error: 'Resume file is required' });
+        res.status(400).json({ error: 'Resume file is required' });
+        return;
       }
 
       // Validate application data
@@ -443,11 +475,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (existingApp) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'Duplicate application',
           message: `You have already applied for this position with ${applicationData.email}`,
           existingApplicationId: existingApp.id
         });
+        return;
       }
 
       // Increment apply click count for analytics (after duplicate check)
@@ -469,9 +502,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...applicationData,
         jobId,
         resumeUrl,
-        resumeFilename: req.file?.originalname || null, // Save original filename for proper downloads
+        resumeFilename: req.file?.originalname ?? null, // Save original filename for proper downloads
         // Bind to user account if authenticated (for candidate access control)
-        userId: req.user?.id
+        userId: req.user?.id ?? undefined
       });
 
       // Fire-and-forget: candidate confirmation (if enabled)
@@ -515,15 +548,17 @@ New job application received:
         message: 'Application submitted successfully',
         applicationId: application.id
       });
+      return;
     } catch (error) {
       if (error instanceof z.ZodError) {
-        res.status(400).json({ 
+        res.status(400).json({
           error: 'Validation error',
-          details: error.errors.map(e => ({ 
-            field: e.path.join('.'), 
-            message: e.message 
+          details: error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message
           }))
         });
+        return;
       } else {
         next(error);
       }
@@ -537,25 +572,34 @@ New job application received:
     recruiterAddRateLimit,
     doubleCsrfProtection,
     upload.single('resume'),
-    async (req: Request, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
-        const jobId = parseInt(req.params.id);
+        const idParam = req.params.id;
+        if (!idParam) {
+          res.status(400).json({ error: 'Missing ID parameter' });
+          return;
+        }
+        const jobId = parseInt(idParam, 10);
         if (isNaN(jobId)) {
-          return res.status(400).json({ error: 'Invalid job ID' });
+          res.status(400).json({ error: 'Invalid ID parameter' });
+          return;
         }
 
         // Permission guard: Verify job ownership (recruiters must own job, admins bypass)
         const job = await storage.getJob(jobId);
         if (!job) {
-          return res.status(404).json({ error: 'Job not found' });
+          res.status(404).json({ error: 'Job not found' });
+          return;
         }
 
         if (req.user!.role === 'recruiter' && job.postedBy !== req.user!.id) {
-          return res.status(403).json({ error: 'Access denied: You can only add candidates to your own jobs' });
+          res.status(403).json({ error: 'Access denied: You can only add candidates to your own jobs' });
+          return;
         }
 
         if (!req.file) {
-          return res.status(400).json({ error: 'Resume file is required' });
+          res.status(400).json({ error: 'Resume file is required' });
+          return;
         }
 
         // Validate with dedicated schema
@@ -570,11 +614,12 @@ New job application received:
         });
 
         if (existingApp) {
-          return res.status(400).json({
+          res.status(400).json({
             error: 'Duplicate application',
             message: `An application from ${applicationData.email} already exists for this job`,
             existingApplicationId: existingApp.id
           });
+          return;
         }
 
         // Upload resume
@@ -594,7 +639,8 @@ New job application received:
           });
 
           if (!stageExists) {
-            return res.status(400).json({ error: 'Invalid stage ID' });
+            res.status(400).json({ error: 'Invalid stage ID' });
+            return;
           }
 
           initialStage = applicationData.currentStage;
@@ -605,7 +651,7 @@ New job application received:
           name: applicationData.name,
           email: applicationData.email,
           phone: applicationData.phone,
-          coverLetter: applicationData.coverLetter || null,
+          coverLetter: applicationData.coverLetter ?? undefined,
           jobId,
           resumeUrl,
           resumeFilename: req.file.originalname,
@@ -613,11 +659,11 @@ New job application received:
           createdByUserId: req.user!.id,
           source: applicationData.source,
           // Pass object directly to JSONB column; driver serializes to JSON
-          sourceMetadata: applicationData.sourceMetadata || null,
-          currentStage: initialStage,
-          stageChangedAt: initialStage ? new Date() : null,
-          stageChangedBy: initialStage ? req.user!.id : null,
-          userId: null, // No candidate account yet
+          sourceMetadata: applicationData.sourceMetadata ?? undefined,
+          currentStage: initialStage ?? undefined,
+          stageChangedAt: initialStage ? new Date() : undefined,
+          stageChangedBy: initialStage ? req.user!.id : undefined,
+          userId: undefined, // No candidate account yet
         });
 
         // Log initial stage assignment to history table
@@ -652,15 +698,17 @@ New job application received:
           message: 'Candidate added successfully',
           applicationId: application.id,
         });
+        return;
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return res.status(400).json({
+          res.status(400).json({
             error: 'Validation error',
             details: error.errors.map(e => ({
               field: e.path.join('.'),
               message: e.message
             }))
           });
+          return;
         }
         next(error);
       }
@@ -668,28 +716,46 @@ New job application received:
   );
 
   // Get applications for a specific job (recruiters only)
-  app.get("/api/jobs/:id/applications", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/jobs/:id/applications", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const jobId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = parseInt(idParam, 10);
       if (isNaN(jobId)) {
-        return res.status(400).json({ error: 'Invalid job ID' });
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
       }
 
       const applications = await storage.getApplicationsByJob(jobId);
       res.json(applications);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Secure resume download via permission-gated redirect
-  app.get("/api/applications/:id/resume", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/applications/:id/resume", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applicationId = parseInt(req.params.id);
-      if (isNaN(applicationId)) return res.status(400).json({ error: 'Invalid application ID' });
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const applicationId = parseInt(idParam, 10);
+      if (isNaN(applicationId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
 
       const appRecord = await storage.getApplication(applicationId);
-      if (!appRecord) return res.status(404).json({ error: 'Application not found' });
+      if (!appRecord) {
+        res.status(404).json({ error: 'Application not found' });
+        return;
+      }
 
       // Permission checks
       const role = req.user!.role;
@@ -698,63 +764,78 @@ New job application received:
       } else if (role === 'recruiter') {
         const job = await storage.getJob(appRecord.jobId);
         if (!job || job.postedBy !== req.user!.id) {
-          return res.status(403).json({ error: 'Access denied' });
+          res.status(403).json({ error: 'Access denied' });
+          return;
         }
         // Mark as downloaded for recruiter/admin access
         await storage.markApplicationDownloaded(applicationId);
       } else if (role === 'candidate') {
         // Candidate can only access their own application (bound by userId, not email)
         if (!appRecord.userId || appRecord.userId !== req.user!.id) {
-          return res.status(403).json({ error: 'Access denied' });
+          res.status(403).json({ error: 'Access denied' });
+          return;
         }
       } else {
-        return res.status(403).json({ error: 'Access denied' });
+        res.status(403).json({ error: 'Access denied' });
+        return;
       }
 
       const url = appRecord.resumeUrl;
       if (!url || !/^https?:\/\//i.test(url)) {
-        return res.status(404).json({ error: 'Resume not available' });
+        res.status(404).json({ error: 'Resume not available' });
+        return;
       }
 
       // Transform Cloudinary URL to force download with proper filename
       const downloadUrl = rewriteCloudinaryUrlForDownload(url, appRecord.resumeFilename);
 
-      return res.redirect(302, downloadUrl);
+      res.redirect(302, downloadUrl);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Get jobs posted by current user (recruiters only)
-  app.get("/api/my-jobs", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/my-jobs", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const jobs = await storage.getJobsByUser(req.user!.id);
       res.json(jobs);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Update job status (activate/deactivate)
-  app.patch("/api/jobs/:id/status", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/jobs/:id/status", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const jobId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = parseInt(idParam, 10);
       const { isActive } = req.body;
 
       if (isNaN(jobId)) {
-        return res.status(400).json({ error: 'Invalid job ID' });
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
       }
 
       if (typeof isActive !== 'boolean') {
-        return res.status(400).json({ error: 'isActive must be a boolean' });
+        res.status(400).json({ error: 'isActive must be a boolean' });
+        return;
       }
 
       const job = await storage.updateJobStatus(jobId, isActive);
       if (!job) {
-        return res.status(404).json({ error: 'Job not found' });
+        res.status(404).json({ error: 'Job not found' });
+        return;
       }
 
       res.json(job);
+      return;
     } catch (error) {
       next(error);
     }
@@ -763,16 +844,16 @@ New job application received:
   // ============= ADMIN ROUTES =============
   
   // Get jobs by status for admin review
-  app.get("/api/admin/jobs", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/admin/jobs", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { status = 'pending', page = 1, limit = 10 } = req.query;
-      
+
       const result = await storage.getJobsByStatus(
         status as string,
         parseInt(page as string),
         parseInt(limit as string)
       );
-      
+
       res.json({
         jobs: result.jobs,
         pagination: {
@@ -782,6 +863,7 @@ New job application received:
           totalPages: Math.ceil(result.total / parseInt(limit as string))
         }
       });
+      return;
     } catch (error) {
       next(error);
     }
@@ -790,38 +872,52 @@ New job application received:
   // ============= ATS: PIPELINE & APPLICATION MANAGEMENT =============
 
   // Get pipeline stages
-  app.get("/api/pipeline/stages", requireAuth, async (_req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/pipeline/stages", requireAuth, async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const stages = await storage.getPipelineStages();
       res.json(stages);
+      return;
     } catch (e) { next(e); }
   });
 
   // Create pipeline stage (recruiters/admin)
-  app.post("/api/pipeline/stages", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/pipeline/stages", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const body = insertPipelineStageSchema.parse(req.body);
       const stage = await storage.createPipelineStage({ ...body, createdBy: req.user!.id });
       res.status(201).json(stage);
+      return;
     } catch (e) {
-      if (e instanceof z.ZodError) return res.status(400).json({ error: 'Validation error', details: e.errors });
+      if (e instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation error', details: e.errors });
+        return;
+      }
       next(e);
     }
   });
 
   // Move application to a new stage
-  app.patch("/api/applications/:id/stage", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/stage", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const appId = parseInt(req.params.id);
-      if (isNaN(appId)) return res.status(400).json({ error: 'Invalid application ID' });
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = parseInt(idParam, 10);
+      if (isNaN(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
 
       // Validate input with Zod
       const validation = updateStageSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'Validation error',
           details: validation.error.errors
         });
+        return;
       }
 
       const { stageId, notes } = validation.data;
@@ -830,7 +926,8 @@ New job application received:
       const stages = await storage.getPipelineStages();
       const targetStage = stages.find(s => s.id === stageId);
       if (!targetStage) {
-        return res.status(400).json({ error: `Invalid stage ID: ${stageId}` });
+        res.status(400).json({ error: `Invalid stage ID: ${stageId}` });
+        return;
       }
 
       // Update stage (now in transaction)
@@ -854,23 +951,42 @@ New job application received:
       }
 
       res.json({ success: true });
+      return;
     } catch (e) { next(e); }
   });
 
   // Get application stage history
-  app.get("/api/applications/:id/history", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/applications/:id/history", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const appId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = parseInt(idParam, 10);
+      if (isNaN(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
       const hist = await storage.getApplicationStageHistory(appId);
       res.json(hist);
+      return;
     } catch (e) { next(e); }
   });
 
   // Schedule interview
-  app.patch("/api/applications/:id/interview", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/interview", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const appId = parseInt(req.params.id);
-      if (isNaN(appId)) return res.status(400).json({ error: 'Invalid application ID' });
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = parseInt(idParam, 10);
+      if (isNaN(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
 
       // Coerce empty strings to undefined before validation
       const payload = {
@@ -883,10 +999,11 @@ New job application received:
       // Validate input with Zod (lenient)
       const validation = scheduleInterviewSchema.safeParse(payload);
       if (!validation.success) {
-        return res.status(400).json({
+        res.status(400).json({
           error: 'Validation error',
           details: validation.error.errors
         });
+        return;
       }
 
       // Normalize date: accept YYYY-MM-DD or full ISO
@@ -902,10 +1019,10 @@ New job application received:
         }
       }
       const updated = await storage.scheduleInterview(appId, {
-        date: ts,
-        time,
-        location,
-        notes
+        date: ts ?? undefined,
+        time: time ?? undefined,
+        location: location ?? undefined,
+        notes: notes ?? undefined
       });
 
       // Fire-and-forget: interview invite (if enabled and fields provided)
@@ -915,77 +1032,134 @@ New job application received:
       }
 
       res.json(updated);
+      return;
     } catch (e) { next(e); }
   });
 
   // Add recruiter note
-  app.post("/api/applications/:id/notes", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/applications/:id/notes", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const appId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = parseInt(idParam, 10);
+      if (isNaN(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
       const { note } = req.body;
-      if (!note) return res.status(400).json({ error: 'note required' });
+      if (!note) {
+        res.status(400).json({ error: 'note required' });
+        return;
+      }
       const updated = await storage.addRecruiterNote(appId, note);
       res.json(updated);
+      return;
     } catch (e) { next(e); }
   });
 
   // Set rating
-  app.patch("/api/applications/:id/rating", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/rating", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const appId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = parseInt(idParam, 10);
+      if (isNaN(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
       const { rating } = req.body;
-      if (typeof rating !== 'number' || rating < 1 || rating > 5) return res.status(400).json({ error: 'rating 1-5' });
+      if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+        res.status(400).json({ error: 'rating 1-5' });
+        return;
+      }
       const updated = await storage.setApplicationRating(appId, rating);
       res.json(updated);
+      return;
     } catch (e) { next(e); }
   });
 
   // Email templates
-  app.get("/api/email-templates", requireRole(['recruiter','admin']), async (_req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/email-templates", requireRole(['recruiter','admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const list = await storage.getEmailTemplates();
       res.json(list);
+      return;
     } catch (e) { next(e); }
   });
 
-  app.post("/api/email-templates", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/email-templates", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const body = insertEmailTemplateSchema.parse(req.body as InsertEmailTemplate);
       const tpl = await storage.createEmailTemplate({ ...body, createdBy: req.user!.id });
       res.status(201).json(tpl);
+      return;
     } catch (e) {
-      if (e instanceof z.ZodError) return res.status(400).json({ error: 'Validation error', details: e.errors });
+      if (e instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation error', details: e.errors });
+        return;
+      }
       next(e);
     }
   });
 
   // Send email using template
-  app.post("/api/applications/:id/send-email", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/applications/:id/send-email", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const appId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = parseInt(idParam, 10);
+      if (isNaN(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
       const { templateId, customizations } = req.body as { templateId: number; customizations?: Record<string,string> };
-      if (!templateId) return res.status(400).json({ error: 'templateId required' });
+      if (!templateId) {
+        res.status(400).json({ error: 'templateId required' });
+        return;
+      }
       const appData = await storage.getApplication(appId);
-      if (!appData) return res.status(404).json({ error: 'application not found' });
+      if (!appData) {
+        res.status(404).json({ error: 'application not found' });
+        return;
+      }
       const [tpl] = (await storage.getEmailTemplates()).filter(t => t.id === templateId);
-      if (!tpl) return res.status(404).json({ error: 'template not found' });
+      if (!tpl) {
+        res.status(404).json({ error: 'template not found' });
+        return;
+      }
       await sendTemplatedEmail(appId, templateId, customizations || {});
       res.json({ success: true });
+      return;
     } catch (e) { next(e); }
   });
 
   // Automation settings - Get all settings
-  app.get("/api/admin/automation-settings", requireRole(['admin']), async (_req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/admin/automation-settings", requireRole(['admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const settings = await storage.getAutomationSettings();
       res.json(settings);
+      return;
     } catch (e) { next(e); }
   });
 
   // Automation settings - Update a specific setting
-  app.patch("/api/admin/automation-settings/:key", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/automation-settings/:key", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { key } = req.params;
+      const keyParam = req.params.key;
+      if (!keyParam) {
+        res.status(400).json({ error: 'Missing key parameter' });
+        return;
+      }
+      const key = keyParam;
       const { value } = req.body;
 
       // Whitelist valid automation setting keys to prevent arbitrary key injection
@@ -1001,39 +1175,51 @@ New job application received:
       ];
 
       if (!validKeys.includes(key)) {
-        return res.status(400).json({ error: 'Invalid automation setting key' });
+        res.status(400).json({ error: 'Invalid automation setting key' });
+        return;
       }
 
       if (typeof value !== 'boolean') {
-        return res.status(400).json({ error: 'value must be a boolean' });
+        res.status(400).json({ error: 'value must be a boolean' });
+        return;
       }
 
       const setting = await storage.updateAutomationSetting(key, value, req.user!.id);
       res.json(setting);
+      return;
     } catch (e) { next(e); }
   });
 
   // Review a job (approve/decline)
-  app.patch("/api/admin/jobs/:id/review", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/jobs/:id/review", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const jobId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = parseInt(idParam, 10);
       const { status, reviewComments } = req.body;
-      
+
       if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
+        res.status(400).json({ error: "Invalid ID parameter" });
+        return;
       }
-      
+
       if (!['approved', 'declined'].includes(status)) {
-        return res.status(400).json({ error: "Invalid status. Must be 'approved' or 'declined'" });
+        res.status(400).json({ error: "Invalid status. Must be 'approved' or 'declined'" });
+        return;
       }
-      
+
       const job = await storage.reviewJob(jobId, status, reviewComments, req.user!.id);
-      
+
       if (!job) {
-        return res.status(404).json({ error: "Job not found" });
+        res.status(404).json({ error: "Job not found" });
+        return;
       }
-      
+
       res.json(job);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1042,88 +1228,115 @@ New job application received:
   // ============= CONSULTANT SHOWCASE ROUTES =============
 
   // Public: Get all active consultants
-  app.get("/api/consultants", async (_req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/consultants", async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const consultants = await storage.getActiveConsultants();
       res.json(consultants);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Public: Get a specific consultant
-  app.get("/api/consultants/:id", async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/consultants/:id", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const id = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const id = parseInt(idParam, 10);
       if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid consultant ID" });
+        res.status(400).json({ error: "Invalid ID parameter" });
+        return;
       }
 
       const consultant = await storage.getConsultant(id);
       if (!consultant || !consultant.isActive) {
-        return res.status(404).json({ error: "Consultant not found" });
+        res.status(404).json({ error: "Consultant not found" });
+        return;
       }
 
       res.json(consultant);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Admin: Get all consultants (including inactive)
-  app.get("/api/admin/consultants", requireRole(['admin']), async (_req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/admin/consultants", requireRole(['admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const consultants = await storage.getConsultants();
       res.json(consultants);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Admin: Create a new consultant
-  app.post("/api/admin/consultants", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/admin/consultants", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const consultantData = req.body;
       const consultant = await storage.createConsultant(consultantData);
       res.status(201).json(consultant);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Admin: Update a consultant
-  app.patch("/api/admin/consultants/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/consultants/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const id = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const id = parseInt(idParam, 10);
       if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid consultant ID" });
+        res.status(400).json({ error: "Invalid ID parameter" });
+        return;
       }
 
       const consultant = await storage.updateConsultant(id, req.body);
       if (!consultant) {
-        return res.status(404).json({ error: "Consultant not found" });
+        res.status(404).json({ error: "Consultant not found" });
+        return;
       }
 
       res.json(consultant);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Admin: Delete a consultant
-  app.delete("/api/admin/consultants/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.delete("/api/admin/consultants/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const id = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const id = parseInt(idParam, 10);
       if (isNaN(id)) {
-        return res.status(400).json({ error: "Invalid consultant ID" });
+        res.status(400).json({ error: "Invalid ID parameter" });
+        return;
       }
 
       const deleted = await storage.deleteConsultant(id);
       if (!deleted) {
-        return res.status(404).json({ error: "Consultant not found" });
+        res.status(404).json({ error: "Consultant not found" });
+        return;
       }
 
       res.json({ success: true });
+      return;
     } catch (error) {
       next(error);
     }
@@ -1132,160 +1345,195 @@ New job application received:
   // ============= PHASE 3: APPLICATION MANAGEMENT ROUTES =============
   
   // Update single application status (recruiters/admins only)
-  app.patch("/api/applications/:id/status", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/status", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applicationId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const applicationId = parseInt(idParam, 10);
       const { status, notes } = req.body;
-      
+
       if (isNaN(applicationId)) {
-        return res.status(400).json({ error: "Invalid application ID" });
+        res.status(400).json({ error: "Invalid ID parameter" });
+        return;
       }
       
       if (!['submitted', 'reviewed', 'shortlisted', 'rejected', 'downloaded'].includes(status)) {
-        return res.status(400).json({ 
-          error: "Invalid status. Must be one of: submitted, reviewed, shortlisted, rejected, downloaded" 
+        res.status(400).json({
+          error: "Invalid status. Must be one of: submitted, reviewed, shortlisted, rejected, downloaded"
         });
+        return;
       }
-      
+
       // Verify the recruiter owns this job if not admin
       if (req.user!.role !== 'admin') {
         const application = await storage.getApplication(applicationId);
         if (!application) {
-          return res.status(404).json({ error: "Application not found" });
+          res.status(404).json({ error: "Application not found" });
+          return;
         }
-        
+
         const job = await storage.getJob(application.jobId);
         if (!job || job.postedBy !== req.user!.id) {
-          return res.status(403).json({ error: "Access denied" });
+          res.status(403).json({ error: "Access denied" });
+          return;
         }
       }
-      
+
       const application = await storage.updateApplicationStatus(applicationId, status, notes);
-      
+
       if (!application) {
-        return res.status(404).json({ error: "Application not found" });
+        res.status(404).json({ error: "Application not found" });
+        return;
       }
-      
+
       res.json(application);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Bulk update application statuses (recruiters/admins only)
-  app.patch("/api/applications/bulk", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/bulk", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { applicationIds, status, notes } = req.body;
-      
+
       if (!Array.isArray(applicationIds) || applicationIds.length === 0) {
-        return res.status(400).json({ error: "applicationIds must be a non-empty array" });
+        res.status(400).json({ error: "applicationIds must be a non-empty array" });
+        return;
       }
-      
+
       if (!['submitted', 'reviewed', 'shortlisted', 'rejected', 'downloaded'].includes(status)) {
-        return res.status(400).json({ 
-          error: "Invalid status. Must be one of: submitted, reviewed, shortlisted, rejected, downloaded" 
+        res.status(400).json({
+          error: "Invalid status. Must be one of: submitted, reviewed, shortlisted, rejected, downloaded"
         });
+        return;
       }
-      
+
       // Verify all applications belong to the recruiter's jobs if not admin
       if (req.user!.role !== 'admin') {
         const applications = await Promise.all(
           applicationIds.map(id => storage.getApplication(parseInt(id)))
         );
-        
+
         const jobIds = applications
           .filter(app => app)
           .map(app => app!.jobId);
-        
+
         const jobs = await Promise.all(
           jobIds.map(id => storage.getJob(id))
         );
-        
+
         const unauthorizedJob = jobs.find(job => !job || job.postedBy !== req.user!.id);
         if (unauthorizedJob) {
-          return res.status(403).json({ error: "Access denied to one or more applications" });
+          res.status(403).json({ error: "Access denied to one or more applications" });
+          return;
         }
       }
-      
+
       const updatedCount = await storage.updateApplicationsStatus(
-        applicationIds.map(id => parseInt(id)), 
-        status, 
+        applicationIds.map(id => parseInt(id)),
+        status,
         notes
       );
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         updatedCount,
-        message: `${updatedCount} applications updated successfully` 
+        message: `${updatedCount} applications updated successfully`
       });
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Mark application as viewed (automatically updates status to 'reviewed')
-  app.patch("/api/applications/:id/view", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/view", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applicationId = parseInt(req.params.id);
-      
-      if (isNaN(applicationId)) {
-        return res.status(400).json({ error: "Invalid application ID" });
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
       }
-      
+      const applicationId = parseInt(idParam, 10);
+
+      if (isNaN(applicationId)) {
+        res.status(400).json({ error: "Invalid application ID" });
+        return;
+      }
+
       // Verify the recruiter owns this job if not admin
       if (req.user!.role !== 'admin') {
         const application = await storage.getApplication(applicationId);
         if (!application) {
-          return res.status(404).json({ error: "Application not found" });
+          res.status(404).json({ error: "Application not found" });
+          return;
         }
-        
+
         const job = await storage.getJob(application.jobId);
         if (!job || job.postedBy !== req.user!.id) {
-          return res.status(403).json({ error: "Access denied" });
+          res.status(403).json({ error: "Access denied" });
+          return;
         }
       }
-      
+
       const application = await storage.markApplicationViewed(applicationId);
-      
+
       if (!application) {
-        return res.status(404).json({ error: "Application not found" });
+        res.status(404).json({ error: "Application not found" });
+        return;
       }
-      
+
       res.json(application);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Mark application as downloaded (when resume is downloaded)
-  app.patch("/api/applications/:id/download", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/applications/:id/download", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applicationId = parseInt(req.params.id);
-      
-      if (isNaN(applicationId)) {
-        return res.status(400).json({ error: "Invalid application ID" });
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
       }
-      
+      const applicationId = parseInt(idParam, 10);
+
+      if (isNaN(applicationId)) {
+        res.status(400).json({ error: "Invalid application ID" });
+        return;
+      }
+
       // Verify the recruiter owns this job if not admin
       if (req.user!.role !== 'admin') {
         const application = await storage.getApplication(applicationId);
         if (!application) {
-          return res.status(404).json({ error: "Application not found" });
+          res.status(404).json({ error: "Application not found" });
+          return;
         }
-        
+
         const job = await storage.getJob(application.jobId);
         if (!job || job.postedBy !== req.user!.id) {
-          return res.status(403).json({ error: "Access denied" });
+          res.status(403).json({ error: "Access denied" });
+          return;
         }
       }
-      
+
       const application = await storage.markApplicationDownloaded(applicationId);
-      
+
       if (!application) {
-        return res.status(404).json({ error: "Application not found" });
+        res.status(404).json({ error: "Application not found" });
+        return;
       }
-      
+
       res.json(application);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1294,87 +1542,108 @@ New job application received:
   // ============= PHASE 5: ADMIN SUPER DASHBOARD ROUTES =============
   
   // Get admin statistics
-  app.get("/api/admin/stats", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/admin/stats", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const stats = await storage.getAdminStats();
       res.json(stats);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Get all jobs with details for admin
-  app.get("/api/admin/jobs/all", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/admin/jobs/all", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const jobs = await storage.getAllJobsWithDetails();
       res.json(jobs);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Get all applications with details for admin
-  app.get("/api/admin/applications/all", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/admin/applications/all", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const applications = await storage.getAllApplicationsWithDetails();
       res.json(applications);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Get all users for admin
-  app.get("/api/admin/users", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/admin/users", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const users = await storage.getAllUsersWithDetails();
       res.json(users);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Update user role (admin only)
-  app.patch("/api/admin/users/:id/role", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/admin/users/:id/role", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const userId = parseInt(idParam, 10);
       const { role } = req.body;
-      
+
       if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
+        res.status(400).json({ error: "Invalid user ID" });
+        return;
       }
-      
+
       if (!['candidate', 'recruiter', 'admin'].includes(role)) {
-        return res.status(400).json({ error: "Invalid role. Must be candidate, recruiter, or admin" });
+        res.status(400).json({ error: "Invalid role. Must be candidate, recruiter, or admin" });
+        return;
       }
-      
+
       const user = await storage.updateUserRole(userId, role);
-      
+
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        res.status(404).json({ error: "User not found" });
+        return;
       }
-      
+
       res.json(user);
+      return;
     } catch (error) {
       next(error);
     }
   });
 
   // Delete job (admin only)
-  app.delete("/api/admin/jobs/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.delete("/api/admin/jobs/:id", doubleCsrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const jobId = parseInt(req.params.id);
-      
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = parseInt(idParam, 10);
+
       if (isNaN(jobId)) {
-        return res.status(400).json({ error: "Invalid job ID" });
+        res.status(400).json({ error: "Invalid job ID" });
+        return;
       }
-      
+
       const success = await storage.deleteJob(jobId);
-      
+
       if (!success) {
-        return res.status(404).json({ error: "Job not found" });
+        res.status(404).json({ error: "Job not found" });
+        return;
       }
-      
+
       res.json({ message: "Job deleted successfully" });
+      return;
     } catch (error) {
       next(error);
     }
@@ -1383,7 +1652,7 @@ New job application received:
   // ============= PHASE 4: CANDIDATE DASHBOARD & PROFILE ROUTES =============
   
   // Get user profile
-  app.get("/api/profile", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/profile", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const profile = await storage.getUserProfile(req.user!.id);
       res.json(profile || null);
@@ -1393,7 +1662,7 @@ New job application received:
   });
 
   // Create or update user profile
-  app.post("/api/profile", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/profile", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const profileData = req.body;
       
@@ -1417,7 +1686,7 @@ New job application received:
   });
 
   // Update user profile
-  app.patch("/api/profile", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.patch("/api/profile", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const profileData = req.body;
       const profile = await storage.updateUserProfile(req.user!.id, profileData);
@@ -1433,7 +1702,7 @@ New job application received:
   });
 
   // Get user's applications
-  app.get("/api/my-applications", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/my-applications", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const applications = await storage.getApplicationsByEmail(req.user!.username);
       res.json(applications);
@@ -1443,7 +1712,7 @@ New job application received:
   });
 
   // Get applications received for recruiter's jobs
-  app.get("/api/my-applications-received", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/my-applications-received", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const applications = await storage.getRecruiterApplications(req.user!.id);
       res.json(applications);
@@ -1453,7 +1722,7 @@ New job application received:
   });
 
   // Withdraw application
-  app.delete("/api/applications/:id/withdraw", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.delete("/api/applications/:id/withdraw", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const applicationId = parseInt(req.params.id);
       
@@ -1474,7 +1743,7 @@ New job application received:
   });
 
   // Get job analytics for admin/recruiter
-  app.get("/api/analytics/jobs", requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/analytics/jobs", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
       const jobsWithAnalytics = await storage.getJobsWithAnalytics(userId);
@@ -1485,7 +1754,7 @@ New job application received:
   });
 
   // Get analytics for a specific job
-  app.get("/api/analytics/jobs/:id", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/analytics/jobs/:id", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const jobId = parseInt(req.params.id);
       if (isNaN(jobId)) {
@@ -1512,7 +1781,7 @@ New job application received:
   });
 
   // AI-powered job description analysis
-  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
@@ -1552,7 +1821,7 @@ New job application received:
   });
 
   // AI-powered job scoring
-  app.post("/api/ai/score-job", aiAnalysisRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/ai/score-job", aiAnalysisRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
@@ -1606,7 +1875,7 @@ New job application received:
   });
 
   // Export analytics data as CSV
-  app.get("/api/analytics/export", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction) => {
+  app.get("/api/analytics/export", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { format = 'json', dateRange = '30' } = req.query;
       const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
@@ -1688,6 +1957,9 @@ New job application received:
 
   // Register forms routes (recruiter-sent candidate forms feature)
   registerFormsRoutes(app, doubleCsrfProtection);
+
+  // Register test runner routes (admin testing dashboard)
+  registerTestRunnerRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
