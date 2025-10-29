@@ -415,8 +415,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = parseInt(idParam, 10);
-      if (isNaN(jobId)) {
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -445,8 +445,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = parseInt(idParam, 10);
-      if (isNaN(jobId)) {
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -579,8 +579,8 @@ New job application received:
           res.status(400).json({ error: 'Missing ID parameter' });
           return;
         }
-        const jobId = parseInt(idParam, 10);
-        if (isNaN(jobId)) {
+        const jobId = Number(idParam);
+        if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
           res.status(400).json({ error: 'Invalid ID parameter' });
           return;
         }
@@ -723,8 +723,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = parseInt(idParam, 10);
-      if (isNaN(jobId)) {
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -745,8 +745,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const applicationId = parseInt(idParam, 10);
-      if (isNaN(applicationId)) {
+      const applicationId = Number(idParam);
+      if (!Number.isFinite(applicationId) || applicationId <= 0 || !Number.isInteger(applicationId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -815,10 +815,10 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = parseInt(idParam, 10);
+      const jobId = Number(idParam);
       const { isActive } = req.body;
 
-      if (isNaN(jobId)) {
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -904,8 +904,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const appId = parseInt(idParam, 10);
-      if (isNaN(appId)) {
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -963,8 +963,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const appId = parseInt(idParam, 10);
-      if (isNaN(appId)) {
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -982,8 +982,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const appId = parseInt(idParam, 10);
-      if (isNaN(appId)) {
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -1044,8 +1044,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const appId = parseInt(idParam, 10);
-      if (isNaN(appId)) {
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -1068,8 +1068,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const appId = parseInt(idParam, 10);
-      if (isNaN(appId)) {
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -1116,8 +1116,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const appId = parseInt(idParam, 10);
-      if (isNaN(appId)) {
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
         res.status(400).json({ error: 'Invalid ID parameter' });
         return;
       }
@@ -1198,10 +1198,10 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = parseInt(idParam, 10);
+      const jobId = Number(idParam);
       const { status, reviewComments } = req.body;
 
-      if (isNaN(jobId)) {
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
         res.status(400).json({ error: "Invalid ID parameter" });
         return;
       }
@@ -1246,8 +1246,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const id = parseInt(idParam, 10);
-      if (isNaN(id)) {
+      const id = Number(idParam);
+      if (!Number.isFinite(id) || id <= 0 || !Number.isInteger(id)) {
         res.status(400).json({ error: "Invalid ID parameter" });
         return;
       }
@@ -1296,8 +1296,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const id = parseInt(idParam, 10);
-      if (isNaN(id)) {
+      const id = Number(idParam);
+      if (!Number.isFinite(id) || id <= 0 || !Number.isInteger(id)) {
         res.status(400).json({ error: "Invalid ID parameter" });
         return;
       }
@@ -1323,8 +1323,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const id = parseInt(idParam, 10);
-      if (isNaN(id)) {
+      const id = Number(idParam);
+      if (!Number.isFinite(id) || id <= 0 || !Number.isInteger(id)) {
         res.status(400).json({ error: "Invalid ID parameter" });
         return;
       }
@@ -1352,10 +1352,10 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const applicationId = parseInt(idParam, 10);
+      const applicationId = Number(idParam);
       const { status, notes } = req.body;
 
-      if (isNaN(applicationId)) {
+      if (!Number.isFinite(applicationId) || applicationId <= 0 || !Number.isInteger(applicationId)) {
         res.status(400).json({ error: "Invalid ID parameter" });
         return;
       }
@@ -1459,9 +1459,9 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const applicationId = parseInt(idParam, 10);
+      const applicationId = Number(idParam);
 
-      if (isNaN(applicationId)) {
+      if (!Number.isFinite(applicationId) || applicationId <= 0 || !Number.isInteger(applicationId)) {
         res.status(400).json({ error: "Invalid application ID" });
         return;
       }
@@ -1503,9 +1503,9 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const applicationId = parseInt(idParam, 10);
+      const applicationId = Number(idParam);
 
-      if (isNaN(applicationId)) {
+      if (!Number.isFinite(applicationId) || applicationId <= 0 || !Number.isInteger(applicationId)) {
         res.status(400).json({ error: "Invalid application ID" });
         return;
       }
@@ -1593,10 +1593,10 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const userId = parseInt(idParam, 10);
+      const userId = Number(idParam);
       const { role } = req.body;
 
-      if (isNaN(userId)) {
+      if (!Number.isFinite(userId) || userId <= 0 || !Number.isInteger(userId)) {
         res.status(400).json({ error: "Invalid user ID" });
         return;
       }
@@ -1628,9 +1628,9 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = parseInt(idParam, 10);
+      const jobId = Number(idParam);
 
-      if (isNaN(jobId)) {
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
         res.status(400).json({ error: "Invalid job ID" });
         return;
       }
@@ -1735,9 +1735,9 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const applicationId = parseInt(idParam, 10);
+      const applicationId = Number(idParam);
 
-      if (isNaN(applicationId)) {
+      if (!Number.isFinite(applicationId) || applicationId <= 0 || !Number.isInteger(applicationId)) {
         res.status(400).json({ error: "Invalid application ID" });
         return;
       }
@@ -1776,8 +1776,8 @@ New job application received:
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = parseInt(idParam, 10);
-      if (isNaN(jobId)) {
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
         res.status(400).json({ error: 'Invalid job ID' });
         return;
       }
