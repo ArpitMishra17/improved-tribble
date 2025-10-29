@@ -1,10 +1,8 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { requireRole } from "./auth";
 import rateLimit from "express-rate-limit";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
+import { spawn } from "child_process";
+import path from "path";
 
 // Rate limit test execution to prevent abuse
 const testRunnerRateLimit = rateLimit({
@@ -114,98 +112,145 @@ function parseK6Output(output: string): TestResult[] {
   return tests;
 }
 
-// Execute test suite
+// Execute test suite using spawn (safer than exec)
 async function runTestSuite(suite: string): Promise<TestSuiteResult> {
   const startTime = Date.now();
-  let command = '';
+  let command: string;
+  let args: string[];
   let parser: (output: string) => TestResult[] = parseVitestOutput;
 
   switch (suite) {
     case 'unit':
-      command = 'npm test test/unit';
+      command = 'npm';
+      args = ['test', 'test/unit'];
       parser = parseVitestOutput;
       break;
     case 'integration':
-      command = 'npm test test/integration';
+      command = 'npm';
+      args = ['test', 'test/integration'];
       parser = parseVitestOutput;
       break;
     case 'e2e':
-      command = 'npm test test/e2e';
+      command = 'npm';
+      args = ['test', 'test/e2e'];
       parser = parseVitestOutput;
       break;
     case 'security':
-      command = 'npm run test:security';
+      command = 'npm';
+      args = ['run', 'test:security'];
       parser = parseSecurityOutput;
       break;
     case 'performance':
-      command = 'npm run test:load:smoke';
+      command = 'npm';
+      args = ['run', 'test:load:smoke'];
       parser = parseK6Output;
       break;
     default:
       throw new Error(`Unknown test suite: ${suite}`);
   }
 
-  try {
-    const { stdout, stderr } = await execAsync(command, {
+  return new Promise((resolve, reject) => {
+    const projectRoot = path.resolve(process.cwd());
+
+    // Spawn process with explicit cwd and env
+    const child = spawn(command, args, {
+      cwd: projectRoot,
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        CI: 'true', // Some test runners behave better with CI flag
+      },
+      shell: false, // Explicitly no shell for security
       timeout: 300000, // 5 minute timeout
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer
     });
 
-    const output = stdout + stderr;
-    const tests = parser(output);
-    const duration = Date.now() - startTime;
+    let stdout = '';
+    let stderr = '';
 
-    // Count pass/fail
-    const passedTests = tests.filter(t => t.status === 'passed').length;
-    const failedTests = tests.filter(t => t.status === 'failed').length;
+    child.stdout?.on('data', (data) => {
+      stdout += data.toString();
+      // Enforce max buffer
+      if (stdout.length > 10 * 1024 * 1024) {
+        child.kill('SIGTERM');
+        reject(new Error('Output exceeded 10MB buffer limit'));
+      }
+    });
 
-    // Extract coverage if available
-    let coverage: number | undefined;
-    const coverageMatch = output.match(/All files\s*\|\s*([\d.]+)/);
-    if (coverageMatch) {
-      coverage = parseFloat(coverageMatch[1]);
-    }
+    child.stderr?.on('data', (data) => {
+      stderr += data.toString();
+      if (stderr.length > 10 * 1024 * 1024) {
+        child.kill('SIGTERM');
+        reject(new Error('Error output exceeded 10MB buffer limit'));
+      }
+    });
 
-    return {
-      suite,
-      totalTests: tests.length,
-      passedTests,
-      failedTests,
-      duration,
-      coverage,
-      tests,
-      rawOutput: output.slice(0, 5000), // Limit output size
-    };
-  } catch (error: any) {
-    // Tests failed or command error
-    const output = (error.stdout || '') + (error.stderr || '');
-    const tests = parser(output);
-    const duration = Date.now() - startTime;
+    child.on('close', (code) => {
+      const output = stdout + stderr;
+      const tests = parser(output);
+      const duration = Date.now() - startTime;
 
-    return {
-      suite,
-      totalTests: tests.length || 1,
-      passedTests: 0,
-      failedTests: tests.length || 1,
-      duration,
-      tests: tests.length > 0 ? tests : [{
-        id: 'error',
-        name: 'Test Execution Error',
-        status: 'failed',
-        details: error.message,
-      }],
-      rawOutput: output.slice(0, 5000),
-    };
-  }
+      // Count pass/fail
+      const passedTests = tests.filter(t => t.status === 'passed').length;
+      const failedTests = tests.filter(t => t.status === 'failed').length;
+
+      // Extract coverage if available
+      let coverage: number | undefined;
+      const coverageMatch = output.match(/All files\s*\|\s*([\d.]+)/);
+      if (coverageMatch) {
+        coverage = parseFloat(coverageMatch[1]);
+      }
+
+      // Tests may exit with non-zero code but still have results
+      if (code !== 0 && tests.length === 0) {
+        resolve({
+          suite,
+          totalTests: 1,
+          passedTests: 0,
+          failedTests: 1,
+          duration,
+          tests: [{
+            id: 'error',
+            name: 'Test Execution Error',
+            status: 'failed',
+            details: `Process exited with code ${code}`,
+          }],
+          rawOutput: output.slice(0, 5000),
+        });
+      } else {
+        resolve({
+          suite,
+          totalTests: tests.length,
+          passedTests,
+          failedTests,
+          duration,
+          coverage,
+          tests,
+          rawOutput: output.slice(0, 5000), // Limit output size
+        });
+      }
+    });
+
+    child.on('error', (error) => {
+      reject(new Error(`Failed to spawn test process: ${error.message}`));
+    });
+  });
 }
 
-export function registerTestRunnerRoutes(app: Express): void {
+export function registerTestRunnerRoutes(
+  app: Express,
+  csrfProtection?: (req: Request, res: Response, next: NextFunction) => void
+): void {
   console.log('🧪 Registering test runner routes...');
+
+  // Use provided CSRF middleware or no-op
+  const csrf = csrfProtection || ((req: Request, res: Response, next: NextFunction) => next());
 
   // Run specific test suite
   app.post(
     "/api/admin/run-tests",
     requireRole(['admin']),
+    csrf, // CSRF protection for consistency with other mutating endpoints
     testRunnerRateLimit,
     async (req: Request, res: Response, next: NextFunction) => {
       try {

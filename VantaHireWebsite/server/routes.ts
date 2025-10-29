@@ -504,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         resumeUrl,
         resumeFilename: req.file?.originalname ?? null, // Save original filename for proper downloads
         // Bind to user account if authenticated (for candidate access control)
-        userId: req.user?.id ?? undefined
+        ...(req.user?.id !== undefined && { userId: req.user.id })
       });
 
       // Fire-and-forget: candidate confirmation (if enabled)
@@ -1019,10 +1019,10 @@ New job application received:
         }
       }
       const updated = await storage.scheduleInterview(appId, {
-        date: ts ?? undefined,
-        time: time ?? undefined,
-        location: location ?? undefined,
-        notes: notes ?? undefined
+        ...(ts !== undefined && { date: ts }),
+        ...(time !== undefined && { time }),
+        ...(location !== undefined && { location }),
+        ...(notes !== undefined && { notes })
       });
 
       // Fire-and-forget: interview invite (if enabled and fields provided)
@@ -1656,6 +1656,7 @@ New job application received:
     try {
       const profile = await storage.getUserProfile(req.user!.id);
       res.json(profile || null);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1665,10 +1666,10 @@ New job application received:
   app.post("/api/profile", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const profileData = req.body;
-      
+
       // Check if profile exists
       const existingProfile = await storage.getUserProfile(req.user!.id);
-      
+
       let profile;
       if (existingProfile) {
         profile = await storage.updateUserProfile(req.user!.id, profileData);
@@ -1678,8 +1679,9 @@ New job application received:
           userId: req.user!.id
         });
       }
-      
+
       res.json(profile);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1690,12 +1692,14 @@ New job application received:
     try {
       const profileData = req.body;
       const profile = await storage.updateUserProfile(req.user!.id, profileData);
-      
+
       if (!profile) {
-        return res.status(404).json({ error: "Profile not found" });
+        res.status(404).json({ error: "Profile not found" });
+        return;
       }
-      
+
       res.json(profile);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1706,6 +1710,7 @@ New job application received:
     try {
       const applications = await storage.getApplicationsByEmail(req.user!.username);
       res.json(applications);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1716,6 +1721,7 @@ New job application received:
     try {
       const applications = await storage.getRecruiterApplications(req.user!.id);
       res.json(applications);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1724,19 +1730,27 @@ New job application received:
   // Withdraw application
   app.delete("/api/applications/:id/withdraw", doubleCsrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applicationId = parseInt(req.params.id);
-      
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const applicationId = parseInt(idParam, 10);
+
       if (isNaN(applicationId)) {
-        return res.status(400).json({ error: "Invalid application ID" });
+        res.status(400).json({ error: "Invalid application ID" });
+        return;
       }
-      
+
       const success = await storage.withdrawApplication(applicationId, req.user!.id);
-      
+
       if (!success) {
-        return res.status(404).json({ error: "Application not found or access denied" });
+        res.status(404).json({ error: "Application not found or access denied" });
+        return;
       }
-      
+
       res.json({ success: true, message: "Application withdrawn successfully" });
+      return;
     } catch (error) {
       next(error);
     }
@@ -1748,6 +1762,7 @@ New job application received:
       const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
       const jobsWithAnalytics = await storage.getJobsWithAnalytics(userId);
       res.json(jobsWithAnalytics);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1756,25 +1771,34 @@ New job application received:
   // Get analytics for a specific job
   app.get("/api/analytics/jobs/:id", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const jobId = parseInt(req.params.id);
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = parseInt(idParam, 10);
       if (isNaN(jobId)) {
-        return res.status(400).json({ error: 'Invalid job ID' });
+        res.status(400).json({ error: 'Invalid job ID' });
+        return;
       }
 
       // Verify ownership if not admin
       if (req.user!.role !== 'admin') {
         const job = await storage.getJob(jobId);
         if (!job || job.postedBy !== req.user!.id) {
-          return res.status(403).json({ error: "Access denied" });
+          res.status(403).json({ error: "Access denied" });
+          return;
         }
       }
 
       const analytics = await storage.getJobAnalytics(jobId);
       if (!analytics) {
-        return res.status(404).json({ error: 'Analytics not found' });
+        res.status(404).json({ error: 'Analytics not found' });
+        return;
       }
 
       res.json(analytics);
+      return;
     } catch (error) {
       next(error);
     }
@@ -1785,36 +1809,41 @@ New job application received:
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
-        return res.status(503).json({
+        res.status(503).json({
           error: 'AI features are not configured',
           message: 'OpenAI API key is not set. AI-powered analysis is currently unavailable.'
         });
+        return;
       }
 
       const { title, description } = req.body;
 
       if (!title || !description) {
-        return res.status(400).json({ error: 'Title and description are required' });
+        res.status(400).json({ error: 'Title and description are required' });
+        return;
       }
 
       if (title.length > 200 || description.length > 5000) {
-        return res.status(400).json({ error: 'Title or description too long' });
+        res.status(400).json({ error: 'Title or description too long' });
+        return;
       }
 
       console.log(`AI analysis requested by user ${req.user!.id} for job: ${title}`);
-      
+
       const analysis = await analyzeJobDescription(title, description);
       const suggestions = calculateOptimizationSuggestions(analysis);
-      
+
       res.json({
         ...analysis,
         suggestions,
         analysis_timestamp: new Date().toISOString()
       });
+      return;
     } catch (error) {
       console.error('AI analysis error:', error);
       if (error instanceof Error && error.message.includes('AI analysis unavailable')) {
-        return res.status(502).json({ error: 'AI service temporarily unavailable' });
+        res.status(502).json({ error: 'AI service temporarily unavailable' });
+        return;
       }
       next(error);
     }
@@ -1825,16 +1854,18 @@ New job application received:
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
-        return res.status(503).json({
+        res.status(503).json({
           error: 'AI features are not configured',
           message: 'OpenAI API key is not set. AI-powered scoring is currently unavailable.'
         });
+        return;
       }
 
       const { title, description, jobId } = req.body;
 
       if (!title || !description) {
-        return res.status(400).json({ error: 'Title and description are required' });
+        res.status(400).json({ error: 'Title and description are required' });
+        return;
       }
 
       // Get historical data if jobId provided
@@ -1850,7 +1881,7 @@ New job application received:
       }
 
       const score = await generateJobScore(title, description, historicalData);
-      
+
       // Cache the score if jobId provided
       if (jobId) {
         await storage.updateJobAnalytics(jobId, {
@@ -1868,6 +1899,7 @@ New job application received:
           historical_data: !!historicalData
         }
       });
+      return;
     } catch (error) {
       console.error('AI scoring error:', error);
       next(error);
@@ -1909,6 +1941,7 @@ New job application received:
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename="job_analytics.csv"');
         res.send(csvHeader + csvData);
+        return;
       } else {
         // Return JSON with anonymized data
         const exportData = filteredJobs.map(job => ({
@@ -1933,13 +1966,14 @@ New job application received:
             totalJobs: exportData.length,
             totalViews: exportData.reduce((sum, job) => sum + job.analytics.views, 0),
             totalApplyClicks: exportData.reduce((sum, job) => sum + job.analytics.applyClicks, 0),
-            averageConversion: exportData.length > 0 
+            averageConversion: exportData.length > 0
               ? (exportData.reduce((sum, job) => sum + parseFloat(job.analytics.conversionRate), 0) / exportData.length).toFixed(2)
               : "0.00",
             dateRange: `${days} days`,
             exportedAt: new Date().toISOString()
           }
         });
+        return;
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -1959,7 +1993,13 @@ New job application received:
   registerFormsRoutes(app, doubleCsrfProtection);
 
   // Register test runner routes (admin testing dashboard)
-  registerTestRunnerRoutes(app);
+  // Gated by env flag for security - prevents accidental load in production
+  if (process.env.ENABLE_TEST_RUNNER === 'true') {
+    registerTestRunnerRoutes(app, doubleCsrfProtection);
+    console.log('✅ Test runner enabled (ENABLE_TEST_RUNNER=true)');
+  } else {
+    console.log('⚠️  Test runner disabled (set ENABLE_TEST_RUNNER=true to enable)');
+  }
 
   const httpServer = createServer(app);
   return httpServer;
