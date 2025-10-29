@@ -179,15 +179,42 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    const user = req.user!;
-    res.status(200).json({
-      id: user.id,
-      username: user.username,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role
-    });
+  // Login with optional expectedRole gating so the wrong portal cannot be used
+  app.post("/api/login", (req: Request, res: Response, next: NextFunction): void => {
+    passport.authenticate("local", (err: any, user: SelectUser | false) => {
+      if (err) {
+        next(err);
+        return;
+      }
+      if (!user) {
+        res.status(401).json({ error: "Invalid username or password" });
+        return;
+      }
+
+      // Optional expectedRole from client (string or array of strings)
+      const expected: any = (req.body as any)?.expectedRole;
+      if (expected) {
+        const expectedRoles = Array.isArray(expected) ? expected : [expected];
+        if (!expectedRoles.includes(user.role)) {
+          res.status(403).json({ error: "Please use the correct portal for your role" });
+          return;
+        }
+      }
+
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          next(loginErr);
+          return;
+        }
+        res.status(200).json({
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role
+        });
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req: Request, res: Response, next: NextFunction): void => {

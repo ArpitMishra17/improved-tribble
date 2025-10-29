@@ -45,7 +45,7 @@ export default function CandidateAuth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate(loginData);
+    loginMutation.mutate({ ...loginData, expectedRole: 'candidate' });
   };
 
   const handleRegister = async (e: React.FormEvent) => {

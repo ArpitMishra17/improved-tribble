@@ -39,7 +39,7 @@ function Router() {
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'admin']} />
       <Route path="/jobs/:id" component={JobDetailsPage} />
-      <ProtectedRoute path="/my-dashboard" component={CandidateDashboard} />
+      <ProtectedRoute path="/my-dashboard" component={CandidateDashboard} requiredRole={['candidate']} />
       <ProtectedRoute path="/recruiter-dashboard" component={RecruiterDashboard} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/applications" component={RecruiterDashboard} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/admin" component={UnifiedAdminDashboard} requiredRole={['admin']} />

@@ -45,7 +45,8 @@ export default function RecruiterAuth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate(loginData);
+    // Allow recruiters and admins to use the recruiter portal
+    loginMutation.mutate({ ...loginData, expectedRole: ['recruiter', 'admin'] });
   };
 
   const handleRegister = async (e: React.FormEvent) => {
