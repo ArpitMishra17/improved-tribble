@@ -105,6 +105,18 @@ export default function CandidateDashboard() {
     enabled: resumeAdvisor,
   });
 
+  const { data: aiLimits } = useQuery<any>({
+    queryKey: ["/api/ai/limits"],
+    queryFn: async () => {
+      const response = await fetch("/api/ai/limits");
+      if (!response.ok) throw new Error("Failed to fetch AI limits");
+      const data = await response.json();
+      return data?.limits ?? null;
+    },
+    enabled: fitScoring,
+    refetchInterval: 30_000, // Refresh every 30 seconds
+  });
+
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
       const method = profile ? "PATCH" : "POST";
@@ -154,17 +166,26 @@ export default function CandidateDashboard() {
       const res = await apiRequest("POST", "/api/ai/match", { applicationId });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/my-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/limits"] });
+
+      const isCached = data?.fit?.cached === true;
       toast({
-        title: "Fit score computed",
-        description: "AI has analyzed your fit for this position.",
+        title: isCached ? "Cached fit score" : "Fit score computed",
+        description: isCached
+          ? "Returned from cache (no quota used)."
+          : "AI has analyzed your fit for this position.",
       });
     },
     onError: (error: Error) => {
+      // Check if it's a 429 rate limit error
+      const is429 = error.message.includes("429");
       toast({
-        title: "Computation failed",
-        description: error.message,
+        title: is429 ? "Rate limit exceeded" : "Computation failed",
+        description: is429
+          ? "Please try again in a minute."
+          : error.message,
         variant: "destructive",
       });
     },
@@ -177,15 +198,22 @@ export default function CandidateDashboard() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/my-applications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/limits"] });
+
+      const cached = data.summary?.cached || 0;
+      const successful = data.summary?.successful || 0;
       toast({
         title: "Batch computation complete",
-        description: `Computed fit for ${data.summary?.successful || 0} applications.`,
+        description: `Computed: ${successful}, Cached: ${cached}`,
       });
     },
     onError: (error: Error) => {
+      const is429 = error.message.includes("429");
       toast({
-        title: "Batch computation failed",
-        description: error.message,
+        title: is429 ? "Rate limit exceeded" : "Batch computation failed",
+        description: is429
+          ? "Please try again in a minute."
+          : error.message,
         variant: "destructive",
       });
     },
@@ -577,6 +605,42 @@ export default function CandidateDashboard() {
                   AI resume advisor is currently unavailable. Standard resume uploads are still available.
                 </AlertDescription>
               </Alert>
+            )}
+
+            {/* AI Limits Display */}
+            {fitScoring && aiLimits && (
+              <Card className="mb-6 bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur-sm border-purple-400/30">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500/20 rounded-lg">
+                        <Sparkles className="w-5 h-5 text-purple-300" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-medium">Free AI Fit Computations</h3>
+                        <p className="text-gray-300 text-sm">
+                          {aiLimits.fitRemainingThisMonth} of {aiLimits.fitLimitPerMonth} remaining this month
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-purple-300">
+                        {aiLimits.fitRemainingThisMonth}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Used: {aiLimits.fitUsedThisMonth}
+                      </div>
+                    </div>
+                  </div>
+                  {aiLimits.fitRemainingThisMonth === 0 && (
+                    <div className="mt-3 p-2 bg-yellow-500/10 rounded border-l-4 border-yellow-400">
+                      <p className="text-yellow-300 text-sm">
+                        You've used all free computations this month. Cached results are still available.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
 
             {/* Statistics Cards */}

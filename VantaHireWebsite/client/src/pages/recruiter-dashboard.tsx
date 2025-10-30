@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink, Plus, Mail, Calendar, BarChart, Play } from "lucide-react";
+import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink, Plus, Mail, Calendar, BarChart, Play, Sparkles, Brain, AlertCircle } from "lucide-react";
 import Layout from "@/components/Layout";
 import type { Job, Application } from "@shared/schema";
 
@@ -127,6 +127,27 @@ export default function RecruiterDashboard() {
     const pendingApplications = applications.filter((app) => app.status === 'pending').length;
 
     return { totalJobs, activeJobs, totalApplications, pendingApplications };
+  };
+
+  const getFitBadge = (score: number | null | undefined, label: string | null | undefined) => {
+    if (score === null || score === undefined || label === null || label === undefined) return null;
+
+    const colorMap: Record<string, string> = {
+      'Exceptional': 'bg-green-500/20 text-green-300 border-green-500/30',
+      'Strong': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      'Good': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      'Partial': 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+      'Low': 'bg-red-500/20 text-red-300 border-red-500/30',
+    };
+
+    const colorClass = colorMap[label] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+
+    return (
+      <Badge variant="outline" className={`${colorClass} font-medium`}>
+        <Sparkles className="w-3 h-3 mr-1" />
+        {label} ({score})
+      </Badge>
+    );
   };
 
   const stats = getJobStats();
@@ -305,6 +326,7 @@ export default function RecruiterDashboard() {
                               <Badge className={getStatusColor(application.status)}>
                                 {application.status}
                               </Badge>
+                              {getFitBadge(application.aiFitScore, application.aiFitLabel)}
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -337,6 +359,32 @@ export default function RecruiterDashboard() {
                               <p className="text-white/70 text-sm">
                                 <strong>Cover Letter:</strong> {application.coverLetter}
                               </p>
+                            </div>
+                          )}
+
+                          {/* AI Fit Analysis */}
+                          {application.aiFitScore !== null && application.aiFitScore !== undefined && application.aiFitReasons && (
+                            <div className="pt-2 border-t border-white/10">
+                              <div className="p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border-l-4 border-purple-400">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Brain className="w-4 h-4 text-purple-300" />
+                                  <span className="text-purple-300 font-medium text-sm">AI Fit Analysis</span>
+                                </div>
+                                <ul className="text-white/70 text-sm space-y-1">
+                                  {(application.aiFitReasons as string[]).slice(0, 3).map((reason, idx) => (
+                                    <li key={idx} className="flex items-start gap-2">
+                                      <span className="text-purple-400 mt-0.5">•</span>
+                                      <span>{reason}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                                {application.aiStaleReason && (
+                                  <p className="text-yellow-400 text-xs mt-2 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Score may be outdated ({application.aiStaleReason})
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           )}
 
