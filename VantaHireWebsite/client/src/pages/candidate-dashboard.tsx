@@ -63,6 +63,7 @@ export default function CandidateDashboard() {
   const [resumeLabel, setResumeLabel] = useState("");
   const [resumeIsDefault, setResumeIsDefault] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
+  const MAX_RESUME_SIZE = 5 * 1024 * 1024; // 5MB client-side guard
 
   // Fade-in animation on mount
   useEffect(() => {
@@ -382,6 +383,15 @@ export default function CandidateDashboard() {
       return;
     }
 
+    if (resumeFile && resumeFile.size > MAX_RESUME_SIZE) {
+      toast({
+        title: "File too large",
+        description: "Maximum size is 5MB. Please upload a smaller file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setUploadingResume(true);
     try {
       const csrf = await getCsrfToken();
@@ -398,8 +408,25 @@ export default function CandidateDashboard() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
+        let serverMsg = '';
+        try {
+          const error = await response.json();
+          serverMsg = error.message || error.error || '';
+        } catch {}
+
+        // Friendly mapping
+        let friendly = serverMsg;
+        if (response.status === 415 || /Unsupported file type/i.test(serverMsg)) {
+          friendly = 'Unsupported file type. Only genuine PDF, DOC, or DOCX files are allowed.';
+        } else if (/File too large/i.test(serverMsg)) {
+          friendly = 'File too large. Maximum size is 5MB.';
+        } else if (/must contain at least 50/i.test(serverMsg)) {
+          friendly = 'Could not detect enough text. If this is a scanned PDF, please upload a text-based PDF/DOC/DOCX.';
+        } else if (/Extraction failed|timeout/i.test(serverMsg)) {
+          friendly = 'Resume text extraction failed. If the file is scanned/image-only, convert it to a text-based document and try again.';
+        }
+
+        throw new Error(friendly || `${response.status} ${response.statusText}`);
       }
 
       queryClient.invalidateQueries({ queryKey: ["/api/ai/resume"] });
