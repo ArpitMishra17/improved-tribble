@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useAIFeatures } from "@/hooks/use-ai-features";
 import { Redirect } from "wouter";
 import { 
   User, 
@@ -22,11 +23,13 @@ import {
   Mail,
   Phone,
   Star,
-  Target
+  Target,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,6 +44,7 @@ type ApplicationWithJob = Application & { job: Job };
 export default function CandidateDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { fitScoring, resumeAdvisor } = useAIFeatures();
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     bio: "",
@@ -321,6 +325,24 @@ export default function CandidateDashboard() {
                 Manage your profile and track your job applications with AI-powered insights
               </p>
             </div>
+
+            {/* Feature Status Banners */}
+            {!fitScoring && (
+              <Alert className="mb-6 bg-yellow-500/10 border-yellow-500/30 text-yellow-300">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  AI-powered job fit scoring is currently unavailable. You can still view and manage your applications.
+                </AlertDescription>
+              </Alert>
+            )}
+            {!resumeAdvisor && (
+              <Alert className="mb-6 bg-blue-500/10 border-blue-500/30 text-blue-300">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  AI resume advisor is currently unavailable. Standard resume uploads are still available.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
