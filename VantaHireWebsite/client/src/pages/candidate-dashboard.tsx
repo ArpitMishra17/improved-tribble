@@ -24,7 +24,11 @@ import {
   Phone,
   Star,
   Target,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Brain,
+  Upload,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +41,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { UserProfile, Application, Job } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getCsrfToken } from "@/lib/csrf";
 import Layout from "@/components/Layout";
 
 type ApplicationWithJob = Application & { job: Job };
@@ -128,6 +133,48 @@ export default function CandidateDashboard() {
     },
   });
 
+  const computeFitMutation = useMutation({
+    mutationFn: async (applicationId: number) => {
+      const res = await apiRequest("POST", "/api/ai/match", { applicationId });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-applications"] });
+      toast({
+        title: "Fit score computed",
+        description: "AI has analyzed your fit for this position.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Computation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const batchComputeFitMutation = useMutation({
+    mutationFn: async (applicationIds: number[]) => {
+      const res = await apiRequest("POST", "/api/ai/match/batch", { applicationIds });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-applications"] });
+      toast({
+        title: "Batch computation complete",
+        description: `Computed fit for ${data.summary?.successful || 0} applications.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Batch computation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEditProfile = () => {
     setProfileData({
       bio: profile?.bio || "",
@@ -207,6 +254,49 @@ export default function CandidateDashboard() {
 
   const stats = getApplicationStats();
 
+  const getFitBadge = (score: number | null, label: string | null) => {
+    if (score === null || label === null) return null;
+
+    const colorMap: Record<string, string> = {
+      'Exceptional': 'bg-green-500/20 text-green-300 border-green-500/30',
+      'Strong': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      'Good': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+      'Partial': 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+      'Low': 'bg-red-500/20 text-red-300 border-red-500/30',
+    };
+
+    const colorClass = colorMap[label] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+
+    return (
+      <Badge variant="outline" className={`${colorClass} font-medium`}>
+        <Sparkles className="w-3 h-3 mr-1" />
+        {label} ({score})
+      </Badge>
+    );
+  };
+
+  const handleComputeFit = (applicationId: number) => {
+    computeFitMutation.mutate(applicationId);
+  };
+
+  const handleBatchComputeFit = () => {
+    if (!applications) return;
+    // Get all applications without fit scores or with stale scores
+    const needsCompute = applications
+      .filter(app => !app.aiFitScore || app.aiStaleReason)
+      .map(app => app.id);
+
+    if (needsCompute.length === 0) {
+      toast({
+        title: "No applications to compute",
+        description: "All applications have fresh fit scores.",
+      });
+      return;
+    }
+
+    batchComputeFitMutation.mutate(needsCompute);
+  };
+
   const ApplicationCard = ({ application }: { application: ApplicationWithJob }) => (
     <Card className="mb-4 bg-white/10 backdrop-blur-sm border-white/20">
       <CardHeader>
@@ -232,11 +322,36 @@ export default function CandidateDashboard() {
           </div>
           <div className="flex items-center gap-2">
             {getStatusBadge(application.status)}
+            {getFitBadge(application.aiFitScore, application.aiFitLabel)}
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <p className="text-gray-300 mb-3 line-clamp-2">{application.job.description}</p>
+
+        {/* AI Fit Analysis */}
+        {fitScoring && application.aiFitScore !== null && application.aiFitReasons && (
+          <div className="mb-3 p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border-l-4 border-purple-400">
+            <Label className="text-purple-300 font-medium text-sm flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              AI Fit Analysis
+            </Label>
+            <ul className="text-gray-300 text-sm mt-2 space-y-1">
+              {(application.aiFitReasons as string[]).slice(0, 3).map((reason, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-purple-400 mt-0.5">•</span>
+                  <span>{reason}</span>
+                </li>
+              ))}
+            </ul>
+            {application.aiStaleReason && (
+              <p className="text-yellow-400 text-xs mt-2 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Score may be outdated ({application.aiStaleReason})
+              </p>
+            )}
+          </div>
+        )}
         
         {application.job.skills && application.job.skills.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
@@ -271,18 +386,36 @@ export default function CandidateDashboard() {
               <span>Resume Downloaded: {formatDate(application.downloadedAt)}</span>
             )}
           </div>
-          
-          {application.status === 'submitted' && (
-            <Button
-              onClick={() => handleWithdrawApplication(application.id)}
-              variant="outline"
-              size="sm"
-              className="border-red-400/30 text-red-300 hover:bg-red-500/10"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Withdraw
-            </Button>
-          )}
+
+          <div className="flex items-center gap-2">
+            {fitScoring && (!application.aiFitScore || application.aiStaleReason) && (
+              <Button
+                onClick={() => handleComputeFit(application.id)}
+                disabled={computeFitMutation.isPending}
+                variant="outline"
+                size="sm"
+                className="border-purple-400/30 text-purple-300 hover:bg-purple-500/10"
+              >
+                {computeFitMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4 mr-2" />
+                )}
+                {application.aiStaleReason ? 'Recompute' : 'Compute'} Fit
+              </Button>
+            )}
+            {application.status === 'submitted' && (
+              <Button
+                onClick={() => handleWithdrawApplication(application.id)}
+                variant="outline"
+                size="sm"
+                className="border-red-400/30 text-red-300 hover:bg-red-500/10"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Withdraw
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -577,6 +710,28 @@ export default function CandidateDashboard() {
             </TabsContent>
 
             <TabsContent value="applications" className="mt-6">
+              {fitScoring && applications && applications.length > 0 && (
+                <div className="mb-4 flex items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-4">
+                  <div>
+                    <h3 className="text-white font-medium">AI Fit Scoring</h3>
+                    <p className="text-gray-400 text-sm">
+                      Compute fit scores for all applications
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleBatchComputeFit}
+                    disabled={batchComputeFitMutation.isPending}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    {batchComputeFitMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 mr-2" />
+                    )}
+                    Compute All Fits
+                  </Button>
+                </div>
+              )}
               {applications && applications.length > 0 ? (
                 applications.map(application => (
                   <ApplicationCard key={application.id} application={application} />
