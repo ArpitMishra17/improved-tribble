@@ -241,6 +241,7 @@ export function registerAIRoutes(app: Express): void {
     requireAuth,
     requireRole(['candidate']),
     requireFeatureFlag('resume'),
+    doubleCsrfProtection,
     async (req, res): Promise<void> => {
       try {
         const userId = req.user!.id;
