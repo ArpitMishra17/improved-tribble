@@ -98,7 +98,9 @@ export default function CandidateDashboard() {
     queryFn: async () => {
       const response = await fetch("/api/ai/resume");
       if (!response.ok) throw new Error("Failed to fetch resumes");
-      return response.json();
+      const data = await response.json();
+      // Server returns { resumes: [...] }
+      return data?.resumes ?? [];
     },
     enabled: resumeAdvisor,
   });

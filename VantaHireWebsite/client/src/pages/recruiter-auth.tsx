@@ -29,19 +29,15 @@ export default function RecruiterAuth() {
     role: "recruiter"
   });
 
-  // Redirect if already logged in as recruiter
+  // Redirect if already logged in as recruiter or admin (shared portal)
   useEffect(() => {
-    if (user && user.role === "recruiter") {
+    if (!user) return;
+    if (user.role === "recruiter") {
       setLocation("/recruiter-dashboard");
-    } else if (user && user.role !== "recruiter") {
-      toast({
-        title: "Access Denied",
-        description: "This login is for recruiters only. Please use the candidate login.",
-        variant: "destructive",
-      });
-      setLocation("/candidate-auth");
+    } else if (user.role === "admin") {
+      setLocation("/admin");
     }
-  }, [user, setLocation, toast]);
+  }, [user, setLocation]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
