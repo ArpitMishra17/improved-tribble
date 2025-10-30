@@ -38,6 +38,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Job, Application, PipelineStage, EmailTemplate } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { formsApi, type FormTemplateDTO } from "@/lib/formsApi";
 import Layout from "@/components/Layout";
 import { ApplicationBreadcrumb } from "@/components/Breadcrumb";
 import { AddCandidateModal } from "@/components/AddCandidateModal";
@@ -75,6 +76,13 @@ export default function ApplicationManagementPage() {
   const [showInterviewDialog, setShowInterviewDialog] = useState(false);
   const [addCandidateModalOpen, setAddCandidateModalOpen] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [showBulkEmailDialog, setShowBulkEmailDialog] = useState(false);
+  const [bulkTemplateId, setBulkTemplateId] = useState<number | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ sent: number; total: number }>({ sent: 0, total: 0 });
+  const [showBulkFormsDialog, setShowBulkFormsDialog] = useState(false);
+  const [bulkFormId, setBulkFormId] = useState<number | null>(null);
+  const [bulkFormMessage, setBulkFormMessage] = useState("");
+  const [bulkFormsProgress, setBulkFormsProgress] = useState<{ sent: number; total: number }>({ sent: 0, total: 0 });
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [showFormsDialog, setShowFormsDialog] = useState(false);
 
@@ -128,6 +136,15 @@ export default function ApplicationManagementPage() {
       const response = await fetch("/api/email-templates");
       if (!response.ok) throw new Error("Failed to fetch email templates");
       return response.json();
+    },
+  });
+
+  // ATS: Fetch form templates
+  const { data: formTemplates = [] } = useQuery<FormTemplateDTO[]>({
+    queryKey: ["/api/forms/templates"],
+    queryFn: async () => {
+      const result = await formsApi.listTemplates();
+      return result.templates;
     },
   });
 
@@ -285,6 +302,100 @@ export default function ApplicationManagementPage() {
     },
   });
 
+  // ATS: Send bulk emails mutation
+  const sendBulkEmailsMutation = useMutation({
+    mutationFn: async ({ applicationIds, templateId }: { applicationIds: number[]; templateId: number }) => {
+      let success = 0;
+      let failed = 0;
+      setBulkProgress({ sent: 0, total: applicationIds.length });
+      for (const id of applicationIds) {
+        try {
+          const res = await apiRequest("POST", `/api/applications/${id}/send-email`, { templateId });
+          await res.json();
+          success++;
+        } catch (_) {
+          failed++;
+        } finally {
+          setBulkProgress((p) => ({ sent: Math.min(p.sent + 1, applicationIds.length), total: applicationIds.length }));
+        }
+      }
+      return { summary: { total: applicationIds.length, success, failed } };
+    },
+    onSuccess: ({ summary }) => {
+      setShowBulkEmailDialog(false);
+      setBulkTemplateId(null);
+      setSelectedApplications([]);
+      setBulkProgress({ sent: 0, total: 0 });
+      toast({
+        title: "Bulk email sent",
+        description: `Sent: ${summary.success}, Failed: ${summary.failed}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Bulk email failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // ATS: Send bulk forms mutation (client fan-out)
+  const sendBulkFormsMutation = useMutation({
+    mutationFn: async ({ applicationIds, formId, customMessage }: { applicationIds: number[]; formId: number; customMessage?: string }) => {
+      let created = 0;
+      let duplicate = 0;
+      let unauthorized = 0;
+      let failed = 0;
+      setBulkFormsProgress({ sent: 0, total: applicationIds.length });
+
+      for (const appId of applicationIds) {
+        try {
+          await formsApi.createInvitation({
+            applicationId: appId,
+            formId,
+            customMessage
+          });
+          created++;
+        } catch (err: any) {
+          // Categorize errors by status code
+          if (err.status === 409 || (err.message && err.message.includes('already been sent'))) {
+            duplicate++;
+          } else if (err.status === 403 || (err.message && err.message.includes('Unauthorized'))) {
+            unauthorized++;
+          } else {
+            failed++;
+          }
+        } finally {
+          setBulkFormsProgress(p => ({
+            sent: Math.min(p.sent + 1, applicationIds.length),
+            total: applicationIds.length
+          }));
+        }
+      }
+
+      return { summary: { total: applicationIds.length, created, duplicate, unauthorized, failed } };
+    },
+    onSuccess: ({ summary }) => {
+      setShowBulkFormsDialog(false);
+      setBulkFormId(null);
+      setBulkFormMessage("");
+      setSelectedApplications([]);
+      setBulkFormsProgress({ sent: 0, total: 0 });
+      toast({
+        title: "Bulk forms sent",
+        description: `Created: ${summary.created}, Duplicates: ${summary.duplicate}, Failed: ${summary.failed}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Bulk forms failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // ATS: Add recruiter note mutation
   const addNoteMutation = useMutation({
     mutationFn: async ({ applicationId, note }: { applicationId: number; note: string }) => {
@@ -395,6 +506,18 @@ export default function ApplicationManagementPage() {
       app.email.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStage && matchesSearch;
   }) || [];
+
+  // Visible apps for current tab (used by Select All)
+  const getVisibleApplications = (): Application[] => {
+    if (!applications) return [];
+    if (selectedTab === 'all') return filteredApplications;
+    if (selectedTab === 'unassigned') return getApplicationsWithoutStage();
+    if (selectedTab.startsWith('stage-')) {
+      const sid = parseInt(selectedTab.split('-')[1] || '0');
+      return getApplicationsByStage(sid);
+    }
+    return [];
+  };
 
   const getApplicationsByStage = (stageId: number) => {
     return applications?.filter(app => app.currentStage === stageId) || [];
@@ -651,10 +774,47 @@ export default function ApplicationManagementPage() {
                   variant="outline"
                   size="sm"
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={() => alert("Bulk email feature - Select candidates first")}
+                  onClick={() => {
+                    if (selectedApplications.length === 0) {
+                      toast({
+                        title: "No candidates selected",
+                        description: "Select candidates using the checkboxes first.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    if (selectedApplications.length > 20) {
+                      const ok = window.confirm(`You are about to email ${selectedApplications.length} candidates. Proceed?`);
+                      if (!ok) return;
+                    }
+                    setShowBulkEmailDialog(true);
+                  }}
                 >
                   <Mail className="h-4 w-4 mr-2" />
                   Bulk Email
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  onClick={() => {
+                    if (selectedApplications.length === 0) {
+                      toast({
+                        title: "No candidates selected",
+                        description: "Select candidates using the checkboxes first.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    if (selectedApplications.length > 20) {
+                      const ok = window.confirm(`You are about to send forms to ${selectedApplications.length} candidates. Proceed?`);
+                      if (!ok) return;
+                    }
+                    setShowBulkFormsDialog(true);
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Bulk Form
                 </Button>
                 <Button
                   variant="outline"
@@ -782,25 +942,45 @@ export default function ApplicationManagementPage() {
                     className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-gray-400" />
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-40 bg-white/5 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Stages</SelectItem>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {pipelineStages
-                        .sort((a, b) => a.order - b.order)
-                        .map(stage => (
-                          <SelectItem key={stage.id} value={stage.id.toString()}>
-                            {stage.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-400" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40 bg-white/5 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stages</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {pipelineStages
+                      .sort((a, b) => a.order - b.order)
+                      .map(stage => (
+                        <SelectItem key={stage.id} value={stage.id.toString()}>
+                          {stage.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Select All for visible applications */}
+              <div className="flex items-center gap-2 ml-auto">
+                <Checkbox
+                  checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
+                  onCheckedChange={(checked) => {
+                    const visible = getVisibleApplications().map(a => a.id);
+                    if (checked) {
+                      setSelectedApplications(Array.from(new Set([...selectedApplications, ...visible])));
+                    } else {
+                      setSelectedApplications(selectedApplications.filter(id => !visible.includes(id)));
+                    }
+                  }}
+                />
+                <span className="text-sm text-gray-300">Select all visible</span>
+                {selectedApplications.length > 0 && (
+                  <button className="text-xs text-gray-400 underline" onClick={() => setSelectedApplications([])}>
+                    Clear
+                  </button>
+                )}
+              </div>
               </div>
             </CardContent>
           </Card>
@@ -879,7 +1059,7 @@ export default function ApplicationManagementPage() {
         {/* ATS Dialogs */}
 
         {/* Interview Scheduling Dialog */}
-        <Dialog open={showInterviewDialog} onOpenChange={setShowInterviewDialog}>
+        <Dialog key={selectedApp?.id} open={showInterviewDialog} onOpenChange={setShowInterviewDialog}>
           <DialogContent className="bg-slate-900 border-white/20 text-white">
             <DialogHeader>
               <DialogTitle>Schedule Interview - {selectedApp?.name}</DialogTitle>
@@ -947,7 +1127,7 @@ export default function ApplicationManagementPage() {
         </Dialog>
 
         {/* Email Sending Dialog */}
-        <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <Dialog key={selectedApp?.id} open={showEmailDialog} onOpenChange={setShowEmailDialog}>
           <DialogContent className="bg-slate-900 border-white/20 text-white">
             <DialogHeader>
               <DialogTitle>Send Email - {selectedApp?.name}</DialogTitle>
@@ -1000,8 +1180,194 @@ export default function ApplicationManagementPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Bulk Email Dialog */}
+        <Dialog key={selectedApplications.join(',')} open={showBulkEmailDialog} onOpenChange={setShowBulkEmailDialog}>
+          <DialogContent className="bg-slate-900 border-white/20 text-white">
+            <DialogHeader>
+              <DialogTitle>Send Bulk Email - {selectedApplications.length} selected</DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Choose a template to send to all selected candidates
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="flex items-center gap-3 p-2 bg-white/5 rounded">
+                <Checkbox
+                  checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
+                  onCheckedChange={(checked) => {
+                    const visible = getVisibleApplications().map(a => a.id);
+                    if (checked) {
+                      setSelectedApplications(Array.from(new Set([...selectedApplications, ...visible])));
+                    } else {
+                      setSelectedApplications(selectedApplications.filter(id => !visible.includes(id)));
+                    }
+                  }}
+                />
+                <span className="text-sm text-gray-300">Select all in current view</span>
+                {selectedApplications.length > 0 && (
+                  <button
+                    className="text-xs text-gray-400 underline ml-auto"
+                    onClick={() => setSelectedApplications([])}
+                  >
+                    Clear selection
+                  </button>
+                )}
+              </div>
+              <div>
+                <Label>Email Template</Label>
+                <Select
+                  value={bulkTemplateId?.toString() || ""}
+                  onValueChange={(value) => setBulkTemplateId(parseInt(value))}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue placeholder="Select template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {emailTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.name} - {template.subject}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {bulkTemplateId && (
+                <div className="p-3 bg-white/5 rounded-lg">
+                  <Label className="text-sm text-gray-400">Preview</Label>
+                  <p className="text-sm text-white mt-1">
+                    {emailTemplates.find((t) => t.id === bulkTemplateId)?.body.substring(0, 200)}...
+                  </p>
+                </div>
+              )}
+              <Button
+                onClick={() =>
+                  bulkTemplateId &&
+                  sendBulkEmailsMutation.mutate({
+                    applicationIds: selectedApplications,
+                    templateId: bulkTemplateId,
+                  })
+                }
+                disabled={!bulkTemplateId || sendBulkEmailsMutation.isPending}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+              >
+                {sendBulkEmailsMutation.isPending ? "Sending..." : "Send to Selected"}
+              </Button>
+              {sendBulkEmailsMutation.isPending && (
+                <p className="text-xs text-gray-400 text-center">
+                  Sending {bulkProgress.sent}/{bulkProgress.total}...
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Bulk Forms Dialog */}
+        <Dialog key={selectedApplications.join(',')} open={showBulkFormsDialog} onOpenChange={setShowBulkFormsDialog}>
+          <DialogContent className="bg-slate-900 border-white/20 text-white">
+            <DialogHeader>
+              <DialogTitle>Send Bulk Form - {selectedApplications.length} selected</DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Choose a form template to send to all selected candidates
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="flex items-center gap-3 p-2 bg-white/5 rounded">
+                <Checkbox
+                  checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
+                  onCheckedChange={(checked) => {
+                    const visible = getVisibleApplications().map(a => a.id);
+                    if (checked) {
+                      setSelectedApplications(Array.from(new Set([...selectedApplications, ...visible])));
+                    } else {
+                      setSelectedApplications(selectedApplications.filter(id => !visible.includes(id)));
+                    }
+                  }}
+                />
+                <span className="text-sm text-gray-300">Select all in current view</span>
+                {selectedApplications.length > 0 && (
+                  <button
+                    className="text-xs text-gray-400 underline ml-auto"
+                    onClick={() => setSelectedApplications([])}
+                  >
+                    Clear selection
+                  </button>
+                )}
+              </div>
+              <div>
+                <Label>Form Template</Label>
+                <Select
+                  value={bulkFormId?.toString() || ""}
+                  onValueChange={(value) => setBulkFormId(parseInt(value))}
+                >
+                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectValue placeholder="Select form template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formTemplates.map((template) => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.name}
+                        {template.description && ` - ${template.description.substring(0, 50)}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {bulkFormId && (
+                <div className="p-3 bg-white/5 rounded-lg">
+                  <Label className="text-sm text-gray-400">Form Info</Label>
+                  {(() => {
+                    const template = formTemplates.find((t) => t.id === bulkFormId);
+                    return template ? (
+                      <div className="text-sm text-white mt-1">
+                        <p className="font-medium">{template.name}</p>
+                        {template.description && (
+                          <p className="text-gray-300 mt-1">{template.description}</p>
+                        )}
+                        <p className="text-gray-400 mt-1">
+                          {template.fields?.length || 0} question{template.fields?.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+              <div>
+                <Label>Custom Message (Optional)</Label>
+                <Textarea
+                  placeholder="Add a personal message for all selected candidates..."
+                  value={bulkFormMessage}
+                  onChange={(e) => setBulkFormMessage(e.target.value)}
+                  className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                  rows={3}
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  This message will be included in the invitation email for all candidates
+                </p>
+              </div>
+              <Button
+                onClick={() =>
+                  bulkFormId &&
+                  sendBulkFormsMutation.mutate({
+                    applicationIds: selectedApplications,
+                    formId: bulkFormId,
+                    customMessage: bulkFormMessage || undefined,
+                  })
+                }
+                disabled={!bulkFormId || sendBulkFormsMutation.isPending}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+              >
+                {sendBulkFormsMutation.isPending ? "Sending..." : "Send to Selected"}
+              </Button>
+              {sendBulkFormsMutation.isPending && (
+                <p className="text-xs text-gray-400 text-center">
+                  Sending {bulkFormsProgress.sent}/{bulkFormsProgress.total}...
+                </p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Stage History Dialog */}
-        <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <Dialog key={selectedApp?.id} open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
           <DialogContent className="bg-slate-900 border-white/20 text-white max-w-2xl">
             <DialogHeader>
               <DialogTitle>Stage History - {selectedApp?.name}</DialogTitle>
@@ -1071,6 +1437,7 @@ export default function ApplicationManagementPage() {
         {/* Forms Dialog */}
         {selectedApp && (
           <FormsModal
+            key={selectedApp.id}
             open={showFormsDialog}
             onOpenChange={setShowFormsDialog}
             application={selectedApp}
