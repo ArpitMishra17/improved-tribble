@@ -59,6 +59,10 @@ export default function CandidateDashboard() {
   });
   const [newSkill, setNewSkill] = useState("");
   const [isVisible, setIsVisible] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeLabel, setResumeLabel] = useState("");
+  const [resumeIsDefault, setResumeIsDefault] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   // Fade-in animation on mount
   useEffect(() => {
@@ -87,6 +91,16 @@ export default function CandidateDashboard() {
       if (!response.ok) throw new Error("Failed to fetch applications");
       return response.json();
     },
+  });
+
+  const { data: resumes, isLoading: resumesLoading } = useQuery<any[]>({
+    queryKey: ["/api/ai/resume"],
+    queryFn: async () => {
+      const response = await fetch("/api/ai/resume");
+      if (!response.ok) throw new Error("Failed to fetch resumes");
+      return response.json();
+    },
+    enabled: resumeAdvisor,
   });
 
   const updateProfileMutation = useMutation({
@@ -169,6 +183,27 @@ export default function CandidateDashboard() {
     onError: (error: Error) => {
       toast({
         title: "Batch computation failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteResumeMutation = useMutation({
+    mutationFn: async (resumeId: number) => {
+      const res = await apiRequest("DELETE", `/api/ai/resume/${resumeId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/resume"] });
+      toast({
+        title: "Resume deleted",
+        description: "Resume has been removed from your library.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete failed",
         description: error.message,
         variant: "destructive",
       });
@@ -295,6 +330,71 @@ export default function CandidateDashboard() {
     }
 
     batchComputeFitMutation.mutate(needsCompute);
+  };
+
+  const handleResumeUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resumeFile || !resumeLabel.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide a label and select a file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (resumes && resumes.length >= 3) {
+      toast({
+        title: "Maximum resumes reached",
+        description: "Please delete an existing resume before adding a new one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingResume(true);
+    try {
+      const csrf = await getCsrfToken();
+      const formData = new FormData();
+      formData.append('label', resumeLabel);
+      if (resumeIsDefault) formData.append('isDefault', 'true');
+      formData.append('resume', resumeFile);
+
+      const response = await fetch('/api/ai/resume', {
+        method: 'POST',
+        headers: { 'x-csrf-token': csrf },
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/resume"] });
+      toast({
+        title: "Resume uploaded",
+        description: "Your resume has been added to the library.",
+      });
+
+      // Reset form
+      setResumeFile(null);
+      setResumeLabel("");
+      setResumeIsDefault(false);
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload resume",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingResume(false);
+    }
+  };
+
+  const handleDeleteResume = (resumeId: number) => {
+    deleteResumeMutation.mutate(resumeId);
   };
 
   const ApplicationCard = ({ application }: { application: ApplicationWithJob }) => (
@@ -530,9 +630,10 @@ export default function CandidateDashboard() {
 
           {/* Main Content */}
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-white/10 border-white/20">
+            <TabsList className="grid w-full grid-cols-3 bg-white/10 border-white/20">
               <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="applications">My Applications ({stats.total})</TabsTrigger>
+              <TabsTrigger value="resumes">Resume Library</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="mt-6">
@@ -750,6 +851,139 @@ export default function CandidateDashboard() {
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="resumes" className="mt-6">
+              {/* Upload Resume Section */}
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-6">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    Upload Resume
+                  </CardTitle>
+                  <CardDescription className="text-gray-300">
+                    Add a resume to your library (max 3). PDF or DOCX format.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleResumeUpload} className="space-y-4">
+                    <div>
+                      <Label className="text-white">Resume Label *</Label>
+                      <Input
+                        value={resumeLabel}
+                        onChange={(e) => setResumeLabel(e.target.value)}
+                        placeholder="e.g., Software Engineer Resume"
+                        className="bg-white/5 border-white/20 text-white"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-white">Resume File * (PDF or DOCX)</Label>
+                      <Input
+                        type="file"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                        className="bg-white/5 border-white/20 text-white"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="is-default"
+                        checked={resumeIsDefault}
+                        onChange={(e) => setResumeIsDefault(e.target.checked)}
+                        className="rounded"
+                      />
+                      <Label htmlFor="is-default" className="text-white cursor-pointer">
+                        Set as default resume
+                      </Label>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      disabled={uploadingResume || !resumeFile || !resumeLabel.trim() || (resumes && resumes.length >= 3)}
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {uploadingResume ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Resume
+                        </>
+                      )}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Resume List */}
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+                <CardHeader>
+                  <CardTitle className="text-white">Your Resumes ({resumes?.length || 0}/3)</CardTitle>
+                  <CardDescription className="text-gray-300">
+                    Manage your resume library
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {resumesLoading ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 text-purple-400 animate-spin mx-auto" />
+                      <p className="text-gray-300 mt-2">Loading resumes...</p>
+                    </div>
+                  ) : resumes && resumes.length > 0 ? (
+                    <div className="space-y-3">
+                      {resumes.map((resume) => (
+                        <div
+                          key={resume.id}
+                          className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-white font-medium">{resume.label}</h4>
+                              {resume.isDefault && (
+                                <Badge variant="outline" className="border-green-500/30 text-green-300">
+                                  <Star className="w-3 h-3 mr-1 fill-green-300" />
+                                  Default
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-gray-400 text-sm mt-1">
+                              Uploaded {new Date(resume.createdAt).toLocaleDateString()}
+                              {resume.updatedAt !== resume.createdAt &&
+                                ` • Updated ${new Date(resume.updatedAt).toLocaleDateString()}`
+                              }
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => handleDeleteResume(resume.id)}
+                            disabled={deleteResumeMutation.isPending}
+                            variant="outline"
+                            size="sm"
+                            className="border-red-400/30 text-red-300 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-white mb-2">No Resumes Yet</h3>
+                      <p className="text-gray-300">
+                        Upload your first resume to use AI-powered fit scoring.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
           </div>
