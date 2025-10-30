@@ -31,7 +31,8 @@ const GROQ_API_KEY = process.env.GROQ_API_KEY;
 // Validation schemas
 const saveResumeSchema = z.object({
   label: z.string().min(1).max(100),
-  isDefault: z.boolean().optional(),
+  // Multer/FormData sends booleans as strings; coerce to boolean
+  isDefault: z.coerce.boolean().optional(),
 });
 
 const computeFitSchema = z.object({
