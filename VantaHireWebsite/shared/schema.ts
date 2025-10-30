@@ -112,6 +112,7 @@ export const applications = pgTable("applications", {
   aiModelVersion: text("ai_model_version"), // e.g., 'llama-3.3-70b-versatile'
   aiComputedAt: timestamp("ai_computed_at"),
   aiStaleReason: text("ai_stale_reason"), // 'resume_updated', 'job_updated', 'expired_ttl'
+  aiDigestVersionUsed: integer("ai_digest_version_used"), // JD digest version used for this fit computation
   resumeId: integer("resume_id").references(() => candidateResumes.id),
 }, (table) => ({
   // Indexes for ATS performance

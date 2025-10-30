@@ -383,6 +383,7 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_model_version TEXT;`);
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_computed_at TIMESTAMP;`);
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_stale_reason TEXT;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_digest_version_used INTEGER;`);
   await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_id INTEGER;`);
 
   // AI Matching Feature: Create new tables

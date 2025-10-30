@@ -11,6 +11,7 @@
 
 import type { Express, Request, Response } from 'express';
 import { requireAuth, requireRole } from './auth';
+import { doubleCsrfProtection } from './csrf';
 import rateLimit from 'express-rate-limit';
 import { db } from './db';
 import { candidateResumes, applications, jobs, users } from '../shared/schema';
@@ -97,6 +98,7 @@ export function registerAIRoutes(app: Express): void {
     requireAuth,
     requireRole(['candidate']),
     requireFeatureFlag('resume'),
+    doubleCsrfProtection,
     resumeUploadLimiter,
     upload.single('resume'),
     async (req, res): Promise<void> => {
@@ -174,18 +176,11 @@ export function registerAIRoutes(app: Express): void {
           })
           .returning();
 
-        // Mark applications stale if they used a previous resume from this user
-        await db
-          .update(applications)
-          .set({
-            aiStaleReason: 'resume_updated',
-          })
-          .where(
-            and(
-              eq(applications.userId, userId),
-              sql`${applications.aiComputedAt} IS NOT NULL`
-            )
-          );
+        // Note: On new resume upload, we don't mark anything stale
+        // Applications will only become stale if:
+        // 1. The user updates an existing resume (would be a PUT endpoint)
+        // 2. The job description changes (tracked via jdDigestVersion)
+        // 3. The 7-day TTL expires
 
         res.json({
           message: 'Resume saved successfully',
@@ -294,6 +289,7 @@ export function registerAIRoutes(app: Express): void {
     requireAuth,
     requireRole(['candidate']),
     requireFeatureFlag('match'),
+    doubleCsrfProtection,
     fitComputeLimiter,
     async (req, res): Promise<void> => {
       try {
@@ -307,18 +303,6 @@ export function registerAIRoutes(app: Express): void {
         }
 
         const { applicationId } = body.data;
-
-        // Check free tier limit
-        const canCompute = await canUseFitComputation(userId);
-        if (!canCompute) {
-          const limits = await getUserLimits(userId);
-          res.status(403).json({
-            error: 'Free tier limit reached',
-            message: `You have used all ${limits.fitUsedThisMonth} free fit computations this month.`,
-            limits,
-          });
-       return;
-        }
 
         // Get application with job data
         const application = await db.query.applications.findFirst({
@@ -339,7 +323,7 @@ export function registerAIRoutes(app: Express): void {
        return;
         }
 
-        // Check if fit is fresh (cache-aware)
+        // Check if fit is fresh (cache-aware) - do this BEFORE free-tier check
         const resumeData = application.resumeId
           ? await db.query.candidateResumes.findFirst({
               where: eq(candidateResumes.id, application.resumeId),
@@ -351,7 +335,7 @@ export function registerAIRoutes(app: Express): void {
           resumeData?.updatedAt || null,
           application.job.updatedAt,
           application.job.jdDigestVersion || 1,
-          application.job.jdDigestVersion || null
+          application.aiDigestVersionUsed || null
         );
 
         if (!stale && application.aiFitScore !== null) {
@@ -366,6 +350,19 @@ export function registerAIRoutes(app: Express): void {
               cached: true,
             },
           });
+       return;
+        }
+
+        // Check free tier limit (AFTER cache check, so cached results don't consume quota)
+        const canCompute = await canUseFitComputation(userId);
+        if (!canCompute) {
+          const limits = await getUserLimits(userId);
+          res.status(403).json({
+            error: 'Free tier limit reached',
+            message: `You have used all ${limits.fitUsedThisMonth} free fit computations this month.`,
+            limits,
+          });
+       return;
         }
 
         // Get resume text
@@ -410,6 +407,7 @@ export function registerAIRoutes(app: Express): void {
             aiModelVersion: result.modelVersion,
             aiComputedAt: new Date(),
             aiStaleReason: null,
+            aiDigestVersionUsed: jdDigest.version, // Store digest version for staleness detection
           })
           .where(eq(applications.id, applicationId));
 
@@ -451,6 +449,7 @@ export function registerAIRoutes(app: Express): void {
     requireAuth,
     requireRole(['candidate']),
     requireFeatureFlag('match'),
+    doubleCsrfProtection,
     batchComputeLimiter,
     async (req, res): Promise<void> => {
       try {
@@ -516,7 +515,7 @@ export function registerAIRoutes(app: Express): void {
             resumeData?.updatedAt || null,
             app.job.updatedAt,
             app.job.jdDigestVersion || 1,
-            app.job.jdDigestVersion || null
+            app.aiDigestVersionUsed || null
           );
 
           // If fresh, return cached (doesn't consume free tier)
@@ -588,6 +587,7 @@ export function registerAIRoutes(app: Express): void {
                 aiModelVersion: result.modelVersion,
                 aiComputedAt: new Date(),
                 aiStaleReason: null,
+                aiDigestVersionUsed: jdDigest.version, // Store digest version for staleness detection
               })
               .where(eq(applications.id, appId));
 

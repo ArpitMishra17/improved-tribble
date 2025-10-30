@@ -9,7 +9,7 @@
  * - Optional PII stripping (controlled by AI_STRIP_PII env var)
  */
 
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
 import { fromBuffer as fileTypeFromBuffer } from 'file-type';
 
@@ -63,9 +63,8 @@ export function stripPII(text: string): string {
  * Extract text from PDF buffer
  */
 async function extractPDF(buffer: Buffer): Promise<string> {
-  const parser = new PDFParse({ data: buffer });
-  const pdfData = await parser.getText({
-    first: 10, // Parse first 10 pages (most resumes are 1-3 pages)
+  const pdfData = await pdfParse(buffer, {
+    max: 10, // Parse first 10 pages (most resumes are 1-3 pages)
   });
   return pdfData.text;
 }
