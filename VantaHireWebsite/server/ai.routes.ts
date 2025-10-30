@@ -15,7 +15,7 @@ import { doubleCsrfProtection } from './csrf';
 import rateLimit from 'express-rate-limit';
 import { db } from './db';
 import { candidateResumes, applications, jobs, users } from '../shared/schema';
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { eq, and, inArray, sql, desc } from 'drizzle-orm';
 import { upload, uploadToGCS } from './gcs-storage';
 import { extractResumeText, validateResumeText } from './lib/resumeExtractor';
 import { generateJDDigest, JDDigest } from './lib/jdDigest';
@@ -363,11 +363,25 @@ export function registerAIRoutes(app: Express): void {
         }
 
         // Check if fit is fresh (cache-aware) - do this BEFORE free-tier check
-        const resumeData = application.resumeId
+        // Prefer application-linked resume; otherwise fall back to user's default resume,
+        // or the most recently updated resume if no default is set.
+        let resumeData = application.resumeId
           ? await db.query.candidateResumes.findFirst({
               where: eq(candidateResumes.id, application.resumeId),
             })
-          : null;
+          : await db.query.candidateResumes.findFirst({
+              where: and(
+                eq(candidateResumes.userId, userId),
+                eq(candidateResumes.isDefault, true as any)
+              ),
+            });
+
+        if (!resumeData) {
+          resumeData = await db.query.candidateResumes.findFirst({
+            where: eq(candidateResumes.userId, userId),
+            orderBy: (cr: any, { desc }: any) => [desc(cr.updatedAt)],
+          });
+        }
 
         const stale = isFitStale(
           application.aiComputedAt,
@@ -543,11 +557,23 @@ export function registerAIRoutes(app: Express): void {
           }
 
           // Check if fit is fresh
-          const resumeData = app.resumeId
+          // Prefer application-linked resume; fallback to user's default or most recent resume
+          let resumeData = app.resumeId
             ? await db.query.candidateResumes.findFirst({
                 where: eq(candidateResumes.id, app.resumeId),
               })
-            : null;
+            : await db.query.candidateResumes.findFirst({
+                where: and(
+                  eq(candidateResumes.userId, userId),
+                  eq(candidateResumes.isDefault, true as any)
+                ),
+              });
+          if (!resumeData) {
+            resumeData = await db.query.candidateResumes.findFirst({
+              where: eq(candidateResumes.userId, userId),
+              orderBy: (cr: any, { desc }: any) => [desc(cr.updatedAt)],
+            });
+          }
 
           const stale = isFitStale(
             app.aiComputedAt,

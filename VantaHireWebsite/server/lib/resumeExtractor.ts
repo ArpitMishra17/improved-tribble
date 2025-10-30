@@ -9,6 +9,10 @@
  * - Optional PII stripping (controlled by AI_STRIP_PII env var)
  */
 
+import fs from 'fs/promises';
+import os from 'os';
+import path from 'path';
+
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const EXTRACTION_TIMEOUT_MS = 30_000; // 30 seconds
 const STRIP_PII = process.env.AI_STRIP_PII === 'true';
@@ -76,6 +80,26 @@ async function extractDOCX(buffer: Buffer): Promise<string> {
 }
 
 /**
+ * Extract text from legacy DOC buffer via word-extractor
+ */
+async function extractDOC(buffer: Buffer): Promise<string> {
+  const mod: any = await import('word-extractor');
+  const WordExtractor = mod?.default || mod;
+  const extractor = new WordExtractor();
+
+  const tmpDir = os.tmpdir();
+  const tmpPath = path.join(tmpDir, `vh_doc_${Date.now()}_${Math.random().toString(36).slice(2)}.doc`);
+  await fs.writeFile(tmpPath, buffer);
+  try {
+    const doc = await extractor.extract(tmpPath);
+    const body = typeof doc.getBody === 'function' ? doc.getBody() : '';
+    return String(body || '').trim();
+  } finally {
+    try { await fs.unlink(tmpPath); } catch {}
+  }
+}
+
+/**
  * Extract text from resume file with timeout
  *
  * @param buffer - File buffer
@@ -97,6 +121,8 @@ export async function extractResumeText(buffer: Buffer): Promise<ExtractionResul
     const detector = ft?.fileTypeFromBuffer || ft?.fromBuffer || ft?.default?.fileTypeFromBuffer || ft?.default?.fromBuffer;
     const detectedType = detector ? await detector(buffer) : null;
     const mimeType = detectedType?.mime || '';
+    const headerHex = buffer.slice(0, 8).toString('hex');
+    const isOle2Doc = headerHex.startsWith('d0cf11e0a1b11ae1');
 
     // Create timeout promise
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -110,11 +136,13 @@ export async function extractResumeText(buffer: Buffer): Promise<ExtractionResul
       extractionPromise = extractPDF(buffer);
     } else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       extractionPromise = extractDOCX(buffer);
+    } else if (mimeType === 'application/msword' || isOle2Doc) {
+      extractionPromise = extractDOC(buffer);
     } else {
       return {
         text: '',
         success: false,
-        error: `Unsupported file type: ${mimeType || 'unknown'}. Only PDF and DOCX are supported.`,
+        error: `Unsupported file type: ${mimeType || 'unknown'}. Only PDF, DOC, and DOCX are supported.`,
       };
     }
 

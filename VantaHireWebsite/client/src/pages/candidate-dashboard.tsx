@@ -948,7 +948,7 @@ export default function CandidateDashboard() {
                       <Label className="text-white">Resume File * (PDF or DOCX)</Label>
                       <Input
                         type="file"
-                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
                         className="bg-white/5 border-white/20 text-white"
                         required
