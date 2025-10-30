@@ -15,6 +15,7 @@ import { generateJobsSitemapXML } from "./seoUtils";
 import helmet from "helmet";
 import { registerFormsRoutes } from "./forms.routes";
 import { registerTestRunnerRoutes } from "./testRunner.routes";
+import { registerAIRoutes } from "./ai.routes";
 // Import csrf-csrf with compatibility for CJS/ESM builds
 import { createRequire } from "module";
 import { randomBytes } from "crypto";
@@ -1999,6 +2000,10 @@ New job application received:
 
   // Register forms routes (recruiter-sent candidate forms feature)
   registerFormsRoutes(app, doubleCsrfProtection);
+
+  // Register AI matching routes (resume library + fit scoring)
+  registerAIRoutes(app);
+  console.log('✅ AI matching routes registered (controlled by AI_MATCH_ENABLED and AI_RESUME_ENABLED flags)');
 
   // Register test runner routes (admin testing dashboard)
   // Gated by env flag for security - prevents accidental load in production

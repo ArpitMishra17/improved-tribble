@@ -365,6 +365,116 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`CREATE INDEX IF NOT EXISTS form_responses_application_id_idx ON form_responses(application_id);`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS form_response_answers_response_id_idx ON form_response_answers(response_id);`);
 
+  // AI Matching Feature: Add columns to existing tables
+  console.log('  Adding AI matching columns to existing tables...');
+
+  // Users table: AI feature tracking
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_content_free_used BOOLEAN DEFAULT FALSE;`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_onboarded_at TIMESTAMP;`);
+
+  // Jobs table: JD digest caching
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS jd_digest JSONB;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS jd_digest_version INTEGER DEFAULT 1;`);
+
+  // Applications table: AI fit scoring
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_fit_score INTEGER;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_fit_label TEXT;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_fit_reasons JSONB;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_model_version TEXT;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_computed_at TIMESTAMP;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS ai_stale_reason TEXT;`);
+  await db.execute(sql`ALTER TABLE applications ADD COLUMN IF NOT EXISTS resume_id INTEGER;`);
+
+  // AI Matching Feature: Create new tables
+  console.log('  Creating AI matching tables...');
+
+  // Candidate resumes table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS candidate_resumes (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      gcs_path TEXT NOT NULL,
+      extracted_text TEXT,
+      is_default BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // User AI usage tracking table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS user_ai_usage (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      tokens_in INTEGER NOT NULL,
+      tokens_out INTEGER NOT NULL,
+      cost_usd DECIMAL(10, 8) NOT NULL,
+      computed_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      metadata JSONB
+    );
+  `);
+
+  // AI Matching Feature: Create indexes
+  console.log('  Creating AI matching indexes...');
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS candidate_resumes_user_id_idx ON candidate_resumes(user_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS user_ai_usage_user_id_idx ON user_ai_usage(user_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS user_ai_usage_kind_idx ON user_ai_usage(kind);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS user_ai_usage_computed_at_idx ON user_ai_usage(computed_at);`);
+
+  // AI Matching Feature: Create partial unique index for default resume
+  console.log('  Creating partial unique index for default resume per user...');
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS candidate_resumes_unique_default_per_user
+    ON candidate_resumes(user_id)
+    WHERE is_default = true;
+  `);
+
+  // AI Matching Feature: Create trigger to enforce max 3 resumes per user
+  console.log('  Creating trigger to enforce max 3 resumes per user...');
+  await db.execute(sql`
+    CREATE OR REPLACE FUNCTION check_resume_limit()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      IF (SELECT COUNT(*) FROM candidate_resumes WHERE user_id = NEW.user_id) >= 3 THEN
+        RAISE EXCEPTION 'Maximum 3 resumes allowed per user';
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `);
+
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_trigger
+        WHERE tgname = 'enforce_resume_limit'
+      ) THEN
+        CREATE TRIGGER enforce_resume_limit
+        BEFORE INSERT ON candidate_resumes
+        FOR EACH ROW EXECUTE FUNCTION check_resume_limit();
+      END IF;
+    END $$;
+  `);
+
+  // AI Matching Feature: Add foreign key constraint for resume_id in applications
+  console.log('  Adding foreign key constraint for resume_id in applications...');
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'applications_resume_id_fkey'
+      ) THEN
+        ALTER TABLE applications
+        ADD CONSTRAINT applications_resume_id_fkey
+        FOREIGN KEY (resume_id) REFERENCES candidate_resumes(id);
+      END IF;
+    END $$;
+  `);
+
   console.log('✅ ATS schema ready');
 }
 

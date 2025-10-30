@@ -1,7 +1,7 @@
-import { pgTable, text, serial, integer, boolean, timestamp, date, numeric, index, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, date, numeric, index, jsonb, uniqueIndex, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -10,6 +10,9 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   role: text("role").notNull().default("candidate"), // admin, recruiter, candidate
+  // AI features
+  aiContentFreeUsed: boolean("ai_content_free_used").default(false),
+  aiOnboardedAt: timestamp("ai_onboarded_at"),
 });
 
 export const contactSubmissions = pgTable("contact_submissions", {
@@ -47,6 +50,9 @@ export const jobs = pgTable("jobs", {
   reactivationCount: integer("reactivation_count").notNull().default(0), // Number of times job has been reactivated
   deactivationReason: text("deactivation_reason"), // Reason for deactivation: 'manual', 'auto_expired', 'filled', 'cancelled'
   warningEmailSent: boolean("warning_email_sent").notNull().default(false), // Warning email sent before auto-deactivation
+  // AI features
+  jdDigest: jsonb("jd_digest"), // Cached job description digest for AI matching
+  jdDigestVersion: integer("jd_digest_version").default(1),
 }, (table) => ({
   // Indexes for performance hotspots
   statusIdx: index("jobs_status_idx").on(table.status),
@@ -99,6 +105,14 @@ export const applications = pgTable("applications", {
   createdByUserId: integer("created_by_user_id").references(() => users.id),
   source: text("source").default("public_apply"), // 'public_apply', 'recruiter_add', 'referral', 'linkedin', 'indeed', 'other'
   sourceMetadata: jsonb("source_metadata"), // { referrer, platform, notes }
+  // AI fit scoring
+  aiFitScore: integer("ai_fit_score"), // 0-100
+  aiFitLabel: text("ai_fit_label"), // 'Exceptional', 'Strong', 'Good', 'Partial', 'Low'
+  aiFitReasons: jsonb("ai_fit_reasons"), // Array of reason strings
+  aiModelVersion: text("ai_model_version"), // e.g., 'llama-3.3-70b-versatile'
+  aiComputedAt: timestamp("ai_computed_at"),
+  aiStaleReason: text("ai_stale_reason"), // 'resume_updated', 'job_updated', 'expired_ttl'
+  resumeId: integer("resume_id").references(() => candidateResumes.id),
 }, (table) => ({
   // Indexes for ATS performance
   currentStageIdx: index("applications_current_stage_idx").on(table.currentStage),
@@ -275,6 +289,40 @@ export const formResponseAnswers = pgTable("form_response_answers", {
   fileUrl: text("file_url"), // For file upload fields
 }, (table) => ({
   responseIdIdx: index("form_response_answers_response_id_idx").on(table.responseId),
+}));
+
+// AI Matching: Candidate Resumes
+export const candidateResumes = pgTable("candidate_resumes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  label: text("label").notNull(), // e.g., "Software Engineer Resume", "Data Science Resume"
+  gcsPath: text("gcs_path").notNull(), // GCS bucket path
+  extractedText: text("extracted_text"), // Extracted text from PDF/DOCX
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  userIdIdx: index("candidate_resumes_user_id_idx").on(table.userId),
+  // Partial unique index: only one default resume per user
+  uniqueDefaultPerUser: uniqueIndex("candidate_resumes_unique_default_per_user")
+    .on(table.userId)
+    .where(sql`${table.isDefault} = true`),
+}));
+
+// AI Matching: Usage tracking for billing and limits
+export const userAiUsage = pgTable("user_ai_usage", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text("kind").notNull(), // 'fit', 'content', 'role', 'feedback'
+  tokensIn: integer("tokens_in").notNull(),
+  tokensOut: integer("tokens_out").notNull(),
+  costUsd: decimal("cost_usd", { precision: 10, scale: 8 }).notNull(),
+  computedAt: timestamp("computed_at").defaultNow().notNull(),
+  metadata: jsonb("metadata"), // { applicationId, durationMs, cached, etc. }
+}, (table) => ({
+  userIdIdx: index("user_ai_usage_user_id_idx").on(table.userId),
+  kindIdx: index("user_ai_usage_kind_idx").on(table.kind),
+  computedAtIdx: index("user_ai_usage_computed_at_idx").on(table.computedAt),
 }));
 
 // Relations
@@ -457,6 +505,21 @@ export const formResponseAnswersRelations = relations(formResponseAnswers, ({ on
   field: one(formFields, {
     fields: [formResponseAnswers.fieldId],
     references: [formFields.id],
+  }),
+}));
+
+export const candidateResumesRelations = relations(candidateResumes, ({ one, many }) => ({
+  user: one(users, {
+    fields: [candidateResumes.userId],
+    references: [users.id],
+  }),
+  applications: many(applications),
+}));
+
+export const userAiUsageRelations = relations(userAiUsage, ({ one }) => ({
+  user: one(users, {
+    fields: [userAiUsage.userId],
+    references: [users.id],
   }),
 }));
 
@@ -672,3 +735,36 @@ export type InsertFormResponse = z.infer<typeof insertFormResponseSchema>;
 
 export type FormResponseAnswer = typeof formResponseAnswers.$inferSelect;
 export type InsertFormResponseAnswer = z.infer<typeof insertFormResponseAnswerSchema>;
+
+// AI Matching: Insert schemas and types
+export const insertCandidateResumeSchema = createInsertSchema(candidateResumes).pick({
+  label: true,
+  gcsPath: true,
+  extractedText: true,
+  isDefault: true,
+}).extend({
+  label: z.string().min(1).max(100),
+  gcsPath: z.string().min(1),
+  extractedText: z.string().optional(),
+  isDefault: z.boolean().optional(),
+});
+
+export const insertUserAiUsageSchema = createInsertSchema(userAiUsage).pick({
+  kind: true,
+  tokensIn: true,
+  tokensOut: true,
+  costUsd: true,
+  metadata: true,
+}).extend({
+  kind: z.enum(['fit', 'content', 'role', 'feedback']),
+  tokensIn: z.number().int().min(0),
+  tokensOut: z.number().int().min(0),
+  costUsd: z.string(), // Decimal as string
+  metadata: z.record(z.any()).optional(),
+});
+
+export type CandidateResume = typeof candidateResumes.$inferSelect;
+export type InsertCandidateResume = z.infer<typeof insertCandidateResumeSchema>;
+
+export type UserAiUsage = typeof userAiUsage.$inferSelect;
+export type InsertUserAiUsage = z.infer<typeof insertUserAiUsageSchema>;
