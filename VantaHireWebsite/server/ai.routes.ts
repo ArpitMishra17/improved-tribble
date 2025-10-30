@@ -173,7 +173,9 @@ export function registerAIRoutes(app: Express): void {
         const extractionResult = await extractResumeText(file.buffer);
 
         if (!extractionResult.success) {
-          res.status(400).json({
+          // Use 415 Unsupported Media Type for file type errors, 400 for other issues
+          const isUnsupportedType = extractionResult.error?.includes('Unsupported file type');
+          res.status(isUnsupportedType ? 415 : 400).json({
             error: 'Resume extraction failed',
             message: extractionResult.error,
           });

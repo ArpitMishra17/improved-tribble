@@ -344,7 +344,7 @@ export function getStalenessReason(
   }
 
   if (storedDigestVersion !== currentDigestVersion) {
-    return 'job_updated';
+    return 'digest_version_changed';
   }
 
   if (resumeUpdatedAt && resumeUpdatedAt > aiComputedAt) {
