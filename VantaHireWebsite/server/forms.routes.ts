@@ -3,7 +3,7 @@ import { db } from "./db";
 import { forms, formFields, formInvitations, formResponses, formResponseAnswers, applications, jobs, emailAuditLog } from "@shared/schema";
 import { insertFormSchema, insertFormFieldSchema, insertFormInvitationSchema, insertFormResponseAnswerSchema } from "@shared/schema";
 import { requireAuth, requireRole } from "./auth";
-import { eq, and, desc, sql, or } from "drizzle-orm";
+import { eq, and, desc, sql, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import rateLimit from "express-rate-limit";
@@ -564,6 +564,238 @@ VantaHire Team`;
         }
         console.error('Error creating form invitation:', error);
         return res.status(500).json({ error: 'Failed to create form invitation' });
+      }
+    }
+  );
+
+  // Bulk create form invitations (Phase B: robust server-side endpoint)
+  app.post(
+    "/api/forms/invitations/bulk",
+    requireAuth,
+    requireRole(['recruiter', 'admin']),
+    csrf,
+    rateLimit({
+      windowMs: 60_000, // 1 minute
+      max: 10, // 10 requests per minute (more generous than 3)
+      keyGenerator: (req) => req.user?.id?.toString() || req.ip || 'anonymous',
+      handler: (req, res) => {
+        res.status(429).json({ error: 'Too many bulk invitation requests. Please try again in a minute.' });
+      },
+    }),
+    async (req: Request, res: Response) => {
+      try {
+        // Validate request body
+        const bodySchema = z.object({
+          applicationIds: z.array(z.number()).min(1).max(100), // Soft limit: 100 per call
+          formId: z.number(),
+          customMessage: z.string().optional(),
+          skipExisting: z.boolean().optional().default(true),
+          resendAnswered: z.boolean().optional().default(false),
+        });
+
+        const { applicationIds, formId, customMessage, skipExisting, resendAnswered } = bodySchema.parse(req.body);
+
+        // 1. Fetch form template once (consistency across all invitations)
+        const form = await db.query.forms.findFirst({
+          where: eq(forms.id, formId),
+          with: {
+            fields: {
+              orderBy: (fields: any, { asc }: any) => [asc(fields.order)],
+            },
+          },
+        });
+
+        if (!form) {
+          return res.status(404).json({ error: 'Form template not found' });
+        }
+
+        // Template access check
+        const isAdmin = req.user!.role === 'admin';
+        if (!isAdmin) {
+          const canAccess = form.isPublished || form.createdBy === req.user!.id;
+          if (!canAccess) {
+            return res.status(403).json({
+              error: 'Unauthorized: You can only send your own templates or published templates'
+            });
+          }
+        }
+
+        // 2. Fetch all applications with job data
+        const applications = await db.query.applications.findMany({
+          where: inArray(applications.id, applicationIds),
+          with: { job: true },
+        });
+
+        if (applications.length === 0) {
+          return res.status(404).json({ error: 'No applications found' });
+        }
+
+        // 3. Ownership & status validation
+        const results: Array<{ applicationId: number; status: string; error?: string }> = [];
+        const validApplications: typeof applications = [];
+
+        for (const app of applications) {
+          // Check ownership
+          if (!app.job || app.job.postedBy !== req.user!.id) {
+            results.push({
+              applicationId: app.id,
+              status: 'unauthorized',
+              error: 'You can only send forms for your own job postings',
+            });
+            continue;
+          }
+
+          // Filter inactive applications
+          if (['rejected', 'withdrawn'].includes(app.status)) {
+            results.push({
+              applicationId: app.id,
+              status: 'skipped',
+              error: `Application status is ${app.status}`,
+            });
+            continue;
+          }
+
+          validApplications.push(app);
+        }
+
+        // 4. Check for duplicates (if skipExisting is true)
+        if (skipExisting) {
+          const existingInvitations = await db.query.formInvitations.findMany({
+            where: and(
+              inArray(formInvitations.applicationId, validApplications.map(a => a.id)),
+              eq(formInvitations.formId, formId),
+              or(
+                eq(formInvitations.status, 'pending'),
+                eq(formInvitations.status, 'sent'),
+                eq(formInvitations.status, 'viewed'),
+                ...(resendAnswered ? [] : [eq(formInvitations.status, 'answered')])
+              )
+            ),
+          });
+
+          const existingAppIds = new Set(existingInvitations.map(inv => inv.applicationId));
+
+          // Mark duplicates
+          for (const appId of existingAppIds) {
+            results.push({
+              applicationId: appId,
+              status: 'duplicate',
+              error: 'An active invitation already exists for this form',
+            });
+          }
+
+          // Filter out duplicates from validApplications
+          validApplications.splice(0, validApplications.length, ...validApplications.filter(app => !existingAppIds.has(app.id)));
+        }
+
+        // 5. Create field snapshot (same for all invitations)
+        const fieldSnapshot = JSON.stringify({
+          formName: form.name,
+          formDescription: form.description,
+          fields: form.fields.map((f: any) => ({
+            id: f.id,
+            type: f.type,
+            label: f.label,
+            required: f.required,
+            options: f.options,
+            order: f.order,
+          })),
+        });
+
+        // 6. Phase 1: Create all invitations in transaction
+        const createdInvitations = await db.transaction(async (tx: any) => {
+          const invitations = [];
+          for (const app of validApplications) {
+            const token = randomBytes(32).toString('base64url');
+            const expiresAt = new Date(Date.now() + FORM_INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+
+            const [invitation] = await tx.insert(formInvitations).values({
+              applicationId: app.id,
+              formId,
+              token,
+              expiresAt,
+              status: 'pending',
+              sentBy: req.user!.id,
+              fieldSnapshot,
+              customMessage,
+            }).returning();
+
+            invitations.push({ invitation, application: app });
+          }
+          return invitations;
+        });
+
+        // 7. Phase 2: Send emails (best-effort, mark failures)
+        for (const { invitation, application } of createdInvitations) {
+          try {
+            const emailResult = await sendFormInvitationEmail(
+              invitation.id,
+              application.email,
+              application.name,
+              form.name,
+              invitation.token,
+              customMessage,
+              req.user!.id
+            );
+
+            // Update invitation status
+            const updatedStatus = emailResult.success ? 'sent' : 'failed';
+            await db.update(formInvitations)
+              .set({
+                status: updatedStatus,
+                sentAt: emailResult.success ? new Date() : null,
+                errorMessage: emailResult.error,
+              })
+              .where(eq(formInvitations.id, invitation.id));
+
+            // Log email
+            await db.insert(emailAuditLog).values({
+              applicationId: application.id,
+              templateType: 'form_invitation',
+              recipientEmail: application.email,
+              subject: `Form Request: ${form.name}`,
+              sentAt: new Date(),
+              sentBy: req.user!.id,
+              status: emailResult.success ? 'success' : 'failed',
+              errorMessage: emailResult.error,
+              previewUrl: emailResult.previewUrl,
+            });
+
+            if (emailResult.success) {
+              results.push({ applicationId: application.id, status: 'created' });
+            } else {
+              results.push({
+                applicationId: application.id,
+                status: 'email_failed',
+                error: emailResult.error || 'Failed to send email',
+              });
+            }
+          } catch (err: any) {
+            results.push({
+              applicationId: application.id,
+              status: 'email_failed',
+              error: err.message || 'Failed to send email',
+            });
+          }
+        }
+
+        // 8. Compute summary
+        const summary = {
+          total: applicationIds.length,
+          created: results.filter(r => r.status === 'created').length,
+          duplicates: results.filter(r => r.status === 'duplicate').length,
+          unauthorized: results.filter(r => r.status === 'unauthorized').length,
+          skipped: results.filter(r => r.status === 'skipped').length,
+          emailFailed: results.filter(r => r.status === 'email_failed').length,
+        };
+
+        return res.status(201).json({ summary, results });
+      } catch (error: any) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+        }
+        console.error('Error creating bulk form invitations:', error);
+        return res.status(500).json({ error: 'Failed to create bulk form invitations' });
       }
     }
   );

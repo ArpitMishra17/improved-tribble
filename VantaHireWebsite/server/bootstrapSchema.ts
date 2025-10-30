@@ -365,6 +365,14 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`CREATE INDEX IF NOT EXISTS form_responses_application_id_idx ON form_responses(application_id);`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS form_response_answers_response_id_idx ON form_response_answers(response_id);`);
 
+  // Forms Feature: Create partial unique index for active invitations (prevents duplicates)
+  console.log('  Creating partial unique index for active form invitations...');
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS form_invitations_active_unique
+    ON form_invitations (application_id, form_id)
+    WHERE status IN ('pending', 'sent', 'viewed');
+  `);
+
   // AI Matching Feature: Add columns to existing tables
   console.log('  Adding AI matching columns to existing tables...');
 
