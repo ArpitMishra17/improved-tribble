@@ -2,17 +2,12 @@
  * Resume text extraction with PDF/DOCX parsing, timeouts, and PII stripping
  *
  * Features:
- * - PDF parsing via pdf-parse
- * - DOCX parsing via mammoth
+ * - PDF parsing via pdf-parse (dynamic import for CJS/ESM compatibility)
+ * - DOCX parsing via mammoth (dynamic import)
  * - 30s timeout with graceful fallback
  * - 5MB file size limit
  * - Optional PII stripping (controlled by AI_STRIP_PII env var)
  */
-
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
-// Use default import for compatibility across CJS/ESM builds of file-type
-import fileTypeMod from 'file-type';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const EXTRACTION_TIMEOUT_MS = 30_000; // 30 seconds
@@ -64,9 +59,9 @@ export function stripPII(text: string): string {
  * Extract text from PDF buffer
  */
 async function extractPDF(buffer: Buffer): Promise<string> {
-  const pdfData = await pdfParse(buffer, {
-    max: 10, // Parse first 10 pages (most resumes are 1-3 pages)
-  });
+  const mod: any = await import('pdf-parse');
+  const parseFn = mod?.default || mod; // Support both default and namespace
+  const pdfData = await parseFn(buffer, { max: 10 });
   return pdfData.text;
 }
 
@@ -74,7 +69,9 @@ async function extractPDF(buffer: Buffer): Promise<string> {
  * Extract text from DOCX buffer
  */
 async function extractDOCX(buffer: Buffer): Promise<string> {
-  const result = await mammoth.extractRawText({ buffer });
+  const mod: any = await import('mammoth');
+  const mammothMod = mod?.default || mod;
+  const result = await mammothMod.extractRawText({ buffer });
   return result.value;
 }
 
@@ -95,9 +92,9 @@ export async function extractResumeText(buffer: Buffer): Promise<ExtractionResul
   }
 
   try {
-    // Detect file type (support both CJS and ESM variations)
-    const anyMod: any = fileTypeMod as any;
-    const detector = anyMod?.fileTypeFromBuffer || anyMod?.fromBuffer;
+    // Detect file type (support both CJS and ESM variations via dynamic import)
+    const ft: any = await import('file-type');
+    const detector = ft?.fileTypeFromBuffer || ft?.fromBuffer || ft?.default?.fileTypeFromBuffer || ft?.default?.fromBuffer;
     const detectedType = detector ? await detector(buffer) : null;
     const mimeType = detectedType?.mime || '';
 
