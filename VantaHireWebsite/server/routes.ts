@@ -46,10 +46,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scriptSrc: isDevelopment
           ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://assets.apollo.io"]
           : ["'self'", "https://assets.apollo.io"],
-        // styleSrc: Only allow unsafe-inline in development
+        // style: allow inline attributes for UI libraries (Radix/Popper) without allowing inline <style> blocks
         styleSrc: isDevelopment
           ? ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]
           : ["'self'", "https://fonts.googleapis.com"],
+        // CSP Level 3: refine style policy in production
+        ...(isDevelopment
+          ? {}
+          : {
+              // Allow style attributes (inline) needed for popovers/portals positioning
+              // while keeping external styles limited to self + Google Fonts
+              "style-src-attr": ["'unsafe-inline'"],
+              "style-src-elem": ["'self'", "https://fonts.googleapis.com"],
+            }),
         imgSrc: ["'self'", "data:", "https:"],
         // connectSrc: Restrict WebSocket connections in production
         connectSrc: isDevelopment

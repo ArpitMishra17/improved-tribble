@@ -198,12 +198,15 @@ export function AddCandidateModal({
             <label className="text-sm font-medium text-white">
               Initial Stage (Optional)
             </label>
-            <Select value={initialStageId} onValueChange={setInitialStageId}>
+            <Select
+              value={initialStageId}
+              onValueChange={(v) => setInitialStageId(v === 'none' ? '' : v)}
+            >
               <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
                 <SelectValue placeholder="Unassigned" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="none">Unassigned</SelectItem>
                 {pipelineStages
                   .sort((a, b) => a.order - b.order)
                   .map((stage) => (

@@ -42,6 +42,22 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
   const [customMessage, setCustomMessage] = useState("");
   const [selectedResponse, setSelectedResponse] = useState<FormResponseSummaryDTO | null>(null);
 
+  // Reset selection/state when modal closes or application changes
+  useEffect(() => {
+    if (!open) {
+      setSelectedResponse(null);
+      setSelectedTemplateId(null);
+      setCustomMessage("");
+    }
+  }, [open]);
+
+  useEffect(() => {
+    // When switching to a different candidate/application, ensure previous response isn't shown
+    setSelectedResponse(null);
+    setSelectedTemplateId(null);
+    setCustomMessage("");
+  }, [application.id]);
+
   // Fetch templates - types inferred from formsApi.listTemplates()
   const { data: templatesData } = useQuery({
     queryKey: formsQueryKeys.templates(),
@@ -168,7 +184,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
   if (selectedResponse && detailedResponse) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700">
+        <DialogContent key={application.id} className="max-w-3xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
               <FileText className="w-5 h-5 text-purple-400" />
@@ -223,7 +239,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
   // Main forms modal view
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent key={application.id} className="max-w-3xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <FileText className="w-5 h-5 text-purple-400" />
