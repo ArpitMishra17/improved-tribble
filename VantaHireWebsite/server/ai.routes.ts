@@ -25,6 +25,7 @@ import { z } from 'zod';
 
 const AI_MATCH_ENABLED = process.env.AI_MATCH_ENABLED === 'true';
 const AI_RESUME_ENABLED = process.env.AI_RESUME_ENABLED === 'true';
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // Validation schemas
 const saveResumeSchema = z.object({
@@ -67,6 +68,7 @@ const batchComputeLimiter = rateLimit({
 
 /**
  * Feature flag check middleware
+ * Also validates GROQ_API_KEY is configured for AI features
  */
 function requireFeatureFlag(flag: 'match' | 'resume') {
   return (req: any, res: any, next: any): void => {
@@ -76,6 +78,15 @@ function requireFeatureFlag(flag: 'match' | 'resume') {
       res.status(503).json({
         error: 'Feature not available',
         message: `AI ${flag} feature is currently disabled`,
+      });
+     return;
+    }
+
+    // Check if GROQ_API_KEY is configured (required for AI features)
+    if (!GROQ_API_KEY) {
+      res.status(503).json({
+        error: 'Service unavailable',
+        message: 'AI service is temporarily unavailable. Please try again later.',
       });
      return;
     }

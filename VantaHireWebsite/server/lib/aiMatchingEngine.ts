@@ -27,9 +27,11 @@ const DAILY_AI_ALERT_USD = parseFloat(process.env.DAILY_AI_ALERT_USD || '50');
 const MAX_CONCURRENT_AI_CALLS = 5;
 const STALENESS_TTL_DAYS = 7;
 
-// Groq pricing (as of Jan 2025)
-const PRICE_PER_1M_INPUT_TOKENS = 0.19;
-const PRICE_PER_1M_OUTPUT_TOKENS = 0.59;
+// Groq pricing (as of Jan 2025) - Llama 3.3 70B Versatile
+// Source: https://groq.com/pricing
+// Configurable via env vars for flexibility
+const PRICE_PER_1M_INPUT_TOKENS = parseFloat(process.env.AI_PRICE_INPUT_PER_1M || '0.59');
+const PRICE_PER_1M_OUTPUT_TOKENS = parseFloat(process.env.AI_PRICE_OUTPUT_PER_1M || '0.79');
 
 export interface FitComputationResult {
   score: number; // 0-100
@@ -52,7 +54,6 @@ export interface CircuitBreakerStatus {
 }
 
 let alertSent = false;
-let decInProgress = false; // Guard flag to prevent double-decrement
 
 /**
  * Derive fit label from score (server-side, don't trust model)
@@ -75,7 +76,7 @@ export async function checkCircuitBreaker(): Promise<CircuitBreakerStatus> {
   const spentStr = await redisGet(spentKey);
   const dailySpent = parseFloat(spentStr || '0');
 
-  // Get current concurrency from Redis
+  // Get current concurrency from Redis (for reporting only)
   const concurrencyKey = 'concurrent_calls';
   const concurrencyStr = await redisGet(concurrencyKey);
   const currentConcurrency = parseInt(concurrencyStr || '0', 10);
@@ -97,16 +98,8 @@ export async function checkCircuitBreaker(): Promise<CircuitBreakerStatus> {
     alertSent = true;
   }
 
-  // Check concurrency
-  if (currentConcurrency >= MAX_CONCURRENT_AI_CALLS) {
-    return {
-      allowed: false,
-      reason: `Maximum concurrent AI calls reached (${MAX_CONCURRENT_AI_CALLS})`,
-      dailySpent,
-      dailyBudget: DAILY_AI_BUDGET_USD,
-      currentConcurrency,
-    };
-  }
+  // Note: Concurrency is checked atomically in incrementConcurrency()
+  // to avoid race conditions between check and increment
 
   return {
     allowed: true,
@@ -133,23 +126,23 @@ async function trackBudgetSpending(costUsd: number): Promise<void> {
 }
 
 /**
- * Increment concurrent call counter
+ * Increment concurrent call counter atomically
+ * Throws if limit exceeded (caller must handle rollback)
  */
 async function incrementConcurrency(): Promise<void> {
-  await redisIncr('concurrent_calls');
+  const current = await redisIncr('concurrent_calls');
+  if (current > MAX_CONCURRENT_AI_CALLS) {
+    // Rollback the increment
+    await redisDecr('concurrent_calls');
+    throw new Error(`Maximum concurrent AI calls reached (${MAX_CONCURRENT_AI_CALLS})`);
+  }
 }
 
 /**
- * Decrement concurrent call counter (with guard to prevent double-decrement)
+ * Decrement concurrent call counter
  */
 async function decrementConcurrency(): Promise<void> {
-  if (decInProgress) return; // Prevent double-decrement
-  decInProgress = true;
-  try {
-    await redisDecr('concurrent_calls');
-  } finally {
-    decInProgress = false;
-  }
+  await redisDecr('concurrent_calls');
 }
 
 /**
