@@ -16,9 +16,23 @@ const REDIS_NAMESPACE = process.env.NODE_ENV || 'development';
 let redisClient: RedisClientType | null = null;
 let usingFallback = false;
 let fallbackWarningLogged = false;
+let lastHealthLogTime = 0;
 
 // In-memory fallback store
 const memoryStore = new Map<string, string>();
+
+// Periodic health logging (every 15 minutes when using fallback)
+const HEALTH_LOG_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
+
+function logFallbackHealthIfNeeded(): void {
+  if (usingFallback) {
+    const now = Date.now();
+    if (now - lastHealthLogTime >= HEALTH_LOG_INTERVAL_MS) {
+      console.warn('[REDIS] Using in-memory fallback (periodic health check)');
+      lastHealthLogTime = now;
+    }
+  }
+}
 
 // Initialize Redis client with retry strategy
 async function initRedis(): Promise<void> {
@@ -79,6 +93,7 @@ export async function redisGet(key: string): Promise<string | null> {
   const namespacedKey = redisKey(key);
 
   if (usingFallback || !redisClient) {
+    logFallbackHealthIfNeeded();
     return memoryStore.get(namespacedKey) || null;
   }
 
@@ -199,6 +214,14 @@ export async function redisDel(key: string): Promise<void> {
 // Check if using fallback (for testing/monitoring)
 export function isUsingFallback(): boolean {
   return usingFallback;
+}
+
+// Get Redis health status (for admin endpoints)
+export function getRedisHealth(): { connected: boolean; usingFallback: boolean } {
+  return {
+    connected: redisClient?.isReady || false,
+    usingFallback,
+  };
 }
 
 // Initialize on module load

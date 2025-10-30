@@ -21,6 +21,7 @@ import { extractResumeText, validateResumeText } from './lib/resumeExtractor';
 import { generateJDDigest, JDDigest } from './lib/jdDigest';
 import { computeFitScore, isFitStale, getStalenessReason } from './lib/aiMatchingEngine';
 import { getUserLimits, canUseFitComputation } from './lib/aiLimits';
+import { getRedisHealth } from './lib/redis';
 import { z } from 'zod';
 
 const AI_MATCH_ENABLED = process.env.AI_MATCH_ENABLED === 'true';
@@ -41,29 +42,53 @@ const batchComputeFitSchema = z.object({
   applicationIds: z.array(z.number().int().positive()).min(1).max(20),
 });
 
-// Rate limiters
+// Rate limiters with structured logging
 const resumeUploadLimiter = rateLimit({
   windowMs: 60_000, // 1 minute
   max: 5,
-  message: 'Too many resume uploads. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req: any, res: any) => {
+    console.warn('[RATE_LIMIT] Resume upload limit exceeded', {
+      userId: req.user?.id,
+      endpoint: req.path,
+      limitType: 'per-minute',
+      ip: req.ip,
+    });
+    res.status(429).json({ error: 'Too many resume uploads. Please try again later.' });
+  },
 });
 
 const fitComputeLimiter = rateLimit({
   windowMs: 60_000, // 1 minute
   max: 10,
-  message: 'Too many fit computation requests. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req: any, res: any) => {
+    console.warn('[RATE_LIMIT] Fit computation limit exceeded', {
+      userId: req.user?.id,
+      endpoint: req.path,
+      limitType: 'per-minute',
+      ip: req.ip,
+    });
+    res.status(429).json({ error: 'Too many fit computation requests. Please try again later.' });
+  },
 });
 
 const batchComputeLimiter = rateLimit({
   windowMs: 60_000, // 1 minute
   max: 3,
-  message: 'Too many batch computation requests. Please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req: any, res: any) => {
+    console.warn('[RATE_LIMIT] Batch computation limit exceeded', {
+      userId: req.user?.id,
+      endpoint: req.path,
+      limitType: 'per-minute',
+      ip: req.ip,
+    });
+    res.status(429).json({ error: 'Too many batch computation requests. Please try again later.' });
+  },
 });
 
 /**
@@ -671,6 +696,34 @@ export function registerAIRoutes(app: Express): void {
         res.status(500).json({ error: 'Internal server error' });
      return;
       }
+    }
+  );
+
+  /**
+   * GET /api/ai/features
+   * Get AI feature flag status (no auth required - used for UI decisions)
+   */
+  app.get('/api/ai/features', (_req, res): void => {
+    res.json({
+      resumeAdvisor: AI_RESUME_ENABLED && !!GROQ_API_KEY,
+      fitScoring: AI_MATCH_ENABLED && !!GROQ_API_KEY,
+    });
+  });
+
+  /**
+   * GET /api/admin/ai/redis
+   * Get Redis connection health status (admin only)
+   */
+  app.get(
+    '/api/admin/ai/redis',
+    requireAuth,
+    requireRole(['admin']),
+    (_req, res): void => {
+      const health = getRedisHealth();
+      res.json({
+        redis: health,
+        status: health.connected ? 'healthy' : health.usingFallback ? 'fallback' : 'disconnected',
+      });
     }
   );
 }

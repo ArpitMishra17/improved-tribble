@@ -134,6 +134,11 @@ async function incrementConcurrency(): Promise<void> {
   if (current > MAX_CONCURRENT_AI_CALLS) {
     // Rollback the increment
     await redisDecr('concurrent_calls');
+    console.warn('[RATE_LIMIT] Concurrency limit exceeded', {
+      limitType: 'concurrency',
+      current,
+      max: MAX_CONCURRENT_AI_CALLS,
+    });
     throw new Error(`Maximum concurrent AI calls reached (${MAX_CONCURRENT_AI_CALLS})`);
   }
 }
