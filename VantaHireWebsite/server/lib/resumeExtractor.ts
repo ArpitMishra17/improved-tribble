@@ -11,7 +11,8 @@
 
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
-import { fromBuffer as fileTypeFromBuffer } from 'file-type';
+// Use default import for compatibility across CJS/ESM builds of file-type
+import fileTypeMod from 'file-type';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const EXTRACTION_TIMEOUT_MS = 30_000; // 30 seconds
@@ -94,8 +95,10 @@ export async function extractResumeText(buffer: Buffer): Promise<ExtractionResul
   }
 
   try {
-    // Detect file type
-    const detectedType = await fileTypeFromBuffer(buffer);
+    // Detect file type (support both CJS and ESM variations)
+    const anyMod: any = fileTypeMod as any;
+    const detector = anyMod?.fileTypeFromBuffer || anyMod?.fromBuffer;
+    const detectedType = detector ? await detector(buffer) : null;
     const mimeType = detectedType?.mime || '';
 
     // Create timeout promise
