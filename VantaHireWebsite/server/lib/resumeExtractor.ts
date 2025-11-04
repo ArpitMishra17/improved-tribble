@@ -64,9 +64,11 @@ export function stripPII(text: string): string {
  */
 async function extractPDF(buffer: Buffer): Promise<string> {
   const mod: any = await import('pdf-parse');
-  const parseFn = mod?.default || mod; // Support both default and namespace
-  const pdfData = await parseFn(buffer, { max: 10 });
-  return pdfData.text;
+  // pdf-parse v2 exports PDFParse as class constructor
+  const PDFParse = mod.PDFParse || mod.default?.PDFParse;
+  const parser = new PDFParse({ data: buffer, max: 10 });
+  const result = await parser.getText();
+  return result.text || '';
 }
 
 /**
@@ -74,8 +76,9 @@ async function extractPDF(buffer: Buffer): Promise<string> {
  */
 async function extractDOCX(buffer: Buffer): Promise<string> {
   const mod: any = await import('mammoth');
-  const mammothMod = mod?.default || mod;
-  const result = await mammothMod.extractRawText({ buffer });
+  // mammoth exports extractRawText as both named export and on default
+  const extractFn = mod.extractRawText || mod.default?.extractRawText;
+  const result = await extractFn({ buffer });
   return result.value;
 }
 
@@ -118,7 +121,8 @@ export async function extractResumeText(buffer: Buffer): Promise<ExtractionResul
   try {
     // Detect file type (support both CJS and ESM variations via dynamic import)
     const ft: any = await import('file-type');
-    const detector = ft?.fileTypeFromBuffer || ft?.fromBuffer || ft?.default?.fileTypeFromBuffer || ft?.default?.fromBuffer;
+    // file-type exports fromBuffer on default object in ESM
+    const detector = ft?.default?.fromBuffer || ft?.fromBuffer || ft?.fileTypeFromBuffer;
     const detectedType = detector ? await detector(buffer) : null;
     const mimeType = detectedType?.mime || '';
     const headerHex = buffer.slice(0, 8).toString('hex');
