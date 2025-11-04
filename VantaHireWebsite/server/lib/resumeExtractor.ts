@@ -63,12 +63,11 @@ export function stripPII(text: string): string {
  * Extract text from PDF buffer
  */
 async function extractPDF(buffer: Buffer): Promise<string> {
-  const mod: any = await import('pdf-parse');
-  // pdf-parse v2 exports PDFParse as class constructor
-  const PDFParse = mod.PDFParse || mod.default?.PDFParse;
-  const parser = new PDFParse({ data: buffer, max: 10 });
-  const result = await parser.getText();
-  return result.text || '';
+  const mod: any = await import('pdf-parse-debugging-disabled');
+  // pdf-parse-debugging-disabled exports a function as default
+  const parse = mod.default || mod;
+  const pdfData = await parse(buffer, { max: 10 });
+  return pdfData.text;
 }
 
 /**
