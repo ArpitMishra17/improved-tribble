@@ -94,7 +94,7 @@ const Footer = () => {
           
           {/* Legal links */}
           <div className="flex flex-wrap gap-6 justify-center">
-            <button 
+            <button
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('cookie-consent:open', { detail: { reset: true } }));
               }}
@@ -104,29 +104,29 @@ const Footer = () => {
               <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
             </button>
 
-            <button 
-              onClick={(e) => e.preventDefault()}
+            <Link
+              href="/privacy-policy"
               className="text-white/60 hover:text-white transition-all duration-300 relative group"
             >
               Privacy Policy
               <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
-            
-            <button 
-              onClick={(e) => e.preventDefault()}
+            </Link>
+
+            <Link
+              href="/terms-of-service"
               className="text-white/60 hover:text-white transition-all duration-300 relative group"
             >
               Terms of Service
               <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
-            
-            <button 
-              onClick={(e) => e.preventDefault()}
+            </Link>
+
+            <Link
+              href="/cookie-policy"
               className="text-white/60 hover:text-white transition-all duration-300 relative group"
             >
               Cookie Policy
               <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

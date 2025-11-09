@@ -25,6 +25,9 @@ import JobAnalyticsDashboard from "@/pages/job-analytics-dashboard";
 import RecruiterDashboard from "@/pages/recruiter-dashboard";
 import ConsultantsPage from "@/pages/consultants-page";
 import PublicFormPage from "@/pages/public-form-page";
+import PrivacyPolicyPage from "@/pages/privacy-policy-page";
+import TermsOfServicePage from "@/pages/terms-of-service-page";
+import CookiePolicyPage from "@/pages/cookie-policy-page";
 import { CookieConsent, AnalyticsOnConsent } from "@/components/CookieConsent";
 
 function Router() {
@@ -36,6 +39,9 @@ function Router() {
       <Route path="/candidate-auth" component={CandidateAuth} />
       <Route path="/consultants" component={ConsultantsPage} />
       <Route path="/form/:token" component={PublicFormPage} />
+      <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+      <Route path="/terms-of-service" component={TermsOfServicePage} />
+      <Route path="/cookie-policy" component={CookiePolicyPage} />
       <Route path="/jobs" component={JobsPage} />
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'admin']} />
