@@ -17,17 +17,15 @@ import {
 import { FileText, Plus, Edit, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { formsApi, formsQueryKeys, type FormTemplateDTO } from "@/lib/formsApi";
 import { queryClient } from "@/lib/queryClient";
-import { TemplateEditorModal } from "@/components/TemplateEditorModal";
 
 export default function AdminFormsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplateDTO | null>(null);
+  const [, navigate] = useLocation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<FormTemplateDTO | null>(null);
 
@@ -85,13 +83,11 @@ export default function AdminFormsPage() {
   });
 
   const handleCreateNew = () => {
-    setSelectedTemplate(null);
-    setEditorOpen(true);
+    navigate("/admin/forms/editor/new");
   };
 
   const handleEdit = (template: FormTemplateDTO) => {
-    setSelectedTemplate(template);
-    setEditorOpen(true);
+    navigate(`/admin/forms/editor/${template.id}`);
   };
 
   const handleDelete = (template: FormTemplateDTO) => {
@@ -259,13 +255,6 @@ export default function AdminFormsPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Template Editor Modal */}
-        <TemplateEditorModal
-          open={editorOpen}
-          onOpenChange={setEditorOpen}
-          template={selectedTemplate}
-        />
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

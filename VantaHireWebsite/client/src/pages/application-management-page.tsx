@@ -51,6 +51,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormsModal } from "@/components/FormsModal";
+import { KanbanBoard } from "@/components/kanban/KanbanBoard";
+import { BulkActionBar } from "@/components/kanban/BulkActionBar";
+import { ApplicationDetailPanel } from "@/components/kanban/ApplicationDetailPanel";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 export default function ApplicationManagementPage() {
   const [match, params] = useRoute("/jobs/:id/applications");
@@ -354,7 +358,7 @@ export default function ApplicationManagementPage() {
           await formsApi.createInvitation({
             applicationId: appId,
             formId,
-            customMessage
+            ...(customMessage && { customMessage })
           });
           created++;
         } catch (err: any) {
@@ -466,6 +470,189 @@ export default function ApplicationManagementPage() {
     markViewedMutation.mutate(applicationId);
   };
 
+  // Kanban-specific handlers
+  const handleToggleSelect = (id: number) => {
+    setSelectedApplications((prev) =>
+      prev.includes(id) ? prev.filter((appId) => appId !== id) : [...prev, id]
+    );
+  };
+
+  const handleOpenDetails = (application: Application) => {
+    setSelectedApp(application);
+    handleApplicationView(application.id);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedApp(null);
+  };
+
+  const handleDragCancel = () => {
+    toast({
+      title: "Drag cancelled",
+      description: "Drop onto a stage column to move the application.",
+    });
+  };
+
+  const handleDragEnd = async (applicationId: number, targetStageId: number) => {
+    // Optimistic update
+    const previousApplications = applications;
+
+    queryClient.setQueryData(["/api/jobs", jobId, "applications"], (old: Application[] | undefined) => {
+      if (!old) return old;
+      return old.map((app) =>
+        app.id === applicationId ? { ...app, currentStage: targetStageId } : app
+      );
+    });
+
+    try {
+      await updateStageMutation.mutateAsync({
+        applicationId,
+        stageId: targetStageId
+      });
+    } catch (error) {
+      // Revert on error
+      queryClient.setQueryData(["/api/jobs", jobId, "applications"], previousApplications);
+      toast({
+        title: "Move failed",
+        description: "Failed to move application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkMoveStage = async (stageId: number) => {
+    if (selectedApplications.length === 0) {
+      toast({
+        title: "No applications selected",
+        description: "Please select applications first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let success = 0;
+    let failed = 0;
+    const total = selectedApplications.length;
+
+    setBulkProgress({ sent: 0, total });
+
+    // Process with concurrency limit of 3
+    const concurrencyLimit = 3;
+    for (let i = 0; i < selectedApplications.length; i += concurrencyLimit) {
+      const batch = selectedApplications.slice(i, i + concurrencyLimit);
+      await Promise.allSettled(
+        batch.map(async (id) => {
+          try {
+            await updateStageMutation.mutateAsync({ applicationId: id, stageId });
+            success++;
+          } catch {
+            failed++;
+          } finally {
+            setBulkProgress((p) => ({ sent: Math.min(p.sent + 1, total), total }));
+          }
+        })
+      );
+    }
+
+    setBulkProgress({ sent: 0, total: 0 });
+    setSelectedApplications([]);
+
+    toast({
+      title: "Bulk move complete",
+      description: `Moved: ${success}, Failed: ${failed}`,
+    });
+  };
+
+  const handleBulkSendEmails = async (templateId: number) => {
+    await sendBulkEmailsMutation.mutateAsync({
+      applicationIds: selectedApplications,
+      templateId,
+    });
+  };
+
+  const handleBulkSendForms = async (formId: number, message: string) => {
+    await sendBulkFormsMutation.mutateAsync({
+      applicationIds: selectedApplications,
+      formId,
+      ...(message && { customMessage: message })
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedApplications([]);
+  };
+
+  const handleMoveStageFromPanel = (stageId: number, notes?: string) => {
+    if (!selectedApp) return;
+    updateStageMutation.mutate({
+      applicationId: selectedApp.id,
+      stageId,
+      ...(notes && { notes }),
+    });
+  };
+
+  const handleScheduleInterviewFromPanel = (data: {
+    date: string;
+    time: string;
+    location: string;
+    notes: string;
+  }) => {
+    if (!selectedApp) return;
+    scheduleInterviewMutation.mutate({
+      applicationId: selectedApp.id,
+      ...data,
+    });
+  };
+
+  const handleSendEmailFromPanel = (templateId: number) => {
+    if (!selectedApp) return;
+    sendEmailMutation.mutate({
+      applicationId: selectedApp.id,
+      templateId,
+    });
+  };
+
+  const handleSendFormFromPanel = (formId: number, message: string) => {
+    if (!selectedApp) return;
+    formsApi.createInvitation({
+      applicationId: selectedApp.id,
+      formId,
+      ...(message && { customMessage: message })
+    }).then(() => {
+      toast({
+        title: "Invitation sent",
+        description: "Form invitation has been sent successfully.",
+      });
+    }).catch((error) => {
+      toast({
+        title: "Failed to send invitation",
+        description: error.message,
+        variant: "destructive",
+      });
+    });
+  };
+
+  const handleAddNoteFromPanel = (note: string) => {
+    if (!selectedApp) return;
+    addNoteMutation.mutate({
+      applicationId: selectedApp.id,
+      note,
+    });
+  };
+
+  const handleSetRatingFromPanel = (rating: number) => {
+    if (!selectedApp) return;
+    setRatingMutation.mutate({
+      applicationId: selectedApp.id,
+      rating,
+    });
+  };
+
+  const handleDownloadResumeFromPanel = () => {
+    if (!selectedApp) return;
+    handleResumeDownload(selectedApp);
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       submitted: { color: "bg-blue-500/20 text-blue-300", icon: Clock },
@@ -528,204 +715,6 @@ export default function ApplicationManagementPage() {
     return applications?.filter(app => app.currentStage == null) || [];
   };
 
-  const ApplicationCard = ({ application }: { application: Application }) => {
-    const currentStage = pipelineStages.find(s => s.id === application.currentStage);
-
-    return (
-      <Card className="mb-4 bg-white/10 backdrop-blur-sm border-white/20">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              <Checkbox
-                checked={selectedApplications.includes(application.id)}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setSelectedApplications([...selectedApplications, application.id]);
-                  } else {
-                    setSelectedApplications(selectedApplications.filter(id => id !== application.id));
-                  }
-                }}
-              />
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <CardTitle className="text-white text-lg">{application.name}</CardTitle>
-                  {application.rating && (
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`w-4 h-4 ${star <= application.rating! ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <CardDescription className="text-gray-300">
-                  <div className="flex items-center gap-4 mt-1">
-                    <span>{application.email}</span>
-                    <span>{application.phone}</span>
-                    <span>Applied {formatDate(application.appliedAt)}</span>
-                  </div>
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {currentStage && currentStage.color && (
-                <Badge
-                  style={{
-                    backgroundColor: `${currentStage.color}20`,
-                    borderColor: currentStage.color,
-                    color: currentStage.color
-                  }}
-                  className="border"
-                >
-                  {currentStage.name}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {application.coverLetter && (
-            <div className="p-3 bg-white/5 rounded-lg">
-              <Label className="text-white font-medium">Cover Letter</Label>
-              <p className="text-gray-300 text-sm mt-1">{application.coverLetter}</p>
-            </div>
-          )}
-
-          {application.recruiterNotes && application.recruiterNotes.length > 0 && (
-            <div className="p-3 bg-purple-500/10 rounded-lg border-l-4 border-purple-400">
-              <div className="flex items-center gap-2 mb-2">
-                <MessageSquare className="w-4 h-4 text-purple-400" />
-                <Label className="text-purple-400 font-medium">Recruiter Notes</Label>
-              </div>
-              <div className="space-y-1">
-                {application.recruiterNotes.map((note, idx) => (
-                  <p key={idx} className="text-gray-300 text-sm">• {note}</p>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {application.interviewDate && (
-            <div className="p-3 bg-green-500/10 rounded-lg border-l-4 border-green-400">
-              <div className="flex items-center gap-2 mb-1">
-                <Calendar className="w-4 h-4 text-green-400" />
-                <Label className="text-green-400 font-medium">Interview Scheduled</Label>
-              </div>
-              <p className="text-gray-300 text-sm">
-                {formatDate(application.interviewDate)}
-                {application.interviewTime && ` at ${application.interviewTime}`}
-              </p>
-              {application.interviewLocation && (
-                <p className="text-gray-300 text-sm">📍 {application.interviewLocation}</p>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              onClick={() => handleResumeDownload(application)}
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Resume
-            </Button>
-
-            <Select
-              value={application.currentStage?.toString() || ""}
-              onValueChange={(stageId) =>
-                updateStageMutation.mutate({ applicationId: application.id, stageId: parseInt(stageId) })
-              }
-            >
-              <SelectTrigger className="w-48 bg-white/5 border-white/20 text-white">
-                <SelectValue placeholder="Move to stage..." />
-              </SelectTrigger>
-              <SelectContent>
-                {pipelineStages.map(stage => (
-                  <SelectItem key={stage.id} value={stage.id.toString()}>
-                    {stage.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              onClick={() => {
-                setSelectedApp(application);
-                setShowInterviewDialog(true);
-              }}
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Schedule Interview
-            </Button>
-
-            <Button
-              onClick={() => {
-                setSelectedApp(application);
-                setShowEmailDialog(true);
-              }}
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              Send Email
-            </Button>
-
-            <Button
-              onClick={() => {
-                setSelectedApp(application);
-                setShowHistoryDialog(true);
-              }}
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <History className="w-4 h-4 mr-2" />
-              History
-            </Button>
-
-            <Button
-              onClick={() => {
-                setSelectedApp(application);
-                setShowFormsDialog(true);
-              }}
-              variant="outline"
-              size="sm"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Forms
-            </Button>
-
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setRatingMutation.mutate({ applicationId: application.id, rating: star })}
-                  className="focus:outline-none"
-                >
-                  <Star
-                    className={`w-5 h-5 cursor-pointer transition-colors ${
-                      star <= (application.rating || 0)
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-gray-400 hover:text-yellow-300'
-                    }`}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   if (jobLoading || applicationsLoading) {
     return (
@@ -929,130 +918,58 @@ export default function ApplicationManagementPage() {
             </Card>
           )}
 
-          {/* Filters and Search */}
-          <Card className="mb-6 bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Search className="w-4 h-4 text-gray-400" />
-                  <Input
-                    placeholder="Search by name or email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-40 bg-white/5 border-white/20 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Stages</SelectItem>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                    {pipelineStages
-                      .sort((a, b) => a.order - b.order)
-                      .map(stage => (
-                        <SelectItem key={stage.id} value={stage.id.toString()}>
-                          {stage.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {/* Select All for visible applications */}
-              <div className="flex items-center gap-2 ml-auto">
-                <Checkbox
-                  checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
-                  onCheckedChange={(checked) => {
-                    const visible = getVisibleApplications().map(a => a.id);
-                    if (checked) {
-                      setSelectedApplications(Array.from(new Set([...selectedApplications, ...visible])));
-                    } else {
-                      setSelectedApplications(selectedApplications.filter(id => !visible.includes(id)));
-                    }
-                  }}
+          {/* Kanban Board Section */}
+          <BulkActionBar
+            selectedCount={selectedApplications.length}
+            pipelineStages={pipelineStages}
+            emailTemplates={emailTemplates}
+            formTemplates={formTemplates}
+            onMoveStage={handleBulkMoveStage}
+            onSendEmails={handleBulkSendEmails}
+            onSendForms={handleBulkSendForms}
+            onClearSelection={handleClearSelection}
+            isBulkProcessing={sendBulkEmailsMutation.isPending || sendBulkFormsMutation.isPending}
+            bulkProgress={bulkProgress}
+          />
+
+          <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm">
+            <ResizablePanel defaultSize={selectedApp ? 70 : 100} minSize={40}>
+              <div className="h-full p-4 overflow-auto">
+                <KanbanBoard
+                  applications={applications || []}
+                  pipelineStages={pipelineStages.sort((a, b) => a.order - b.order)}
+                  selectedIds={selectedApplications}
+                  onToggleSelect={handleToggleSelect}
+                  onOpenDetails={handleOpenDetails}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
                 />
-                <span className="text-sm text-gray-300">Select all visible</span>
-                {selectedApplications.length > 0 && (
-                  <button className="text-xs text-gray-400 underline" onClick={() => setSelectedApplications([])}>
-                    Clear
-                  </button>
-                )}
               </div>
-              </div>
-            </CardContent>
-          </Card>
+            </ResizablePanel>
 
-          {/* Application Tabs - Dynamic based on pipeline stages */}
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className={`grid w-full bg-white/10 border-white/20`} style={{ gridTemplateColumns: `repeat(${pipelineStages.length + 2}, minmax(0, 1fr))` }}>
-              <TabsTrigger value="all">All ({applications?.length || 0})</TabsTrigger>
-              <TabsTrigger value="unassigned">Unassigned ({getApplicationsWithoutStage().length})</TabsTrigger>
-              {pipelineStages
-                .sort((a, b) => a.order - b.order)
-                .map(stage => (
-                  <TabsTrigger key={stage.id} value={`stage-${stage.id}`}>
-                    {stage.name} ({getApplicationsByStage(stage.id).length})
-                  </TabsTrigger>
-                ))}
-            </TabsList>
-
-            <TabsContent value="all" className="mt-6">
-              {filteredApplications.length === 0 ? (
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-                  <CardContent className="p-8 text-center">
-                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No Applications</h3>
-                    <p className="text-gray-300">No applications found matching your criteria.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                filteredApplications.map(application => (
-                  <ApplicationCard key={application.id} application={application} />
-                ))
-              )}
-            </TabsContent>
-
-            {/* Unassigned tab */}
-            <TabsContent value="unassigned" className="mt-6">
-              {getApplicationsWithoutStage().length === 0 ? (
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-                  <CardContent className="p-8 text-center">
-                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No Unassigned Applications</h3>
-                    <p className="text-gray-300">All applications have been assigned to a stage.</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                getApplicationsWithoutStage().map(application => (
-                  <ApplicationCard key={application.id} application={application} />
-                ))
-              )}
-            </TabsContent>
-
-            {/* Dynamic stage tabs */}
-            {pipelineStages
-              .sort((a, b) => a.order - b.order)
-              .map(stage => (
-                <TabsContent key={stage.id} value={`stage-${stage.id}`} className="mt-6">
-                  {getApplicationsByStage(stage.id).length === 0 ? (
-                    <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-                      <CardContent className="p-8 text-center">
-                        <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-white mb-2">No {stage.name} Applications</h3>
-                        <p className="text-gray-300">No applications in {stage.name} stage.</p>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    getApplicationsByStage(stage.id).map(application => (
-                      <ApplicationCard key={application.id} application={application} />
-                    ))
-                  )}
-                </TabsContent>
-              ))}
-          </Tabs>
+            {selectedApp && (
+              <>
+                <ResizableHandle withHandle className="bg-white/10" />
+                <ResizablePanel defaultSize={30} minSize={25} maxSize={50}>
+                  <ApplicationDetailPanel
+                    application={selectedApp}
+                    pipelineStages={pipelineStages}
+                    emailTemplates={emailTemplates}
+                    formTemplates={formTemplates}
+                    stageHistory={stageHistory}
+                    onClose={handleCloseDetails}
+                    onMoveStage={handleMoveStageFromPanel}
+                    onScheduleInterview={handleScheduleInterviewFromPanel}
+                    onSendEmail={handleSendEmailFromPanel}
+                    onSendForm={handleSendFormFromPanel}
+                    onAddNote={handleAddNoteFromPanel}
+                    onSetRating={handleSetRatingFromPanel}
+                    onDownloadResume={handleDownloadResumeFromPanel}
+                  />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
           </div>
         </div>
 
@@ -1349,7 +1266,7 @@ export default function ApplicationManagementPage() {
                   sendBulkFormsMutation.mutate({
                     applicationIds: selectedApplications,
                     formId: bulkFormId,
-                    customMessage: bulkFormMessage || undefined,
+                    ...(bulkFormMessage && { customMessage: bulkFormMessage }),
                   })
                 }
                 disabled={!bulkFormId || sendBulkFormsMutation.isPending}

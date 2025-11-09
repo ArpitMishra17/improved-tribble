@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Eye, Download, FileText, Users, Briefcase, Clock, CheckCircle, XCircle, ExternalLink, Plus, Mail, Calendar, BarChart, Play, Sparkles, Brain, AlertCircle } from "lucide-react";
 import Layout from "@/components/Layout";
-import type { Job, Application } from "@shared/schema";
+import type { Job, Application, PipelineStage } from "@shared/schema";
+import { KpiCard } from "@/components/dashboards/KpiCard";
+import { TimeSeriesChart } from "@/components/dashboards/TimeSeriesChart";
+import { FunnelChart } from "@/components/dashboards/FunnelChart";
+import { RecentApplicationsList } from "@/components/dashboards/RecentApplicationsList";
 
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
@@ -38,6 +42,11 @@ export default function RecruiterDashboard() {
   // Fetch all applications for recruiter's jobs
   const { data: applications = [], isLoading: applicationsLoading } = useQuery<ApplicationWithJob[]>({
     queryKey: ["/api/my-applications-received"],
+  });
+
+  // Fetch pipeline stages
+  const { data: pipelineStages = [], isLoading: stagesLoading } = useQuery<PipelineStage[]>({
+    queryKey: ["/api/pipeline/stages"],
   });
 
   // Update application status mutation
@@ -122,9 +131,9 @@ export default function RecruiterDashboard() {
 
   const getJobStats = () => {
     const totalJobs = jobs.length;
-    const activeJobs = jobs.filter((job) => job.status === 'active').length;
+    const activeJobs = jobs.filter((job) => job.isActive).length;
     const totalApplications = applications.length;
-    const pendingApplications = applications.filter((app) => app.status === 'pending').length;
+    const pendingApplications = applications.filter((app) => app.status === 'submitted').length;
 
     return { totalJobs, activeJobs, totalApplications, pendingApplications };
   };
@@ -151,6 +160,81 @@ export default function RecruiterDashboard() {
   };
 
   const stats = getJobStats();
+
+  // Aggregate time-series data (applications over last 30 days)
+  const timeSeriesData = useMemo(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Create buckets for each day
+    const buckets: Record<string, number> = {};
+    for (let d = new Date(thirtyDaysAgo); d <= now; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toISOString().slice(0, 10);
+      buckets[dateKey] = 0;
+    }
+
+    // Count applications per day
+    applications.forEach((app) => {
+      const appDate = new Date(app.appliedAt);
+      if (appDate >= thirtyDaysAgo) {
+        const dateKey = appDate.toISOString().slice(0, 10);
+        if (buckets[dateKey] !== undefined) {
+          buckets[dateKey]++;
+        }
+      }
+    });
+
+    return Object.entries(buckets)
+      .map(([date, value]) => ({ date, value }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [applications]);
+
+  // Aggregate funnel data (stage distribution)
+  const funnelData = useMemo(() => {
+    const stageCounts: Record<number, number> = {};
+
+    applications.forEach((app) => {
+      const stageId = app.currentStage || 0;
+      stageCounts[stageId] = (stageCounts[stageId] || 0) + 1;
+    });
+
+    return Object.entries(stageCounts)
+      .map(([stageId, count]) => {
+        const stage = pipelineStages.find(s => s.id === parseInt(stageId));
+        return {
+          name: stage?.name || 'Unassigned',
+          count,
+          color: stage?.color || '#64748b',
+        };
+      })
+      .sort((a, b) => b.count - a.count);
+  }, [applications, pipelineStages]);
+
+  // Prepare recent applications list
+  const recentApplications = useMemo(() => {
+    return applications
+      .map(app => {
+        const item: {
+          id: number;
+          name: string;
+          email: string;
+          jobTitle?: string;
+          appliedAt: Date;
+          status: string;
+        } = {
+          id: app.id,
+          name: app.name,
+          email: app.email,
+          appliedAt: app.appliedAt,
+          status: app.status,
+        };
+        if (app.job?.title) {
+          item.jobTitle = app.job.title;
+        }
+        return item;
+      })
+      .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime());
+  }, [applications]);
 
   if (jobsLoading || applicationsLoading) {
     return (
@@ -233,54 +317,57 @@ export default function RecruiterDashboard() {
 
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <Briefcase className="h-8 w-8 text-[#7B38FB]" />
-                  <div>
-                    <p className="text-white/70 text-sm">Total Jobs</p>
-                    <p className="text-white text-2xl font-bold" data-testid="total-jobs">{stats.totalJobs}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <CheckCircle className="h-8 w-8 text-green-400" />
-                  <div>
-                    <p className="text-white/70 text-sm">Active Jobs</p>
-                    <p className="text-white text-2xl font-bold">{stats.activeJobs}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <Users className="h-8 w-8 text-blue-400" />
-                  <div>
-                    <p className="text-white/70 text-sm">Total Applications</p>
-                    <p className="text-white text-2xl font-bold">{stats.totalApplications}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <Clock className="h-8 w-8 text-yellow-400" />
-                  <div>
-                    <p className="text-white/70 text-sm">Pending Reviews</p>
-                    <p className="text-white text-2xl font-bold" data-testid="pending-reviews">{stats.pendingApplications}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <KpiCard
+              label="Total Jobs"
+              value={stats.totalJobs}
+              icon={Briefcase}
+              isLoading={jobsLoading}
+            />
+            <KpiCard
+              label="Active Jobs"
+              value={stats.activeJobs}
+              icon={CheckCircle}
+              isLoading={jobsLoading}
+            />
+            <KpiCard
+              label="Total Applications"
+              value={stats.totalApplications}
+              icon={Users}
+              isLoading={applicationsLoading}
+            />
+            <KpiCard
+              label="Pending Reviews"
+              value={stats.pendingApplications}
+              icon={Clock}
+              isLoading={applicationsLoading}
+            />
           </div>
+
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TimeSeriesChart
+              title="Applications Over Time"
+              description="Last 30 days"
+              data={timeSeriesData}
+              isLoading={applicationsLoading}
+            />
+            <FunnelChart
+              title="Stage Distribution"
+              description="Applications by pipeline stage"
+              data={funnelData}
+              isLoading={applicationsLoading || stagesLoading}
+            />
+          </div>
+
+          {/* Recent Applications */}
+          <RecentApplicationsList
+            title="Recent Applications"
+            description="Latest applications received"
+            applications={recentApplications}
+            limit={10}
+            isLoading={applicationsLoading}
+            onApplicationClick={(id) => setSelectedApplicationId(id)}
+          />
 
           {/* Main Content */}
           <Tabs defaultValue="applications" className="space-y-6">
@@ -363,7 +450,7 @@ export default function RecruiterDashboard() {
                           )}
 
                           {/* AI Fit Analysis */}
-                          {application.aiFitScore !== null && application.aiFitScore !== undefined && application.aiFitReasons && (
+                          {application.aiFitScore !== null && application.aiFitScore !== undefined && application.aiFitReasons && Array.isArray(application.aiFitReasons) ? (
                             <div className="pt-2 border-t border-white/10">
                               <div className="p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border-l-4 border-purple-400">
                                 <div className="flex items-center gap-2 mb-2">
@@ -371,7 +458,7 @@ export default function RecruiterDashboard() {
                                   <span className="text-purple-300 font-medium text-sm">AI Fit Analysis</span>
                                 </div>
                                 <ul className="text-white/70 text-sm space-y-1">
-                                  {(application.aiFitReasons as string[]).slice(0, 3).map((reason, idx) => (
+                                  {(application.aiFitReasons as string[]).slice(0, 3).map((reason: string, idx: number): JSX.Element => (
                                     <li key={idx} className="flex items-start gap-2">
                                       <span className="text-purple-400 mt-0.5">•</span>
                                       <span>{reason}</span>
@@ -386,7 +473,7 @@ export default function RecruiterDashboard() {
                                 )}
                               </div>
                             </div>
-                          )}
+                          ) : null}
 
                           {selectedApplicationId === application.id && (
                             <div className="pt-4 border-t border-white/10 space-y-4">

@@ -87,7 +87,9 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-center">
           {/* Copyright */}
           <div className="text-white/60 mb-4 md:mb-0 text-center md:text-left">
-            © 2025 VantaHire. All rights reserved.
+            <p>© 2025 VantaHire</p>
+            <p className="text-sm mt-1">A unit of Deori RecruiterHub Solutions OPC Pvt Ltd</p>
+            <p className="text-xs mt-1">All rights reserved.</p>
           </div>
           
           {/* Legal links */}

@@ -1,0 +1,162 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import type { FieldData } from "@/pages/form-editor-page";
+
+interface FormPreviewDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  templateName: string;
+  fields: FieldData[];
+}
+
+export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: FormPreviewDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+        <DialogHeader>
+          <DialogTitle className="text-white text-2xl flex items-center gap-2">
+            Form Preview
+            <Badge variant="outline" className="text-xs border-purple-400/50 text-purple-300">
+              Candidate View
+            </Badge>
+          </DialogTitle>
+          <DialogDescription className="text-slate-400">
+            This is how candidates will see and interact with your form
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="mt-6">
+          {/* Form Header */}
+          <div className="mb-6 pb-6 border-b border-slate-700">
+            <h2 className="text-2xl font-bold text-white">
+              {templateName || "Untitled Form"}
+            </h2>
+            <p className="text-slate-400 text-sm mt-2">
+              Please fill out all required fields marked with an asterisk (*)
+            </p>
+          </div>
+
+          {/* Form Fields */}
+          {fields.length === 0 ? (
+            <Card className="bg-white/5 border-white/10 border-dashed">
+              <CardContent className="py-12 text-center">
+                <p className="text-slate-400">No fields to preview. Add fields to see them here.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {fields.map((field) => (
+                <div key={field.id} className="space-y-2">
+                  <Label className="text-white text-base">
+                    {field.label || <span className="text-slate-500 italic">Untitled field</span>}
+                    {field.required && <span className="text-red-400 ml-1">*</span>}
+                  </Label>
+
+                  {field.type === "short_text" && (
+                    <Input
+                      placeholder="Enter your response..."
+                      className="bg-white/5 border-white/20 text-white placeholder:text-slate-500"
+                    />
+                  )}
+
+                  {field.type === "long_text" && (
+                    <Textarea
+                      placeholder="Enter your detailed response..."
+                      rows={4}
+                      className="bg-white/5 border-white/20 text-white placeholder:text-slate-500 resize-none"
+                    />
+                  )}
+
+                  {field.type === "email" && (
+                    <Input
+                      type="email"
+                      placeholder="your.email@example.com"
+                      className="bg-white/5 border-white/20 text-white placeholder:text-slate-500"
+                    />
+                  )}
+
+                  {field.type === "yes_no" && (
+                    <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/20">
+                      <Switch />
+                      <span className="text-slate-400 text-sm">Toggle to select Yes/No</span>
+                    </div>
+                  )}
+
+                  {field.type === "select" && (
+                    <Select>
+                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                        <SelectValue placeholder="Select an option..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {field.options
+                          ? field.options.split(',').map((opt, i) => {
+                              const trimmed = opt.trim();
+                              return trimmed ? (
+                                <SelectItem key={i} value={trimmed}>
+                                  {trimmed}
+                                </SelectItem>
+                              ) : null;
+                            })
+                          : (
+                            <SelectItem value="no-options" disabled>
+                              No options defined
+                            </SelectItem>
+                          )}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {field.type === "date" && (
+                    <Input
+                      type="date"
+                      className="bg-white/5 border-white/20 text-white"
+                    />
+                  )}
+
+                  {field.type === "file" && (
+                    <div className="space-y-2">
+                      <Input
+                        type="file"
+                        className="bg-white/5 border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                      />
+                      <p className="text-slate-500 text-xs">
+                        Supported formats: PDF, DOC, DOCX, TXT (max 10MB)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Submit Button (Preview Only) */}
+              <div className="pt-6 border-t border-slate-700">
+                <Button
+                  disabled
+                  size="lg"
+                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                >
+                  Submit Form
+                </Button>
+                <p className="text-slate-500 text-xs mt-2 text-center">
+                  This is a preview only. Candidates will submit their responses here.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

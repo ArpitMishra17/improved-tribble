@@ -104,10 +104,14 @@ async function runGCSTests() {
 
   // Test 3: GCS Client Initialization
   console.log('\n3️⃣  Initializing GCS Client...');
+  const projectId = process.env.GCS_PROJECT_ID;
+  if (!projectId) {
+    throw new Error('GCS_PROJECT_ID environment variable is required');
+  }
   let storage: Storage;
   try {
     storage = new Storage({
-      projectId: process.env.GCS_PROJECT_ID,
+      projectId,
       credentials: serviceAccountKey,
     });
 

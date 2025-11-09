@@ -284,11 +284,18 @@ export function registerAIRoutes(app: Express): void {
     async (req, res): Promise<void> => {
       try {
         const userId = req.user!.id;
-        const resumeId = parseInt(req.params.id, 10);
+        const resumeIdParam = req.params.id;
+
+        if (!resumeIdParam) {
+          res.status(400).json({ error: 'Resume ID is required' });
+          return;
+        }
+
+        const resumeId = parseInt(resumeIdParam, 10);
 
         if (isNaN(resumeId)) {
           res.status(400).json({ error: 'Invalid resume ID' });
-       return;
+          return;
         }
 
         // Check ownership

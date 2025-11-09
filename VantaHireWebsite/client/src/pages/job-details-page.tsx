@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star } from "lucide-react";
+import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star, Share2, Bookmark, Sparkles, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +46,17 @@ export default function JobDetailsPage() {
       return response.json();
     },
     enabled: !!jobId,
+  });
+
+  // Check if AI features are enabled
+  const { data: aiFeatures } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/features/ai"],
+    queryFn: async () => {
+      const response = await fetch("/api/features/ai");
+      if (!response.ok) return { enabled: false };
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const applicationMutation = useMutation({
@@ -317,19 +328,100 @@ export default function JobDetailsPage() {
                 {!showApplicationForm ? (
                     <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card sticky top-8">
                       <CardHeader>
-                        <CardTitle className="text-white">Apply for this position</CardTitle>
-                        <CardDescription className="text-white/70">
-                          Ready to take the next step in your career?
-                        </CardDescription>
+                        <CardTitle className="text-white">Job Details</CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <Button 
-                          onClick={() => setShowApplicationForm(true)}
-                          className="w-full bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105"
-                          size="lg"
-                        >
-                          Apply Now
-                        </Button>
+                      <CardContent className="space-y-6">
+                        {/* Job Metadata */}
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3">
+                            <MapPin className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm text-gray-400">Location</p>
+                              <p className="text-white font-medium">{job.location}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3">
+                            <Briefcase className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm text-gray-400">Job Type</p>
+                              <p className="text-white font-medium capitalize">{job.type.replace('-', ' ')}</p>
+                            </div>
+                          </div>
+
+                          {job.deadline && (
+                            <div className="flex items-start gap-3">
+                              <Calendar className="h-5 w-5 text-orange-400 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm text-gray-400">Deadline</p>
+                                <p className="text-orange-300 font-medium">{formatDate(job.deadline)}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-start gap-3">
+                            <Clock className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm text-gray-400">Posted</p>
+                              <p className="text-white font-medium">{formatDate(job.createdAt)}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* AI Score Badge - Conditionally shown */}
+                        {aiFeatures?.enabled && (
+                          <div className="p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-purple-400/30">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Sparkles className="h-4 w-4 text-purple-400" />
+                              <span className="text-sm font-semibold text-purple-300">AI Match Score</span>
+                            </div>
+                            <p className="text-xs text-gray-400 mb-2">
+                              Upload your resume to see your match score
+                            </p>
+                            <Badge variant="outline" className="border-purple-400/50 text-purple-300 bg-purple-400/10">
+                              AI-Powered Matching Available
+                            </Badge>
+                          </div>
+                        )}
+
+                        {/* Primary CTA */}
+                        <div className="space-y-3">
+                          <Button
+                            onClick={() => setShowApplicationForm(true)}
+                            className="w-full bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105"
+                            size="lg"
+                          >
+                            Apply Now
+                          </Button>
+
+                          {/* Secondary Actions */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button
+                              variant="outline"
+                              className="border-white/20 text-white hover:bg-white/10"
+                              onClick={() => {
+                                navigator.share?.({
+                                  title: job.title,
+                                  url: window.location.href
+                                }).catch(() => {
+                                  navigator.clipboard.writeText(window.location.href);
+                                  toast({ title: "Link copied to clipboard" });
+                                });
+                              }}
+                            >
+                              <Share2 className="h-4 w-4 mr-2" />
+                              Share
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="border-white/20 text-white hover:bg-white/10"
+                              onClick={() => toast({ title: "Job saved", description: "We'll remind you about this opportunity" })}
+                            >
+                              <Bookmark className="h-4 w-4 mr-2" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   ) : (

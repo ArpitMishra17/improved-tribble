@@ -9,14 +9,18 @@ async function testGCS() {
 
   // Initialize
   console.log('\n✓ Initializing GCS...');
+  const projectId = process.env.GCS_PROJECT_ID;
+  if (!projectId) {
+    throw new Error('GCS_PROJECT_ID environment variable is required');
+  }
   const serviceAccountKey = JSON.parse(process.env.GCS_SERVICE_ACCOUNT_KEY!);
   const storage = new Storage({
-    projectId: process.env.GCS_PROJECT_ID,
+    projectId,
     credentials: serviceAccountKey,
   });
   const bucketName = process.env.GCS_BUCKET_NAME!;
   const bucket = storage.bucket(bucketName);
-  console.log(`  Project: ${process.env.GCS_PROJECT_ID}`);
+  console.log(`  Project: ${projectId}`);
   console.log(`  Bucket: ${bucketName}`);
   console.log(`  Service Account: ${serviceAccountKey.client_email}`);
 

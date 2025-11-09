@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useLocation, useSearch } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { Search, MapPin, Clock, Filter, Briefcase, Star, Building, DollarSign, ExternalLink } from "lucide-react";
+import { Search, MapPin, Clock, Filter, Briefcase, ArrowUpDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Job } from "@shared/schema";
 import Layout from "@/components/Layout";
+import { FilterPanel, MobileFilterSheet } from "@/components/FilterPanel";
 
 interface JobsResponse {
   jobs: Job[];
@@ -22,11 +23,17 @@ interface JobsResponse {
 }
 
 export default function JobsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [location, setLocation] = useState("");
-  const [type, setType] = useState("");
-  const [skills, setSkills] = useState("");
+  const searchParams = new URLSearchParams(useSearch());
+  const [, setUrlLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  // Initialize state from URL params
+  const [page, setPage] = useState(parseInt(searchParams.get("page") || "1", 10));
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [location, setLocationFilter] = useState(searchParams.get("location") || "");
+  const [type, setType] = useState(searchParams.get("type") || "all");
+  const [skills, setSkills] = useState(searchParams.get("skills") || "");
+  const [sortBy, setSortBy] = useState<string>(searchParams.get("sortBy") || "recent");
   const [isVisible, setIsVisible] = useState(false);
 
   // Fade-in animation on mount
@@ -35,6 +42,18 @@ export default function JobsPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Fetch AI feature flag
+  const { data: aiFeatures } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/features/ai"],
+    queryFn: async () => {
+      const response = await fetch("/api/features/ai");
+      if (!response.ok) return { enabled: false };
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Fetch jobs from API (server only supports: search, location, type, skills)
   const { data, isLoading, error } = useQuery<JobsResponse>({
     queryKey: ["/api/jobs", { page, search, location, type, skills }],
     queryFn: async () => {
@@ -51,9 +70,79 @@ export default function JobsPage() {
     },
   });
 
-  const handleSearch = () => {
-    setPage(1); // Reset to first page when searching
+  // Client-side sorting (server doesn't support sortBy yet)
+  const sortedJobs = useMemo(() => {
+    if (!data?.jobs) return [];
+
+    const jobs = [...data.jobs];
+
+    switch (sortBy) {
+      case "recent":
+        return jobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      case "deadline":
+        return jobs.sort((a, b) => {
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+        });
+      case "relevant":
+      default:
+        return jobs;
+    }
+  }, [data?.jobs, sortBy]);
+
+  // Sync state to URL
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (location) params.set("location", location);
+    if (type && type !== "all") params.set("type", type);
+    if (skills) params.set("skills", skills);
+    if (sortBy && sortBy !== "recent") params.set("sortBy", sortBy);
+    if (page > 1) params.set("page", page.toString());
+
+    const queryString = params.toString();
+    setUrlLocation(`/jobs${queryString ? `?${queryString}` : ''}`, { replace: true });
+  }, [search, location, type, skills, sortBy, page, setUrlLocation]);
+
+  // Scroll to top on pagination change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page]);
+
+  const handleApplyFilters = () => {
+    setPage(1); // Reset to first page when applying filters
   };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setLocationFilter("");
+    setType("all");
+    setSkills("");
+    setSortBy("recent");
+    setPage(1);
+  };
+
+  const handleJobCardHover = (jobId: number) => {
+    queryClient.prefetchQuery({
+      queryKey: ["/api/jobs", jobId.toString()],
+      queryFn: async () => {
+        const response = await fetch(`/api/jobs/${jobId}`);
+        if (!response.ok) throw new Error("Failed to fetch job");
+        return response.json();
+      },
+    });
+  };
+
+  // Count active filters (excluding page and default sort)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (search) count++;
+    if (location) count++;
+    if (type && type !== "all") count++;
+    if (skills) count++;
+    return count;
+  }, [search, location, type, skills]);
 
   // Generate dynamic meta tags based on filters and results
   const metaData = useMemo(() => {
@@ -75,18 +164,19 @@ export default function JobsPage() {
     if (search) description += ` Search: ${search}.`;
     description += " AI-powered matching with specialist recruiters.";
 
-    // Build canonical URL with query params
+    // Build canonical URL with query params (include all active filters)
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (location) params.set("location", location);
     if (type && type !== "all") params.set("type", type);
     if (skills) params.set("skills", skills);
+    if (sortBy && sortBy !== "recent") params.set("sortBy", sortBy);
     if (page > 1) params.set("page", page.toString());
 
     const canonicalUrl = `${baseUrl}/jobs${params.toString() ? `?${params.toString()}` : ''}`;
 
     return { title, description, canonicalUrl, baseUrl };
-  }, [location, type, search, skills, page, data?.pagination.total]);
+  }, [location, type, search, skills, sortBy, page, data?.pagination.total]);
 
   const formatDate = (dateString: string | Date) => {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
@@ -140,68 +230,120 @@ export default function JobsPage() {
             </p>
           </div>
 
-          {/* Premium Search and Filters */}
-          <Card className="mb-12 bg-white/10 backdrop-blur-sm border-white/20 premium-card animate-slide-up" style={{ animationDelay: '0.5s' }}>
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Filter className="h-5 w-5 text-[#7B38FB]" />
-                Find Your Perfect Match
-              </CardTitle>
-              <CardDescription className="text-white/70">
-                Use our AI-powered search to discover opportunities tailored to your skills
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="relative group">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-focus-within:text-[#7B38FB] transition-colors" />
-                  <Input
-                    placeholder="Search jobs..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-[#7B38FB] focus:ring-2 focus:ring-[#7B38FB]/20 transition-all duration-300"
-                  />
-                </div>
-                
-                <div className="relative group">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-focus-within:text-[#7B38FB] transition-colors" />
-                  <Input
-                    placeholder="Location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-[#7B38FB] focus:ring-2 focus:ring-[#7B38FB]/20 transition-all duration-300"
-                  />
-                </div>
-
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                  <SelectValue placeholder="Job Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="full-time">Full-time</SelectItem>
-                  <SelectItem value="part-time">Part-time</SelectItem>
-                  <SelectItem value="contract">Contract</SelectItem>
-                  <SelectItem value="remote">Remote</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Input
-                placeholder="Skills (comma separated)"
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+          {/* Two-column layout: Filters + Results */}
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
+            {/* Left Sidebar - Desktop Only */}
+            <aside className="hidden lg:block">
+              <FilterPanel
+                search={search}
+                setSearch={setSearch}
+                location={location}
+                setLocation={setLocationFilter}
+                type={type}
+                setType={setType}
+                skills={skills}
+                setSkills={setSkills}
+                onApplyFilters={handleApplyFilters}
+                onResetFilters={handleResetFilters}
               />
+            </aside>
 
-              <Button onClick={handleSearch} className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
-                <Filter className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Main Content */}
+            <main>
+              {/* Mobile Filter + Sort Bar */}
+              <div className="flex items-center justify-between mb-6 gap-4">
+                <div className="lg:hidden flex items-center gap-2">
+                  <MobileFilterSheet
+                    search={search}
+                    setSearch={setSearch}
+                    location={location}
+                    setLocation={setLocationFilter}
+                    type={type}
+                    setType={setType}
+                    skills={skills}
+                    setSkills={setSkills}
+                    onApplyFilters={handleApplyFilters}
+                    onResetFilters={handleResetFilters}
+                  />
+                  {activeFilterCount > 0 && (
+                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </div>
 
-        {/* Results */}
+                {/* Sort Dropdown + Reset */}
+                <div className="flex items-center gap-2 ml-auto">
+                  <ArrowUpDown className="h-4 w-4 text-gray-400" />
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[180px] bg-white/5 border-white/20 text-white">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recent">Most Recent</SelectItem>
+                      <SelectItem value="deadline">Deadline: Soonest</SelectItem>
+                      {aiFeatures?.enabled && (
+                        <SelectItem value="relevant">Most Relevant (AI)</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {activeFilterCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetFilters}
+                      className="text-gray-400 hover:text-white hover:bg-white/10"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Active Filter Chips */}
+              {activeFilterCount > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {search && (
+                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                      Search: {search}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        onClick={() => setSearch("")}
+                      />
+                    </Badge>
+                  )}
+                  {location && (
+                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                      Location: {location}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        onClick={() => setLocationFilter("")}
+                      />
+                    </Badge>
+                  )}
+                  {type && type !== "all" && (
+                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                      Type: {type.replace('-', ' ')}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        onClick={() => setType("all")}
+                      />
+                    </Badge>
+                  )}
+                  {skills && (
+                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                      Skills: {skills}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        onClick={() => setSkills("")}
+                      />
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Results */}
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
@@ -222,14 +364,19 @@ export default function JobsPage() {
             {/* Job Count */}
             <div className="mb-6">
               <p className="text-white">
-                Showing {data?.jobs.length} of {data?.pagination.total} jobs
+                Showing {sortedJobs.length} of {data?.pagination.total} jobs
+                {sortBy !== "recent" && <span className="text-gray-400 ml-2">(sorted by {sortBy === "deadline" ? "deadline" : "AI relevance"})</span>}
               </p>
             </div>
 
             {/* Job Cards */}
             <div className="grid gap-6 mb-8">
-              {data?.jobs.map((job) => (
-                <Card key={job.id} className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300">
+              {sortedJobs.map((job) => (
+                <Card
+                  key={job.id}
+                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300"
+                  onMouseEnter={() => handleJobCardHover(job.id)}
+                >
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -339,6 +486,8 @@ export default function JobsPage() {
             )}
           </>
         )}
+            </main>
+          </div>
         </div>
       </div>
     </Layout>

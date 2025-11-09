@@ -138,6 +138,9 @@ export async function deleteFromGCS(gcsPath: string): Promise<void> {
   }
 
   const [, bucket, filepath] = match;
+  if (!bucket || !filepath) {
+    throw new Error('Invalid GCS path components');
+  }
   await storage.bucket(bucket).file(filepath).delete();
 }
 
@@ -164,6 +167,9 @@ export async function getSignedDownloadUrl(
   }
 
   const [, bucket, filepath] = match;
+  if (!bucket || !filepath) {
+    throw new Error('Invalid GCS path components');
+  }
   const file = storage.bucket(bucket).file(filepath);
 
   // Generate signed URL valid for specified duration
@@ -197,6 +203,9 @@ export async function fileExists(gcsPath: string): Promise<boolean> {
     }
 
     const [, bucket, filepath] = match;
+    if (!bucket || !filepath) {
+      return false;
+    }
     const [exists] = await storage.bucket(bucket).file(filepath).exists();
     return exists;
   } catch (error) {

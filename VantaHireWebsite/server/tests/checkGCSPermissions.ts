@@ -6,9 +6,14 @@ dotenv.config();
 async function checkPermissions() {
   console.log('🔍 Checking GCS Service Account Permissions\n');
 
+  const projectId = process.env.GCS_PROJECT_ID;
+  if (!projectId) {
+    throw new Error('GCS_PROJECT_ID environment variable is required');
+  }
+
   const serviceAccountKey = JSON.parse(process.env.GCS_SERVICE_ACCOUNT_KEY!);
   const storage = new Storage({
-    projectId: process.env.GCS_PROJECT_ID,
+    projectId,
     credentials: serviceAccountKey,
   });
 
@@ -16,7 +21,7 @@ async function checkPermissions() {
   const bucket = storage.bucket(bucketName);
 
   console.log(`Service Account: ${serviceAccountKey.client_email}`);
-  console.log(`Project: ${process.env.GCS_PROJECT_ID}`);
+  console.log(`Project: ${projectId}`);
   console.log(`Bucket: ${bucketName}\n`);
 
   // Test which permissions we have
@@ -32,6 +37,11 @@ async function checkPermissions() {
   console.log('Testing permissions:');
   try {
     const [result] = await bucket.iam.testPermissions(permissions);
+    if (!result || !Array.isArray(result)) {
+      console.log('\n❌ No permissions result returned');
+      return;
+    }
+
     console.log('\n✅ Permissions granted:');
     result.forEach((perm: string) => console.log(`  ✓ ${perm}`));
 

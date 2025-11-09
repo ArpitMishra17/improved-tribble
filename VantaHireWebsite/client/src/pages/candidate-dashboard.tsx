@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useAIFeatures } from "@/hooks/use-ai-features";
@@ -43,6 +43,8 @@ import { UserProfile, Application, Job } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getCsrfToken } from "@/lib/csrf";
 import Layout from "@/components/Layout";
+import { KpiCard } from "@/components/dashboards/KpiCard";
+import { CandidateTimeline } from "@/components/dashboards/CandidateTimeline";
 
 type ApplicationWithJob = Application & { job: Job };
 
@@ -320,6 +322,18 @@ export default function CandidateDashboard() {
 
   const stats = getApplicationStats();
 
+  // Prepare timeline data
+  const timelineApplications = useMemo(() => {
+    if (!applications) return [];
+    return applications.map(app => ({
+      id: app.id,
+      jobTitle: app.job.title,
+      jobLocation: app.job.location,
+      appliedAt: app.appliedAt,
+      status: app.status,
+    }));
+  }, [applications]);
+
   const getFitBadge = (score: number | null, label: string | null) => {
     if (score === null || label === null) return null;
 
@@ -487,14 +501,14 @@ export default function CandidateDashboard() {
         <p className="text-gray-300 mb-3 line-clamp-2">{application.job.description}</p>
 
         {/* AI Fit Analysis */}
-        {fitScoring && application.aiFitScore !== null && application.aiFitReasons && (
+        {fitScoring && application.aiFitScore !== null && application.aiFitReasons && Array.isArray(application.aiFitReasons) ? (
           <div className="mb-3 p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border-l-4 border-purple-400">
             <Label className="text-purple-300 font-medium text-sm flex items-center gap-2">
               <Brain className="w-4 h-4" />
               AI Fit Analysis
             </Label>
             <ul className="text-gray-300 text-sm mt-2 space-y-1">
-              {(application.aiFitReasons as string[]).slice(0, 3).map((reason, idx) => (
+              {(application.aiFitReasons as string[]).slice(0, 3).map((reason: string, idx: number): JSX.Element => (
                 <li key={idx} className="flex items-start gap-2">
                   <span className="text-purple-400 mt-0.5">•</span>
                   <span>{reason}</span>
@@ -508,7 +522,7 @@ export default function CandidateDashboard() {
               </p>
             )}
           </div>
-        )}
+        ) : null}
         
         {application.job.skills && application.job.skills.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
@@ -672,53 +686,40 @@ export default function CandidateDashboard() {
 
             {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-300 text-sm">Total Applications</p>
-                    <p className="text-3xl font-bold text-blue-400">{stats.total}</p>
-                  </div>
-                  <Briefcase className="w-8 h-8 text-blue-400" />
-                </div>
-              </CardContent>
-            </Card>
+            <KpiCard
+              label="Total Applications"
+              value={stats.total}
+              icon={Briefcase}
+              isLoading={applicationsLoading}
+            />
+            <KpiCard
+              label="In Progress"
+              value={stats.pending}
+              icon={Clock}
+              isLoading={applicationsLoading}
+            />
+            <KpiCard
+              label="Shortlisted"
+              value={stats.shortlisted}
+              icon={CheckCircle}
+              isLoading={applicationsLoading}
+            />
+            <KpiCard
+              label="Rejected"
+              value={stats.rejected}
+              icon={XCircle}
+              isLoading={applicationsLoading}
+            />
+          </div>
 
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-300 text-sm">In Progress</p>
-                    <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
-                  </div>
-                  <Clock className="w-8 h-8 text-yellow-400" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-300 text-sm">Shortlisted</p>
-                    <p className="text-3xl font-bold text-green-400">{stats.shortlisted}</p>
-                  </div>
-                  <CheckCircle className="w-8 h-8 text-green-400" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-300 text-sm">Rejected</p>
-                    <p className="text-3xl font-bold text-red-400">{stats.rejected}</p>
-                  </div>
-                  <XCircle className="w-8 h-8 text-red-400" />
-                </div>
-              </CardContent>
-            </Card>
+          {/* Timeline */}
+          <div className="mb-8">
+            <CandidateTimeline
+              title="Application Timeline"
+              description="Your applications grouped by month"
+              applications={timelineApplications}
+              isLoading={applicationsLoading}
+            />
           </div>
 
           {/* Main Content */}

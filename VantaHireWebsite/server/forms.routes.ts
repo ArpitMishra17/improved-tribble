@@ -621,20 +621,20 @@ VantaHire Team`;
         }
 
         // 2. Fetch all applications with job data
-        const applications = await db.query.applications.findMany({
+        const fetchedApplications = await db.query.applications.findMany({
           where: inArray(applications.id, applicationIds),
           with: { job: true },
         });
 
-        if (applications.length === 0) {
+        if (fetchedApplications.length === 0) {
           return res.status(404).json({ error: 'No applications found' });
         }
 
         // 3. Ownership & status validation
         const results: Array<{ applicationId: number; status: string; error?: string }> = [];
-        const validApplications: typeof applications = [];
+        const validApplications: typeof fetchedApplications = [];
 
-        for (const app of applications) {
+        for (const app of fetchedApplications) {
           // Check ownership
           if (!app.job || app.job.postedBy !== req.user!.id) {
             results.push({
@@ -662,7 +662,7 @@ VantaHire Team`;
         if (skipExisting) {
           const existingInvitations = await db.query.formInvitations.findMany({
             where: and(
-              inArray(formInvitations.applicationId, validApplications.map(a => a.id)),
+              inArray(formInvitations.applicationId, validApplications.map((a: typeof fetchedApplications[0]) => a.id)),
               eq(formInvitations.formId, formId),
               or(
                 eq(formInvitations.status, 'pending'),
@@ -673,19 +673,19 @@ VantaHire Team`;
             ),
           });
 
-          const existingAppIds = new Set(existingInvitations.map(inv => inv.applicationId));
+          const existingAppIds = new Set(existingInvitations.map((inv: typeof existingInvitations[0]) => inv.applicationId));
 
           // Mark duplicates
           for (const appId of existingAppIds) {
             results.push({
-              applicationId: appId,
+              applicationId: appId as number,
               status: 'duplicate',
               error: 'An active invitation already exists for this form',
             });
           }
 
           // Filter out duplicates from validApplications
-          validApplications.splice(0, validApplications.length, ...validApplications.filter(app => !existingAppIds.has(app.id)));
+          validApplications.splice(0, validApplications.length, ...validApplications.filter((app: typeof fetchedApplications[0]) => !existingAppIds.has(app.id)));
         }
 
         // 5. Create field snapshot (same for all invitations)
