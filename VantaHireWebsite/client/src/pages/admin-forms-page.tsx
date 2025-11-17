@@ -112,19 +112,19 @@ export default function AdminFormsPage() {
     <Layout>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-8">
           <div>
-            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-              <FileText className="w-8 h-8 text-purple-400" />
+            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 flex items-center gap-2">
+              <FileText className="w-7 h-7 text-primary" />
               Form Templates
             </h1>
-            <p className="text-slate-400 mt-1">
+            <p className="text-slate-500 mt-1">
               Create and manage custom forms to send to candidates
             </p>
           </div>
           <Button
             onClick={handleCreateNew}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
+            className=""
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Template
@@ -132,10 +132,10 @@ export default function AdminFormsPage() {
         </div>
 
         {/* Templates Table */}
-        <Card className="bg-slate-900 border-slate-700">
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">Templates</CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardTitle className="text-slate-900">Templates</CardTitle>
+            <CardDescription className="text-slate-500">
               {user?.role === 'admin'
                 ? 'All form templates (published and drafts)'
                 : 'Published templates and your own drafts'}
@@ -144,12 +144,12 @@ export default function AdminFormsPage() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
             ) : templates.length === 0 ? (
               <div className="text-center py-12">
-                <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400 mb-2">No templates yet</p>
+                <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 mb-2">No templates yet</p>
                 <p className="text-slate-500 text-sm">
                   Create your first template to get started
                 </p>
@@ -157,26 +157,26 @@ export default function AdminFormsPage() {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                    <TableHead className="text-slate-300">Template Name</TableHead>
-                    <TableHead className="text-slate-300">Status</TableHead>
-                    <TableHead className="text-slate-300">Fields</TableHead>
-                    <TableHead className="text-slate-300">Created By</TableHead>
-                    <TableHead className="text-slate-300">Updated</TableHead>
-                    <TableHead className="text-slate-300 text-right">Actions</TableHead>
+                  <TableRow className="border-slate-200 hover:bg-slate-50">
+                    <TableHead className="text-slate-600">Template Name</TableHead>
+                    <TableHead className="text-slate-600">Status</TableHead>
+                    <TableHead className="text-slate-600">Fields</TableHead>
+                    <TableHead className="text-slate-600">Created By</TableHead>
+                    <TableHead className="text-slate-600">Updated</TableHead>
+                    <TableHead className="text-slate-600 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {templates.map((template) => (
                     <TableRow
                       key={template.id}
-                      className="border-slate-700 hover:bg-slate-800/50"
+                      className="border-slate-200 hover:bg-slate-50"
                     >
                       <TableCell>
                         <div>
-                          <p className="text-white font-medium">{template.name}</p>
+                          <p className="text-slate-900 font-medium">{template.name}</p>
                           {template.description && (
-                            <p className="text-slate-400 text-sm mt-1">
+                            <p className="text-slate-500 text-sm mt-1">
                               {template.description.length > 60
                                 ? `${template.description.slice(0, 60)}...`
                                 : template.description}
@@ -188,20 +188,20 @@ export default function AdminFormsPage() {
                         <Badge
                           className={
                             template.isPublished
-                              ? "bg-green-500/20 text-green-300 border-0"
-                              : "bg-yellow-500/20 text-yellow-300 border-0"
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
                           }
                         >
                           {template.isPublished ? "Published" : "Draft"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-slate-300">
+                      <TableCell className="text-slate-600">
                         {template.fields.length} fields
                       </TableCell>
-                      <TableCell className="text-slate-400 text-sm">
+                      <TableCell className="text-slate-500 text-sm">
                         {template.createdBy === user?.id ? "You" : `ID: ${template.createdBy}`}
                       </TableCell>
-                      <TableCell className="text-slate-400 text-sm">
+                      <TableCell className="text-slate-500 text-sm">
                         {new Date(template.updatedAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
@@ -213,7 +213,7 @@ export default function AdminFormsPage() {
                               size="sm"
                               onClick={() => handleTogglePublish(template)}
                               disabled={togglePublishMutation.isPending}
-                              className="text-slate-300 hover:text-white hover:bg-slate-700"
+                              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                               title={template.isPublished ? "Unpublish" : "Publish"}
                             >
                               {template.isPublished ? (
@@ -229,7 +229,7 @@ export default function AdminFormsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(template)}
-                              className="text-slate-300 hover:text-white hover:bg-slate-700"
+                              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -241,7 +241,7 @@ export default function AdminFormsPage() {
                               size="sm"
                               onClick={() => handleDelete(template)}
                               disabled={deleteMutation.isPending}
-                              className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -258,26 +258,26 @@ export default function AdminFormsPage() {
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent className="bg-slate-900 border-slate-700">
+          <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-white">Delete Template?</AlertDialogTitle>
-              <AlertDialogDescription className="text-slate-400">
+              <AlertDialogTitle>Delete Template?</AlertDialogTitle>
+              <AlertDialogDescription>
                 Are you sure you want to delete "{templateToDelete?.name}"? This action cannot
                 be undone.
                 {templateToDelete && (
-                  <p className="mt-2 text-sm text-amber-400">
+                  <p className="mt-2 text-sm text-amber-600">
                     Note: Templates with existing invitations cannot be deleted.
                   </p>
                 )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-slate-800 text-white border-slate-700 hover:bg-slate-700">
+              <AlertDialogCancel className="bg-white text-slate-700 border-slate-300 hover:bg-slate-100">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => templateToDelete && deleteMutation.mutate(templateToDelete.id)}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-red-600 hover:bg-red-700"
               >
                 {deleteMutation.isPending ? (
                   <>

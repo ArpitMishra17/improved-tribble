@@ -25,6 +25,33 @@ const Layout = ({ children }: LayoutProps) => {
   const isCandidate = user?.role === 'candidate';
   const displayName = user?.firstName || user?.username || 'User';
 
+  // ATS context detection - determines if we should use light ATS theme
+  const atsUser = isRecruiter || isAdmin;
+
+  const isAtsRoute = (path: string): boolean => {
+    const atsRoutes = [
+      '/recruiter-dashboard',
+      '/applications',
+      '/jobs/post',
+      '/admin',
+      '/analytics',
+    ];
+
+    // Check exact matches first
+    if (atsRoutes.some(route => path === route || path.startsWith(route + '/'))) {
+      return true;
+    }
+
+    // Check for job applications route pattern: /jobs/:id/applications
+    if (path.match(/^\/jobs\/\d+\/applications/)) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const atsContext = atsUser && isAtsRoute(location);
+
   useEffect(() => {
     const handleScroll = () => {
       setScrollPosition(window.scrollY);
@@ -45,9 +72,118 @@ const Layout = ({ children }: LayoutProps) => {
   const isJobsRoute = location.startsWith('/jobs') || location === '/auth';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Quick Access Bar for authenticated users */}
-      {user && <QuickAccessBar />}
+    <div className={cn(
+      "min-h-screen",
+      atsContext
+        ? "ats-theme bg-slate-50 text-slate-900"
+        : "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+    )}>
+      {/* Quick Access Bar for authenticated users (not in ATS context) */}
+      {user && !atsContext && <QuickAccessBar />}
+
+      {/* ATS Header - Light theme for recruiter/admin dashboards */}
+      {atsContext && (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200/80 shadow-sm">
+          <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
+            {/* Logo */}
+            <div className="text-xl font-bold">
+              <Link
+                href="/"
+                className="text-primary font-extrabold tracking-wide hover:text-primary/80 transition-colors"
+              >
+                VantaHire
+              </Link>
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-1">
+              {isRecruiter && (
+                <Link
+                  href="/recruiter-dashboard"
+                  className={cn(
+                    "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    location === '/recruiter-dashboard'
+                      ? "text-primary bg-primary/5"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  )}
+                >
+                  Dashboard
+                </Link>
+              )}
+
+              {(isRecruiter || isAdmin) && (
+                <>
+                  <Link
+                    href="/jobs/post"
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location === '/jobs/post'
+                        ? "text-primary bg-primary/5"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    Post Job
+                  </Link>
+                  <Link
+                    href="/admin/forms"
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location.startsWith('/admin/forms')
+                        ? "text-primary bg-primary/5"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    Forms
+                  </Link>
+                </>
+              )}
+
+              {isAdmin && (
+                <>
+                  <Link
+                    href="/admin"
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location === '/admin' || location.startsWith('/admin/super') || location.startsWith('/admin/testing')
+                        ? "text-primary bg-primary/5"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    Admin
+                  </Link>
+                  <Link
+                    href="/analytics"
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location === '/analytics'
+                        ? "text-primary bg-primary/5"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    Analytics
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* User Actions */}
+            <div className="flex items-center gap-4">
+              <span className="text-slate-600 text-sm hidden sm:inline">
+                {displayName}
+              </span>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="border-slate-200 text-slate-700 hover:bg-slate-100"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </nav>
+        </header>
+      )}
 
       {/* Header (for public pages or as fallback) */}
       {!user && (

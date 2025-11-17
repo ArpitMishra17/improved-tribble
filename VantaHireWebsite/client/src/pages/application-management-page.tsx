@@ -655,16 +655,16 @@ export default function ApplicationManagementPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      submitted: { color: "bg-blue-500/20 text-blue-300", icon: Clock },
-      reviewed: { color: "bg-yellow-500/20 text-yellow-300", icon: Eye },
-      shortlisted: { color: "bg-green-500/20 text-green-300", icon: UserCheck },
-      rejected: { color: "bg-red-500/20 text-red-300", icon: XCircle },
-      downloaded: { color: "bg-purple-500/20 text-purple-300", icon: Download },
+      submitted: { color: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock },
+      reviewed: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Eye },
+      shortlisted: { color: "bg-green-50 text-green-700 border-green-200", icon: UserCheck },
+      rejected: { color: "bg-red-50 text-red-700 border-red-200", icon: XCircle },
+      downloaded: { color: "bg-purple-50 text-purple-700 border-purple-200", icon: Download },
     };
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.submitted;
     const Icon = config.icon;
-    
+
     return (
       <Badge variant="secondary" className={config.color}>
         <Icon className="w-3 h-3 mr-1" />
@@ -721,8 +721,8 @@ export default function ApplicationManagementPage() {
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
-            <p className="text-white mt-4">Loading applications...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-slate-600 mt-4">Loading applications...</p>
           </div>
         </div>
       </Layout>
@@ -733,10 +733,10 @@ export default function ApplicationManagementPage() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="shadow-sm">
             <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold text-white mb-2">Job Not Found</h3>
-              <p className="text-gray-300">The requested job could not be found.</p>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Job Not Found</h3>
+              <p className="text-slate-500">The requested job could not be found.</p>
             </CardContent>
           </Card>
         </div>
@@ -746,125 +746,110 @@ export default function ApplicationManagementPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        {/* Premium background effects */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] animate-pulse-slow"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.2s' }}></div>
-        
-        <div className={`container mx-auto px-4 py-8 relative z-10 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <div className="max-w-6xl mx-auto">
-            {/* Breadcrumb and Quick Actions Toolbar */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-              <ApplicationBreadcrumb jobTitle={job.title} />
+      <div className={`container mx-auto px-4 py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="max-w-7xl mx-auto">
+          {/* Breadcrumb and Quick Actions Toolbar */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pt-8">
+            <ApplicationBreadcrumb jobTitle={job.title} />
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={() => {
-                    if (selectedApplications.length === 0) {
-                      toast({
-                        title: "No candidates selected",
-                        description: "Select candidates using the checkboxes first.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    if (selectedApplications.length > 20) {
-                      const ok = window.confirm(`You are about to email ${selectedApplications.length} candidates. Proceed?`);
-                      if (!ok) return;
-                    }
-                    setShowBulkEmailDialog(true);
-                  }}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Bulk Email
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={() => {
-                    if (selectedApplications.length === 0) {
-                      toast({
-                        title: "No candidates selected",
-                        description: "Select candidates using the checkboxes first.",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
-                    if (selectedApplications.length > 20) {
-                      const ok = window.confirm(`You are about to send forms to ${selectedApplications.length} candidates. Proceed?`);
-                      if (!ok) return;
-                    }
-                    setShowBulkFormsDialog(true);
-                  }}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Bulk Form
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={() => alert("Batch interview feature - Select candidates first")}
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Batch Interview
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] text-white border-0 hover:opacity-90"
-                  onClick={() => setAddCandidateModalOpen(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Candidate
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                  onClick={() => alert("Export feature coming soon")}
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Export CSV
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setLocation("/recruiter-dashboard")}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedApplications.length === 0) {
+                    toast({
+                      title: "No candidates selected",
+                      description: "Select candidates using the checkboxes first.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  if (selectedApplications.length > 20) {
+                    const ok = window.confirm(`You are about to email ${selectedApplications.length} candidates. Proceed?`);
+                    if (!ok) return;
+                  }
+                  setShowBulkEmailDialog(true);
+                }}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Bulk Email
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedApplications.length === 0) {
+                    toast({
+                      title: "No candidates selected",
+                      description: "Select candidates using the checkboxes first.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  if (selectedApplications.length > 20) {
+                    const ok = window.confirm(`You are about to send forms to ${selectedApplications.length} candidates. Proceed?`);
+                    if (!ok) return;
+                  }
+                  setShowBulkFormsDialog(true);
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Bulk Form
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => alert("Batch interview feature - Select candidates first")}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Batch Interview
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setAddCandidateModalOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Candidate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => alert("Export feature coming soon")}
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation("/recruiter-dashboard")}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
             </div>
+          </div>
 
-            {/* Premium Header */}
-            <div className="mb-12">
-              <div className="w-20 h-1.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] rounded-full mb-6 animate-slide-right"></div>
-              <div className="flex items-center gap-3 mb-4">
-                <Users className="h-8 w-8 text-[#7B38FB]" />
-                <h1 className="text-4xl md:text-5xl font-bold">
-                  <span className="animate-gradient-text">Application</span>
-                  <span className="text-white ml-3">Management</span>
-                </h1>
-              </div>
-              <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed animate-slide-up" style={{ animationDelay: '0.3s' }}>
-                Review and manage applications for "{job.title}"
-              </p>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <Users className="h-7 w-7 text-primary" />
+              <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+                Application Management
+              </h1>
             </div>
+            <p className="text-slate-500 text-sm md:text-base max-w-2xl">
+              Review and manage applications for "{job.title}"
+            </p>
+          </div>
 
-            {/* Job Header */}
-            <Card className="mb-6 bg-white/10 backdrop-blur-sm border-white/20 premium-card animate-slide-up" style={{ animationDelay: '0.5s' }}>
-              <CardHeader>
-              <CardTitle className="text-white text-2xl">{job.title}</CardTitle>
-              <CardDescription className="text-gray-300">
-                <div className="flex items-center gap-4">
+          {/* Job Header */}
+          <Card className="mb-6 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-slate-900 text-xl">{job.title}</CardTitle>
+              <CardDescription>
+                <div className="flex items-center gap-4 flex-wrap">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
                     {job.location}
@@ -884,14 +869,14 @@ export default function ApplicationManagementPage() {
 
           {/* Bulk Actions */}
           {selectedApplications.length > 0 && (
-            <Card className="mb-6 bg-purple-500/10 backdrop-blur-sm border-purple-400/30">
+            <Card className="mb-6 bg-primary/5 border-primary/20">
               <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-white">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <span className="text-slate-900 font-medium">
                     {selectedApplications.length} application(s) selected
                   </span>
                   <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                    <SelectTrigger className="w-40 bg-white/5 border-white/20 text-white">
+                    <SelectTrigger className="w-40">
                       <SelectValue placeholder="Set Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -904,12 +889,11 @@ export default function ApplicationManagementPage() {
                     placeholder="Add notes (optional)"
                     value={bulkNotes}
                     onChange={(e) => setBulkNotes(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    className="flex-1 min-w-[200px]"
                   />
                   <Button
                     onClick={handleBulkUpdate}
                     disabled={bulkUpdateMutation.isPending}
-                    className="bg-purple-600 hover:bg-purple-700"
                   >
                     Update Selected
                   </Button>
@@ -932,7 +916,7 @@ export default function ApplicationManagementPage() {
             bulkProgress={bulkProgress}
           />
 
-          <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border border-white/20 bg-white/5 backdrop-blur-sm">
+          <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border border-slate-200 bg-white shadow-sm">
             <ResizablePanel defaultSize={selectedApp ? 70 : 100} minSize={40}>
               <div className="h-full p-4 overflow-auto">
                 <KanbanBoard
@@ -949,7 +933,7 @@ export default function ApplicationManagementPage() {
 
             {selectedApp && (
               <>
-                <ResizableHandle withHandle className="bg-white/10" />
+                <ResizableHandle withHandle className="bg-slate-200" />
                 <ResizablePanel defaultSize={30} minSize={25} maxSize={50}>
                   <ApplicationDetailPanel
                     application={selectedApp}
@@ -970,17 +954,16 @@ export default function ApplicationManagementPage() {
               </>
             )}
           </ResizablePanelGroup>
-          </div>
         </div>
 
         {/* ATS Dialogs */}
 
         {/* Interview Scheduling Dialog */}
         <Dialog key={selectedApp?.id} open={showInterviewDialog} onOpenChange={setShowInterviewDialog}>
-          <DialogContent className="bg-slate-900 border-white/20 text-white">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Schedule Interview - {selectedApp?.name}</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription>
                 Set interview details for this candidate
               </DialogDescription>
             </DialogHeader>
@@ -991,7 +974,6 @@ export default function ApplicationManagementPage() {
                   type="datetime-local"
                   value={interviewDate}
                   onChange={(e) => setInterviewDate(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
                 />
               </div>
               <div>
@@ -1001,7 +983,6 @@ export default function ApplicationManagementPage() {
                   placeholder="e.g., 10:00 AM - 11:00 AM"
                   value={interviewTime}
                   onChange={(e) => setInterviewTime(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
                 />
               </div>
               <div>
@@ -1011,7 +992,6 @@ export default function ApplicationManagementPage() {
                   placeholder="e.g., Zoom link or office address"
                   value={interviewLocation}
                   onChange={(e) => setInterviewLocation(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
                 />
               </div>
               <div>
@@ -1020,7 +1000,6 @@ export default function ApplicationManagementPage() {
                   placeholder="Additional notes..."
                   value={interviewNotes}
                   onChange={(e) => setInterviewNotes(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white"
                 />
               </div>
               <Button
@@ -1035,7 +1014,7 @@ export default function ApplicationManagementPage() {
                   })
                 }
                 disabled={!interviewDate || !interviewTime || !interviewLocation || scheduleInterviewMutation.isPending}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full"
               >
                 {scheduleInterviewMutation.isPending ? "Scheduling..." : "Schedule Interview"}
               </Button>
@@ -1045,10 +1024,10 @@ export default function ApplicationManagementPage() {
 
         {/* Email Sending Dialog */}
         <Dialog key={selectedApp?.id} open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-          <DialogContent className="bg-slate-900 border-white/20 text-white">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Send Email - {selectedApp?.name}</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription>
                 Select a template to send to this candidate
               </DialogDescription>
             </DialogHeader>
@@ -1059,7 +1038,7 @@ export default function ApplicationManagementPage() {
                   value={selectedTemplateId?.toString() || ""}
                   onValueChange={(value) => setSelectedTemplateId(parseInt(value))}
                 >
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select template..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -1072,9 +1051,9 @@ export default function ApplicationManagementPage() {
                 </Select>
               </div>
               {selectedTemplateId && (
-                <div className="p-3 bg-white/5 rounded-lg">
-                  <Label className="text-sm text-gray-400">Preview</Label>
-                  <p className="text-sm text-white mt-1">
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <Label className="text-sm text-slate-500">Preview</Label>
+                  <p className="text-sm text-slate-700 mt-1">
                     {emailTemplates.find(t => t.id === selectedTemplateId)?.body.substring(0, 200)}...
                   </p>
                 </div>
@@ -1089,7 +1068,7 @@ export default function ApplicationManagementPage() {
                   })
                 }
                 disabled={!selectedTemplateId || sendEmailMutation.isPending}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full"
               >
                 {sendEmailMutation.isPending ? "Sending..." : "Send Email"}
               </Button>
@@ -1099,15 +1078,15 @@ export default function ApplicationManagementPage() {
 
         {/* Bulk Email Dialog */}
         <Dialog key={selectedApplications.join(',')} open={showBulkEmailDialog} onOpenChange={setShowBulkEmailDialog}>
-          <DialogContent className="bg-slate-900 border-white/20 text-white">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Send Bulk Email - {selectedApplications.length} selected</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription>
                 Choose a template to send to all selected candidates
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <div className="flex items-center gap-3 p-2 bg-white/5 rounded">
+              <div className="flex items-center gap-3 p-2 bg-slate-50 rounded border border-slate-200">
                 <Checkbox
                   checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
                   onCheckedChange={(checked) => {
@@ -1119,10 +1098,10 @@ export default function ApplicationManagementPage() {
                     }
                   }}
                 />
-                <span className="text-sm text-gray-300">Select all in current view</span>
+                <span className="text-sm text-slate-600">Select all in current view</span>
                 {selectedApplications.length > 0 && (
                   <button
-                    className="text-xs text-gray-400 underline ml-auto"
+                    className="text-xs text-slate-500 underline ml-auto hover:text-slate-700"
                     onClick={() => setSelectedApplications([])}
                   >
                     Clear selection
@@ -1135,7 +1114,7 @@ export default function ApplicationManagementPage() {
                   value={bulkTemplateId?.toString() || ""}
                   onValueChange={(value) => setBulkTemplateId(parseInt(value))}
                 >
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select template..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -1148,9 +1127,9 @@ export default function ApplicationManagementPage() {
                 </Select>
               </div>
               {bulkTemplateId && (
-                <div className="p-3 bg-white/5 rounded-lg">
-                  <Label className="text-sm text-gray-400">Preview</Label>
-                  <p className="text-sm text-white mt-1">
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <Label className="text-sm text-slate-500">Preview</Label>
+                  <p className="text-sm text-slate-700 mt-1">
                     {emailTemplates.find((t) => t.id === bulkTemplateId)?.body.substring(0, 200)}...
                   </p>
                 </div>
@@ -1164,12 +1143,12 @@ export default function ApplicationManagementPage() {
                   })
                 }
                 disabled={!bulkTemplateId || sendBulkEmailsMutation.isPending}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full"
               >
                 {sendBulkEmailsMutation.isPending ? "Sending..." : "Send to Selected"}
               </Button>
               {sendBulkEmailsMutation.isPending && (
-                <p className="text-xs text-gray-400 text-center">
+                <p className="text-xs text-slate-500 text-center">
                   Sending {bulkProgress.sent}/{bulkProgress.total}...
                 </p>
               )}
@@ -1179,15 +1158,15 @@ export default function ApplicationManagementPage() {
 
         {/* Bulk Forms Dialog */}
         <Dialog key={selectedApplications.join(',')} open={showBulkFormsDialog} onOpenChange={setShowBulkFormsDialog}>
-          <DialogContent className="bg-slate-900 border-white/20 text-white">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Send Bulk Form - {selectedApplications.length} selected</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription>
                 Choose a form template to send to all selected candidates
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <div className="flex items-center gap-3 p-2 bg-white/5 rounded">
+              <div className="flex items-center gap-3 p-2 bg-slate-50 rounded border border-slate-200">
                 <Checkbox
                   checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
                   onCheckedChange={(checked) => {
@@ -1199,10 +1178,10 @@ export default function ApplicationManagementPage() {
                     }
                   }}
                 />
-                <span className="text-sm text-gray-300">Select all in current view</span>
+                <span className="text-sm text-slate-600">Select all in current view</span>
                 {selectedApplications.length > 0 && (
                   <button
-                    className="text-xs text-gray-400 underline ml-auto"
+                    className="text-xs text-slate-500 underline ml-auto hover:text-slate-700"
                     onClick={() => setSelectedApplications([])}
                   >
                     Clear selection
@@ -1215,7 +1194,7 @@ export default function ApplicationManagementPage() {
                   value={bulkFormId?.toString() || ""}
                   onValueChange={(value) => setBulkFormId(parseInt(value))}
                 >
-                  <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                  <SelectTrigger>
                     <SelectValue placeholder="Select form template..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -1229,17 +1208,17 @@ export default function ApplicationManagementPage() {
                 </Select>
               </div>
               {bulkFormId && (
-                <div className="p-3 bg-white/5 rounded-lg">
-                  <Label className="text-sm text-gray-400">Form Info</Label>
+                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                  <Label className="text-sm text-slate-500">Form Info</Label>
                   {(() => {
                     const template = formTemplates.find((t) => t.id === bulkFormId);
                     return template ? (
-                      <div className="text-sm text-white mt-1">
+                      <div className="text-sm text-slate-700 mt-1">
                         <p className="font-medium">{template.name}</p>
                         {template.description && (
-                          <p className="text-gray-300 mt-1">{template.description}</p>
+                          <p className="text-slate-600 mt-1">{template.description}</p>
                         )}
-                        <p className="text-gray-400 mt-1">
+                        <p className="text-slate-500 mt-1">
                           {template.fields?.length || 0} question{template.fields?.length !== 1 ? 's' : ''}
                         </p>
                       </div>
@@ -1253,10 +1232,9 @@ export default function ApplicationManagementPage() {
                   placeholder="Add a personal message for all selected candidates..."
                   value={bulkFormMessage}
                   onChange={(e) => setBulkFormMessage(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
                   rows={3}
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   This message will be included in the invitation email for all candidates
                 </p>
               </div>
@@ -1270,12 +1248,12 @@ export default function ApplicationManagementPage() {
                   })
                 }
                 disabled={!bulkFormId || sendBulkFormsMutation.isPending}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full"
               >
                 {sendBulkFormsMutation.isPending ? "Sending..." : "Send to Selected"}
               </Button>
               {sendBulkFormsMutation.isPending && (
-                <p className="text-xs text-gray-400 text-center">
+                <p className="text-xs text-slate-500 text-center">
                   Sending {bulkFormsProgress.sent}/{bulkFormsProgress.total}...
                 </p>
               )}
@@ -1285,23 +1263,23 @@ export default function ApplicationManagementPage() {
 
         {/* Stage History Dialog */}
         <Dialog key={selectedApp?.id} open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
-          <DialogContent className="bg-slate-900 border-white/20 text-white max-w-2xl">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Stage History - {selectedApp?.name}</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription>
                 Timeline of all stage changes for this application
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 mt-4 max-h-96 overflow-y-auto">
               {stageHistory.length === 0 ? (
-                <p className="text-gray-400 text-center py-8">No stage history available</p>
+                <p className="text-slate-500 text-center py-8">No stage history available</p>
               ) : (
                 stageHistory.map((history: any, idx: number) => {
                   const fromStage = pipelineStages.find(s => s.id === history.fromStage);
                   const toStage = pipelineStages.find(s => s.id === history.toStage);
 
                   return (
-                    <div key={idx} className="flex gap-4 p-3 bg-white/5 rounded-lg">
+                    <div key={idx} className="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
                       <div className="flex-shrink-0">
                         <div
                           className="w-3 h-3 rounded-full mt-1"
@@ -1322,7 +1300,7 @@ export default function ApplicationManagementPage() {
                               {fromStage.name}
                             </Badge>
                           )}
-                          <span className="text-gray-400">→</span>
+                          <span className="text-slate-400">→</span>
                           {toStage && toStage.color && (
                             <Badge
                               style={{
@@ -1336,11 +1314,11 @@ export default function ApplicationManagementPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-slate-500 mt-1">
                           {formatDate(history.changedAt)}
                         </p>
                         {history.notes && (
-                          <p className="text-sm text-gray-300 mt-1">{history.notes}</p>
+                          <p className="text-sm text-slate-600 mt-1">{history.notes}</p>
                         )}
                       </div>
                     </div>

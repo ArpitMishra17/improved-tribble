@@ -16,7 +16,7 @@ interface FunnelChartProps {
 }
 
 const DEFAULT_COLORS = [
-  "#8b5cf6", // purple
+  "#4f46e5", // indigo (primary)
   "#3b82f6", // blue
   "#10b981", // green
   "#f59e0b", // amber
@@ -28,13 +28,13 @@ const DEFAULT_COLORS = [
 export function FunnelChart({ title, description, data, isLoading }: FunnelChartProps) {
   if (isLoading) {
     return (
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white">{title}</CardTitle>
-          {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+          <CardTitle className="text-slate-900">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full bg-slate-700" />
+          <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
     );
@@ -42,10 +42,10 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
 
   if (data.length === 0) {
     return (
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white">{title}</CardTitle>
-          {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+          <CardTitle className="text-slate-900">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
@@ -57,10 +57,10 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
   }
 
   return (
-    <Card className="bg-slate-900 border-slate-700">
+    <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="text-white">{title}</CardTitle>
-        {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+        <CardTitle className="text-slate-900">{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -69,28 +69,29 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
             margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
             aria-label={`${title} bar chart`}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="name"
-              stroke="#94a3b8"
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              stroke="#6b7280"
+              tick={{ fill: "#6b7280", fontSize: 12 }}
               angle={-15}
               textAnchor="end"
               height={60}
             />
             <YAxis
-              stroke="#94a3b8"
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              stroke="#6b7280"
+              tick={{ fill: "#6b7280", fontSize: 12 }}
               allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1e293b",
-                border: "1px solid #334155",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
                 borderRadius: "6px",
-                color: "#fff",
+                color: "#111827",
+                boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
               }}
-              cursor={{ fill: "rgba(139, 92, 246, 0.1)" }}
+              cursor={{ fill: "rgba(79, 70, 229, 0.05)" }}
             />
             <Bar dataKey="count" radius={[8, 8, 0, 0]}>
               {data.map((entry, index) => (
@@ -111,8 +112,8 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
                 className="w-3 h-3 rounded"
                 style={{ backgroundColor: entry.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length] }}
               />
-              <span className="text-slate-300 text-sm">
-                {entry.name}: <span className="font-semibold text-white">{entry.count}</span>
+              <span className="text-slate-600 text-sm">
+                {entry.name}: <span className="font-semibold text-slate-900">{entry.count}</span>
               </span>
             </div>
           ))}

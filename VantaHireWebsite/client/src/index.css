@@ -51,31 +51,67 @@
   .dark {
     --background: 262 69% 15%;
     --foreground: 0 0% 98%;
-    
+
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
-    
+
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    
+
     --primary: 0 0% 98%;
     --primary-foreground: 262 69% 15%;
-    
+
     --secondary: 250 30% 26%;
     --secondary-foreground: 0 0% 98%;
-    
+
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    
+
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
-    
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    
+
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
+  }
+
+  /* ATS Theme - Light productivity theme for recruiter/admin dashboards */
+  .ats-theme {
+    --background: 220 20% 98%; /* #F9FAFB - very light grey */
+    --foreground: 222 47% 11%; /* #111827 - near black */
+
+    --card: 0 0% 100%; /* white */
+    --card-foreground: 222 47% 11%; /* #111827 */
+
+    --popover: 0 0% 100%; /* white */
+    --popover-foreground: 222 47% 11%; /* #111827 */
+
+    --primary: 239 84% 67%; /* #4F46E5 - indigo */
+    --primary-foreground: 210 40% 98%; /* white */
+
+    --secondary: 220 14% 96%; /* #F3F4F6 - light grey */
+    --secondary-foreground: 222 47% 11%; /* #111827 */
+
+    --muted: 220 14% 96%; /* #F3F4F6 */
+    --muted-foreground: 220 9% 46%; /* #6B7280 - mid grey */
+
+    --accent: 220 14% 96%; /* #F3F4F6 */
+    --accent-foreground: 222 47% 11%; /* #111827 */
+
+    --destructive: 0 84% 60%; /* #EF4444 - red */
+    --destructive-foreground: 0 0% 98%; /* white */
+
+    --border: 220 13% 91%; /* #E5E7EB - light grey border */
+    --input: 220 13% 91%; /* #E5E7EB */
+    --ring: 239 84% 67%; /* #4F46E5 - indigo */
+
+    /* ATS-specific utility colors */
+    --ats-success: 142 71% 45%; /* green for success states */
+    --ats-warning: 38 92% 50%; /* amber for warnings */
+    --ats-info: 199 89% 48%; /* blue for info */
   }
 
   * {

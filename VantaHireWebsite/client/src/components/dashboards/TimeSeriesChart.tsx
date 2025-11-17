@@ -22,17 +22,17 @@ export function TimeSeriesChart({
   data,
   isLoading,
   dataKey = "value",
-  color = "#8b5cf6",
+  color = "#4f46e5", // primary indigo
 }: TimeSeriesChartProps) {
   if (isLoading) {
     return (
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white">{title}</CardTitle>
-          {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+          <CardTitle className="text-slate-900">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full bg-slate-700" />
+          <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
     );
@@ -40,10 +40,10 @@ export function TimeSeriesChart({
 
   if (data.length === 0) {
     return (
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white">{title}</CardTitle>
-          {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+          <CardTitle className="text-slate-900">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
@@ -55,10 +55,10 @@ export function TimeSeriesChart({
   }
 
   return (
-    <Card className="bg-slate-900 border-slate-700">
+    <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="text-white">{title}</CardTitle>
-        {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+        <CardTitle className="text-slate-900">{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -68,31 +68,32 @@ export function TimeSeriesChart({
           >
             <defs>
               <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                <stop offset="5%" stopColor={color} stopOpacity={0.2} />
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="date"
-              stroke="#94a3b8"
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              stroke="#6b7280"
+              tick={{ fill: "#6b7280", fontSize: 12 }}
               tickFormatter={(value) => {
                 const date = new Date(value);
                 return `${date.getMonth() + 1}/${date.getDate()}`;
               }}
             />
             <YAxis
-              stroke="#94a3b8"
-              tick={{ fill: "#94a3b8", fontSize: 12 }}
+              stroke="#6b7280"
+              tick={{ fill: "#6b7280", fontSize: 12 }}
               allowDecimals={false}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "#1e293b",
-                border: "1px solid #334155",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
                 borderRadius: "6px",
-                color: "#fff",
+                color: "#111827",
+                boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
               }}
               labelFormatter={(value) => {
                 const date = new Date(value);

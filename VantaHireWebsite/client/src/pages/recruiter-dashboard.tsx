@@ -121,11 +121,11 @@ export default function RecruiterDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
-      case 'reviewed': return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
-      case 'shortlisted': return 'bg-green-500/10 text-green-500 border-green-500/20';
-      case 'rejected': return 'bg-red-500/10 text-red-500 border-red-500/20';
-      default: return 'bg-gray-500/10 text-gray-500 border-gray-500/20';
+      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'reviewed': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'shortlisted': return 'bg-green-50 text-green-700 border-green-200';
+      case 'rejected': return 'bg-red-50 text-red-700 border-red-200';
+      default: return 'bg-slate-100 text-slate-600 border-slate-200';
     }
   };
 
@@ -142,14 +142,14 @@ export default function RecruiterDashboard() {
     if (score === null || score === undefined || label === null || label === undefined) return null;
 
     const colorMap: Record<string, string> = {
-      'Exceptional': 'bg-green-500/20 text-green-300 border-green-500/30',
-      'Strong': 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-      'Good': 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-      'Partial': 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-      'Low': 'bg-red-500/20 text-red-300 border-red-500/30',
+      'Exceptional': 'bg-green-50 text-green-700 border-green-200',
+      'Strong': 'bg-blue-50 text-blue-700 border-blue-200',
+      'Good': 'bg-purple-50 text-purple-700 border-purple-200',
+      'Partial': 'bg-amber-50 text-amber-700 border-amber-200',
+      'Low': 'bg-red-50 text-red-700 border-red-200',
     };
 
-    const colorClass = colorMap[label] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+    const colorClass = colorMap[label] || 'bg-slate-100 text-slate-600 border-slate-200';
 
     return (
       <Badge variant="outline" className={`${colorClass} font-medium`}>
@@ -241,7 +241,7 @@ export default function RecruiterDashboard() {
       <Layout>
         <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center h-64">
-            <div className="text-white">Loading...</div>
+            <div className="text-slate-600">Loading...</div>
           </div>
         </div>
       </Layout>
@@ -253,17 +253,16 @@ export default function RecruiterDashboard() {
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-8">
           {/* Header with Quick Actions */}
-          <div className="space-y-4">
-            <div className="text-center space-y-2">
-              <h1 className="text-4xl font-bold text-white">Recruiter Dashboard</h1>
-              <p className="text-white/70 text-lg">Manage your job postings and applications</p>
+          <div className="space-y-4 pt-8">
+            <div className="space-y-2">
+              <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">Recruiter Dashboard</h1>
+              <p className="text-slate-500 text-sm md:text-base">Manage your job postings and applications</p>
             </div>
 
             {/* Quick Action Toolbar */}
-            <div className="flex flex-wrap justify-center gap-3 mt-6">
+            <div className="flex flex-wrap gap-3 mt-4">
               <Button
                 onClick={() => setLocation("/jobs/post")}
-                className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:from-[#6B28EB] hover:to-[#EF4B98]"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Post New Job
@@ -271,7 +270,6 @@ export default function RecruiterDashboard() {
               <Button
                 variant="outline"
                 onClick={() => setLocation("/analytics")}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <BarChart className="h-4 w-4 mr-2" />
                 View Analytics
@@ -289,7 +287,6 @@ export default function RecruiterDashboard() {
                     });
                   }
                 }}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Send Bulk Email
@@ -307,7 +304,6 @@ export default function RecruiterDashboard() {
                     });
                   }
                 }}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Interviews
@@ -371,21 +367,21 @@ export default function RecruiterDashboard() {
 
           {/* Main Content */}
           <Tabs defaultValue="applications" className="space-y-6">
-            <TabsList className="bg-white/10 backdrop-blur-sm border-white/20">
-              <TabsTrigger value="applications" className="data-[state=active]:bg-white/20">
+            <TabsList>
+              <TabsTrigger value="applications">
                 Applications
               </TabsTrigger>
-              <TabsTrigger value="jobs" className="data-[state=active]:bg-white/20">
+              <TabsTrigger value="jobs">
                 My Job Postings
               </TabsTrigger>
             </TabsList>
 
             {/* Applications Tab */}
             <TabsContent value="applications">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-white">Application Management</CardTitle>
-                  <CardDescription className="text-white/70">
+                  <CardTitle className="text-slate-900 text-lg">Application Management</CardTitle>
+                  <CardDescription>
                     Review and manage candidate applications
                   </CardDescription>
                 </CardHeader>
@@ -393,21 +389,21 @@ export default function RecruiterDashboard() {
                   <div className="space-y-4">
                     {applications.length === 0 ? (
                       <div className="text-center py-8">
-                        <Users className="h-12 w-12 text-white/30 mx-auto mb-4" />
-                        <p className="text-white/70">No applications received yet</p>
+                        <Users className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500">No applications received yet</p>
                       </div>
                     ) : (
                       applications.map((application) => (
                         <div
                           key={application.id}
-                          className="p-4 rounded-lg bg-white/5 border border-white/10 space-y-3"
+                          className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3"
                           data-testid="application-row"
                         >
                           <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                              <h3 className="text-white font-medium">{application.name}</h3>
-                              <p className="text-white/70 text-sm">{application.email}</p>
-                              <p className="text-white/60 text-sm">Applied for: {application.job?.title}</p>
+                              <h3 className="text-slate-900 font-medium">{application.name}</h3>
+                              <p className="text-slate-600 text-sm">{application.email}</p>
+                              <p className="text-slate-500 text-sm">Applied for: {application.job?.title}</p>
                             </div>
                             <div className="flex items-center space-x-2">
                               <Badge className={getStatusColor(application.status)}>
@@ -418,7 +414,6 @@ export default function RecruiterDashboard() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setSelectedApplicationId(application.id)}
-                                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                                 data-testid="review-application"
                               >
                                 <Eye className="h-4 w-4 mr-1" />
@@ -432,7 +427,6 @@ export default function RecruiterDashboard() {
                                     downloadResumeMutation.mutate(application.id);
                                     window.open(`/api/applications/${application.id}/resume`, '_blank');
                                   }}
-                                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                                 >
                                   <Download className="h-4 w-4 mr-1" />
                                   Resume
@@ -442,8 +436,8 @@ export default function RecruiterDashboard() {
                           </div>
 
                           {application.coverLetter && (
-                            <div className="pt-2 border-t border-white/10">
-                              <p className="text-white/70 text-sm">
+                            <div className="pt-2 border-t border-slate-200">
+                              <p className="text-slate-600 text-sm">
                                 <strong>Cover Letter:</strong> {application.coverLetter}
                               </p>
                             </div>
@@ -451,22 +445,22 @@ export default function RecruiterDashboard() {
 
                           {/* AI Fit Analysis */}
                           {application.aiFitScore !== null && application.aiFitScore !== undefined && application.aiFitReasons && Array.isArray(application.aiFitReasons) ? (
-                            <div className="pt-2 border-t border-white/10">
-                              <div className="p-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border-l-4 border-purple-400">
+                            <div className="pt-2 border-t border-slate-200">
+                              <div className="p-3 bg-primary/5 rounded-lg border-l-4 border-primary">
                                 <div className="flex items-center gap-2 mb-2">
-                                  <Brain className="w-4 h-4 text-purple-300" />
-                                  <span className="text-purple-300 font-medium text-sm">AI Fit Analysis</span>
+                                  <Brain className="w-4 h-4 text-primary" />
+                                  <span className="text-primary font-medium text-sm">AI Fit Analysis</span>
                                 </div>
-                                <ul className="text-white/70 text-sm space-y-1">
+                                <ul className="text-slate-600 text-sm space-y-1">
                                   {(application.aiFitReasons as string[]).slice(0, 3).map((reason: string, idx: number): JSX.Element => (
                                     <li key={idx} className="flex items-start gap-2">
-                                      <span className="text-purple-400 mt-0.5">•</span>
+                                      <span className="text-primary mt-0.5">•</span>
                                       <span>{reason}</span>
                                     </li>
                                   ))}
                                 </ul>
                                 {application.aiStaleReason && (
-                                  <p className="text-yellow-400 text-xs mt-2 flex items-center gap-1">
+                                  <p className="text-amber-600 text-xs mt-2 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3" />
                                     Score may be outdated ({application.aiStaleReason})
                                   </p>
@@ -476,14 +470,14 @@ export default function RecruiterDashboard() {
                           ) : null}
 
                           {selectedApplicationId === application.id && (
-                            <div className="pt-4 border-t border-white/10 space-y-4">
+                            <div className="pt-4 border-t border-slate-200 space-y-4">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="text-white text-sm font-medium mb-2 block">
+                                  <label className="text-slate-900 text-sm font-medium mb-2 block">
                                     Update Status
                                   </label>
                                   <Select value={newStatus} onValueChange={setNewStatus} data-testid="status-select">
-                                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                                    <SelectTrigger>
                                       <SelectValue placeholder="Select new status" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -494,14 +488,13 @@ export default function RecruiterDashboard() {
                                   </Select>
                                 </div>
                                 <div>
-                                  <label className="text-white text-sm font-medium mb-2 block">
+                                  <label className="text-slate-900 text-sm font-medium mb-2 block">
                                     Review Notes
                                   </label>
                                   <Textarea
                                     value={reviewNotes}
                                     onChange={(e) => setReviewNotes(e.target.value)}
                                     placeholder="Add your review notes..."
-                                    className="bg-white/5 border-white/20 text-white"
                                     data-testid="review-notes"
                                   />
                                 </div>
@@ -510,7 +503,6 @@ export default function RecruiterDashboard() {
                                 <Button
                                   onClick={handleStatusUpdate}
                                   disabled={!newStatus || updateStatusMutation.isPending}
-                                  className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8]"
                                 >
                                   Save Review
                                 </Button>
@@ -521,7 +513,6 @@ export default function RecruiterDashboard() {
                                     setReviewNotes("");
                                     setNewStatus("");
                                   }}
-                                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                                 >
                                   Cancel
                                 </Button>
@@ -538,10 +529,10 @@ export default function RecruiterDashboard() {
 
             {/* Jobs Tab */}
             <TabsContent value="jobs">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-white">My Job Postings</CardTitle>
-                  <CardDescription className="text-white/70">
+                  <CardTitle className="text-slate-900 text-lg">My Job Postings</CardTitle>
+                  <CardDescription>
                     Manage your posted job opportunities
                   </CardDescription>
                 </CardHeader>
@@ -549,9 +540,9 @@ export default function RecruiterDashboard() {
                   <div className="space-y-4">
                     {jobs.length === 0 ? (
                       <div className="text-center py-8">
-                        <Briefcase className="h-12 w-12 text-white/30 mx-auto mb-4" />
-                        <p className="text-white/70">No job postings yet</p>
-                        <Button className="mt-4 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8]">
+                        <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+                        <p className="text-slate-500">No job postings yet</p>
+                        <Button className="mt-4">
                           Post Your First Job
                         </Button>
                       </div>
@@ -559,29 +550,28 @@ export default function RecruiterDashboard() {
                       jobs.map((job) => (
                         <div
                           key={job.id}
-                          className="p-4 rounded-lg bg-white/5 border border-white/10"
+                          className="p-4 rounded-lg bg-slate-50 border border-slate-200"
                         >
                           <div className="flex items-center justify-between mb-3">
                             <div>
-                              <h3 className="text-white font-medium text-lg">{job.title}</h3>
-                              <p className="text-white/70">{job.company} • {job.location}</p>
+                              <h3 className="text-slate-900 font-medium text-lg">{job.title}</h3>
+                              <p className="text-slate-600">{job.company} • {job.location}</p>
                             </div>
                             <div className="flex items-center space-x-2">
                               <Badge className={getStatusColor(job.status)}>
                                 {job.status}
                               </Badge>
-                              <span className="text-white/70 text-sm">
+                              <span className="text-slate-500 text-sm">
                                 {job.applicationCount || 0} applications
                               </span>
                             </div>
                           </div>
-                          <p className="text-white/60 text-sm mb-3">{job.description}</p>
+                          <p className="text-slate-500 text-sm mb-3">{job.description}</p>
                           <div className="flex space-x-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => setLocation(`/jobs/${job.id}/applications`)}
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View Applications
@@ -589,7 +579,6 @@ export default function RecruiterDashboard() {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                             >
                               Edit Job
                             </Button>
@@ -598,7 +587,7 @@ export default function RecruiterDashboard() {
                                 size="sm"
                                 onClick={() => publishJobMutation.mutate({ jobId: job.id, isActive: true })}
                                 disabled={publishJobMutation.isPending}
-                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                                className="bg-green-600 hover:bg-green-700 text-white"
                               >
                                 <Play className="h-4 w-4 mr-1" />
                                 {publishJobMutation.isPending ? 'Publishing...' : 'Publish Job'}

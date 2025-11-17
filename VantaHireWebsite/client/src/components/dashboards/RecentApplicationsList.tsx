@@ -32,19 +32,19 @@ export function RecentApplicationsList({
 }: RecentApplicationsListProps) {
   if (isLoading) {
     return (
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white">{title}</CardTitle>
-          {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+          <CardTitle className="text-slate-900">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-white/5 rounded-lg">
-                <Skeleton className="h-10 w-10 rounded-full bg-slate-700" />
+              <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-32 bg-slate-700" />
-                  <Skeleton className="h-3 w-48 bg-slate-700" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-48" />
                 </div>
               </div>
             ))}
@@ -58,10 +58,10 @@ export function RecentApplicationsList({
 
   if (displayedApps.length === 0) {
     return (
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white">{title}</CardTitle>
-          {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+          <CardTitle className="text-slate-900">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="py-12 text-center">
@@ -73,10 +73,10 @@ export function RecentApplicationsList({
   }
 
   return (
-    <Card className="bg-slate-900 border-slate-700">
+    <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="text-white">{title}</CardTitle>
-        {description && <CardDescription className="text-slate-400">{description}</CardDescription>}
+        <CardTitle className="text-slate-900">{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -87,26 +87,26 @@ export function RecentApplicationsList({
             return (
               <div
                 key={app.id}
-                className="flex items-start gap-3 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
                 onClick={() => onApplicationClick?.(app.id)}
               >
-                <div className="bg-purple-500/20 p-2 rounded-full">
-                  <Mail className="w-5 h-5 text-purple-300" />
+                <div className="bg-primary/10 p-2 rounded-full">
+                  <Mail className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium truncate">{app.name}</p>
-                      <p className="text-slate-400 text-sm truncate">{app.email}</p>
+                      <p className="text-slate-900 font-medium truncate">{app.name}</p>
+                      <p className="text-slate-500 text-sm truncate">{app.email}</p>
                     </div>
                     {app.status && (
-                      <Badge variant="outline" className="text-xs border-blue-400/50 text-blue-300">
+                      <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">
                         {app.status}
                       </Badge>
                     )}
                   </div>
                   {app.jobTitle && (
-                    <div className="flex items-center gap-1 mt-1 text-slate-500 text-xs">
+                    <div className="flex items-center gap-1 mt-1 text-slate-600 text-xs">
                       <Briefcase className="w-3 h-3" />
                       <span className="truncate">{app.jobTitle}</span>
                     </div>

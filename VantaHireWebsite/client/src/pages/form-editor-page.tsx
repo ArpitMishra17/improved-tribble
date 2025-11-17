@@ -294,34 +294,34 @@ export default function FormEditorPage() {
     <Layout>
       <div className="h-screen flex flex-col">
         {/* Header */}
-        <div className="bg-slate-900 border-b border-slate-700 p-4">
+        <div className="bg-white border-b border-slate-200 p-4 shadow-sm">
           <div className="max-w-full mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-1 min-w-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/admin/forms")}
-                className="text-slate-300 hover:text-white"
+                className="text-slate-600 hover:text-slate-900"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
               <div className="flex-1 min-w-0 grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name" className="text-slate-300 text-sm">
-                    Template Name <span className="text-red-400">*</span>
+                  <Label htmlFor="name" className="text-slate-700 text-sm">
+                    Template Name <span className="text-red-600">*</span>
                   </Label>
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g., Background Check Authorization"
-                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    className="mt-1"
                   />
-                  {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
+                  {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="description" className="text-slate-300 text-sm">
+                  <Label htmlFor="description" className="text-slate-700 text-sm">
                     Description (Optional)
                   </Label>
                   <Input
@@ -329,7 +329,7 @@ export default function FormEditorPage() {
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Brief description..."
-                    className="mt-1 bg-white/5 border-white/20 text-white"
+                    className="mt-1"
                   />
                 </div>
               </div>
@@ -341,7 +341,7 @@ export default function FormEditorPage() {
                   checked={isPublished}
                   onCheckedChange={setIsPublished}
                 />
-                <Label htmlFor="isPublished" className="text-slate-300 text-sm cursor-pointer whitespace-nowrap">
+                <Label htmlFor="isPublished" className="text-slate-700 text-sm cursor-pointer whitespace-nowrap">
                   Published
                 </Label>
               </div>
@@ -349,7 +349,6 @@ export default function FormEditorPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowPreview(true)}
-                className="border-white/20 text-white hover:bg-white/10"
               >
                 <Eye className="w-4 h-4 mr-2" />
                 Preview
@@ -358,7 +357,6 @@ export default function FormEditorPage() {
                 onClick={handleSave}
                 disabled={isPending}
                 size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white"
               >
                 {isPending ? (
                   <>
@@ -374,7 +372,7 @@ export default function FormEditorPage() {
               </Button>
             </div>
           </div>
-          {errors.fields && <p className="text-red-400 text-sm mt-2">{errors.fields}</p>}
+          {errors.fields && <p className="text-red-600 text-sm mt-2">{errors.fields}</p>}
         </div>
 
         {/* Three-Panel Layout */}
@@ -386,7 +384,7 @@ export default function FormEditorPage() {
                 <FieldPalette onAddField={addField} />
               </ResizablePanel>
 
-              <ResizableHandle className="w-1 bg-slate-700 hover:bg-purple-500 transition-colors" />
+              <ResizableHandle className="w-1 bg-slate-300 hover:bg-primary transition-colors" />
 
               {/* Center Panel - Form Canvas */}
               <ResizablePanel defaultSize={50} minSize={30}>
@@ -401,7 +399,7 @@ export default function FormEditorPage() {
                 />
               </ResizablePanel>
 
-              <ResizableHandle className="w-1 bg-slate-700 hover:bg-purple-500 transition-colors" />
+              <ResizableHandle className="w-1 bg-slate-300 hover:bg-primary transition-colors" />
 
               {/* Right Panel - Field Properties */}
               <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>

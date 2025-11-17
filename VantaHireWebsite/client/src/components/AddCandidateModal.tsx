@@ -135,38 +135,38 @@ export function AddCandidateModal({
 
         <div className="space-y-4 py-4">
           <div>
-            <label className="text-sm font-medium text-white">Name *</label>
+            <label className="text-sm font-medium">Name *</label>
             <Input
               placeholder="Jane Doe"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+              className="mt-1"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-white">Email *</label>
+            <label className="text-sm font-medium">Email *</label>
             <Input
               type="email"
               placeholder="jane@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+              className="mt-1"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-white">Phone *</label>
+            <label className="text-sm font-medium">Phone *</label>
             <Input
               placeholder="+1234567890"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="mt-1 bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+              className="mt-1"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-white">
+            <label className="text-sm font-medium">
               Cover Letter / Notes
             </label>
             <Textarea
@@ -174,14 +174,14 @@ export function AddCandidateModal({
               value={coverLetter}
               onChange={(e) => setCoverLetter(e.target.value)}
               rows={4}
-              className="mt-1 bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+              className="mt-1"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-white">Source</label>
+            <label className="text-sm font-medium">Source</label>
             <Select value={source} onValueChange={setSource}>
-              <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+              <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -195,14 +195,14 @@ export function AddCandidateModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-white">
+            <label className="text-sm font-medium">
               Initial Stage (Optional)
             </label>
             <Select
               value={initialStageId}
               onValueChange={(v) => setInitialStageId(v === 'none' ? '' : v)}
             >
-              <SelectTrigger className="mt-1 bg-white/5 border-white/20 text-white">
+              <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Unassigned" />
               </SelectTrigger>
               <SelectContent>
@@ -219,15 +219,15 @@ export function AddCandidateModal({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-white">Resume *</label>
+            <label className="text-sm font-medium">Resume *</label>
             <Input
               type="file"
               accept=".pdf,.doc,.docx"
               onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
-              className="mt-1 bg-white/5 border-white/20 text-white file:text-white"
+              className="mt-1"
             />
             {resumeFile && (
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-slate-500 mt-1">
                 Selected: {resumeFile.name} ({(resumeFile.size / 1024).toFixed(1)} KB)
               </p>
             )}
@@ -236,16 +236,14 @@ export function AddCandidateModal({
 
         <div className="flex justify-end gap-2 pt-4">
           <Button
-            variant="secondary"
+            variant="outline"
             onClick={() => onOpenChange(false)}
-            className="bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={mutation.isPending}
-            className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:opacity-90"
           >
             {mutation.isPending ? (
               <>

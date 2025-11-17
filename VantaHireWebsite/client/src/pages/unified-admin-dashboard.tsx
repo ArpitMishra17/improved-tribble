@@ -298,10 +298,10 @@ export default function UnifiedAdminDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'passed': return 'bg-green-500/20 text-green-300 border-green-500/30';
-      case 'failed': return 'bg-red-500/20 text-red-300 border-red-500/30';
-      case 'running': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+      case 'passed': return 'bg-green-50 text-green-700 border-green-200';
+      case 'failed': return 'bg-red-50 text-red-700 border-red-200';
+      case 'running': return 'bg-blue-50 text-blue-700 border-blue-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
@@ -345,151 +345,151 @@ export default function UnifiedAdminDashboard() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        {/* Premium background effects */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] animate-pulse-slow"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.2s' }}></div>
-        
-        <div className={`container mx-auto px-4 py-8 relative z-10 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-          {/* Premium Header */}
-          <div className="mb-12 pt-16">
-            <div className="w-20 h-1.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] rounded-full mb-6 animate-slide-right"></div>
-            <div className="flex items-center gap-3 mb-4">
-              <Shield className="h-8 w-8 text-[#7B38FB]" />
-              <h1 className="text-4xl md:text-5xl font-bold">
-                <span className="animate-gradient-text">Admin</span>
-                <span className="text-white ml-3">Control Center</span>
-              </h1>
-            </div>
-            <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              Complete platform management, testing, and analytics dashboard
-            </p>
+      <div className={`container mx-auto px-4 py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+        {/* Header */}
+        <div className="mb-8 pt-8">
+          <div className="flex items-center gap-3 mb-2">
+            <Shield className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+              Admin Control Center
+            </h1>
           </div>
+          <p className="text-slate-500 text-sm md:text-base max-w-2xl">
+            Complete platform management, testing, and analytics dashboard
+          </p>
+        </div>
 
-          {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Total Jobs</p>
-                    <p className="text-2xl font-bold text-white">{stats?.totalJobs || 0}</p>
-                  </div>
-                  <Briefcase className="h-8 w-8 text-[#7B38FB]" />
+        {/* Overview Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Total Jobs</p>
+                  <p className="text-2xl font-bold text-slate-900">{stats?.totalJobs || 0}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Applications</p>
-                    <p className="text-2xl font-bold text-green-400">{stats?.totalApplications || 0}</p>
-                  </div>
-                  <FileText className="h-8 w-8 text-green-400" />
+                <div className="bg-primary/10 p-3 rounded-lg">
+                  <Briefcase className="h-6 w-6 text-primary" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Total Users</p>
-                    <p className="text-2xl font-bold text-blue-400">{stats?.totalUsers || 0}</p>
-                  </div>
-                  <Users className="h-8 w-8 text-blue-400" />
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Applications</p>
+                  <p className="text-2xl font-bold text-green-600">{stats?.totalApplications || 0}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Test Coverage</p>
-                    <p className="text-2xl font-bold text-purple-400">{Math.round(averageCoverage)}%</p>
-                  </div>
-                  <BarChart3 className="h-8 w-8 text-purple-400" />
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <FileText className="h-6 w-6 text-green-600" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Main Dashboard Tabs */}
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="bg-white/10 border-white/20 grid grid-cols-5 w-full">
-              <TabsTrigger value="overview" className="text-white data-[state=active]:bg-white/20">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="testing" className="text-white data-[state=active]:bg-white/20">
-                <Activity className="h-4 w-4 mr-2" />
-                Testing
-              </TabsTrigger>
-              <TabsTrigger value="jobs" className="text-white data-[state=active]:bg-white/20">
-                <Briefcase className="h-4 w-4 mr-2" />
-                Jobs
-              </TabsTrigger>
-              <TabsTrigger value="applications" className="text-white data-[state=active]:bg-white/20">
-                <FileText className="h-4 w-4 mr-2" />
-                Applications
-              </TabsTrigger>
-              <TabsTrigger value="users" className="text-white data-[state=active]:bg-white/20">
-                <Users className="h-4 w-4 mr-2" />
-                Users
-              </TabsTrigger>
-            </TabsList>
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Total Users</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats?.totalUsers || 0}</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* Overview Tab */}
-            <TabsContent value="overview">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-                  <CardHeader>
-                    <CardTitle className="text-white">Quick Actions</CardTitle>
-                    <CardDescription className="text-white/70">
-                      Most commonly used admin functions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Button 
-                      onClick={runAllTests}
-                      disabled={isRunningAllTests}
-                      className="w-full bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Test Coverage</p>
+                  <p className="text-2xl font-bold text-primary">{Math.round(averageCoverage)}%</p>
+                </div>
+                <div className="bg-primary/10 p-3 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Dashboard Tabs */}
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid grid-cols-5 w-full">
+            <TabsTrigger value="overview">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="testing">
+              <Activity className="h-4 w-4 mr-2" />
+              Testing
+            </TabsTrigger>
+            <TabsTrigger value="jobs">
+              <Briefcase className="h-4 w-4 mr-2" />
+              Jobs
+            </TabsTrigger>
+            <TabsTrigger value="applications">
+              <FileText className="h-4 w-4 mr-2" />
+              Applications
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="h-4 w-4 mr-2" />
+              Users
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-slate-900">Quick Actions</CardTitle>
+                  <CardDescription>
+                    Most commonly used admin functions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button
+                    onClick={runAllTests}
+                    disabled={isRunningAllTests}
+                    className="w-full"
+                  >
+                    {isRunningAllTests ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Running All Tests...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-4 w-4 mr-2" />
+                        Run All Tests
+                      </>
+                    )}
+                  </Button>
+                  <Link href="/recruiter-dashboard">
+                    <Button
+                      variant="outline"
+                      className="w-full"
                     >
-                      {isRunningAllTests ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Running All Tests...
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          Run All Tests
-                        </>
-                      )}
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Recruiter Dashboard
                     </Button>
-                    <Link href="/recruiter-dashboard">
-                      <Button
-                        variant="secondary"
-                        className="w-full bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
-                      >
-                        <Briefcase className="h-4 w-4 mr-2" />
-                        Recruiter Dashboard
-                      </Button>
-                    </Link>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Analytics
+                  </Button>
                     <Button
                       variant="secondary"
-                      className="w-full bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export Analytics
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="w-full bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
+                      className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
                     >
                       <Settings className="h-4 w-4 mr-2" />
                       System Settings
@@ -497,35 +497,35 @@ export default function UnifiedAdminDashboard() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+                <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-white">System Status</CardTitle>
-                    <CardDescription className="text-white/70">
+                    <CardTitle className="text-slate-900">System Status</CardTitle>
+                    <CardDescription className="text-slate-500">
                       Platform health and performance metrics
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-white/70">API Status</span>
-                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+                      <span className="text-slate-500">API Status</span>
+                      <Badge className="bg-green-50 text-green-700 border-green-200">
                         Operational
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white/70">Database</span>
-                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+                      <span className="text-slate-500">Database</span>
+                      <Badge className="bg-green-50 text-green-700 border-green-200">
                         Connected
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white/70">AI Services</span>
-                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
+                      <span className="text-slate-500">AI Services</span>
+                      <Badge className="bg-green-50 text-green-700 border-green-200">
                         Active
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white/70">Email Service</span>
-                      <Badge className="bg-yellow-500/20 text-yellow-300 border-yellow-500/30">
+                      <span className="text-slate-500">Email Service</span>
+                      <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200">
                         Limited
                       </Badge>
                     </div>
@@ -538,19 +538,19 @@ export default function UnifiedAdminDashboard() {
             <TabsContent value="testing">
               <div className="space-y-6">
                 {/* Test Execution Controls */}
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+                <Card className="shadow-sm">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-white">Test Execution</CardTitle>
-                        <CardDescription className="text-white/70">
+                        <CardTitle className="text-slate-900">Test Execution</CardTitle>
+                        <CardDescription className="text-slate-500">
                           Run comprehensive test suites for the entire platform
                         </CardDescription>
                       </div>
                       <Button 
                         onClick={runAllTests}
                         disabled={isRunningAllTests}
-                        className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         {isRunningAllTests ? (
                           <>
@@ -569,7 +569,7 @@ export default function UnifiedAdminDashboard() {
                   {isRunningAllTests && (
                     <CardContent>
                       <div className="space-y-2">
-                        <div className="flex justify-between text-sm text-white/70">
+                        <div className="flex justify-between text-sm text-slate-500">
                           <span>Overall Progress</span>
                           <span>{Math.round(overallProgress)}%</span>
                         </div>
@@ -582,23 +582,23 @@ export default function UnifiedAdminDashboard() {
                 {/* Test Suites Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {testSuites.map((suite) => (
-                    <Card key={suite.id} className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+                    <Card key={suite.id} className="shadow-sm">
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <suite.icon className="h-5 w-5 text-[#7B38FB]" />
-                            <CardTitle className="text-white text-lg">{suite.name}</CardTitle>
+                            <suite.icon className="h-5 w-5 text-primary" />
+                            <CardTitle className="text-slate-900 text-lg">{suite.name}</CardTitle>
                           </div>
                           <Button 
                             onClick={() => runTestSuite(suite.id)}
                             size="sm"
-                            className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 text-white border-0"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             <Play className="h-4 w-4 mr-1" />
                             Run
                           </Button>
                         </div>
-                        <CardDescription className="text-white/70">
+                        <CardDescription className="text-slate-500">
                           {suite.description}
                         </CardDescription>
                       </CardHeader>
@@ -606,16 +606,16 @@ export default function UnifiedAdminDashboard() {
                       <CardContent>
                         <div className="grid grid-cols-3 gap-2 mb-4 text-center">
                           <div>
-                            <p className="text-xs text-white/70">Total</p>
-                            <p className="text-lg font-bold text-white">{suite.totalTests}</p>
+                            <p className="text-xs text-slate-500">Total</p>
+                            <p className="text-lg font-bold text-slate-900">{suite.totalTests}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-white/70">Passed</p>
-                            <p className="text-lg font-bold text-green-400">{suite.passedTests}</p>
+                            <p className="text-xs text-slate-500">Passed</p>
+                            <p className="text-lg font-bold text-green-600">{suite.passedTests}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-white/70">Coverage</p>
-                            <p className="text-lg font-bold text-blue-400">{suite.coverage}%</p>
+                            <p className="text-xs text-slate-500">Coverage</p>
+                            <p className="text-lg font-bold text-blue-600">{suite.coverage}%</p>
                           </div>
                         </div>
                         
@@ -623,11 +623,11 @@ export default function UnifiedAdminDashboard() {
                           {suite.tests.map((test) => (
                             <div 
                               key={test.id}
-                              className="flex items-center justify-between p-2 rounded bg-white/5"
+                              className="flex items-center justify-between p-2 rounded bg-slate-50"
                             >
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(test.status)}
-                                <span className="text-white text-sm">{test.name}</span>
+                                <span className="text-slate-900 text-sm">{test.name}</span>
                               </div>
                               <Badge className={getStatusColor(test.status)}>
                                 {test.status}
@@ -644,31 +644,31 @@ export default function UnifiedAdminDashboard() {
 
             {/* Jobs Tab */}
             <TabsContent value="jobs">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                     <div>
-                      <CardTitle className="text-white">Jobs Management</CardTitle>
-                      <CardDescription className="text-white/70">
+                      <CardTitle className="text-slate-900">Jobs Management</CardTitle>
+                      <CardDescription className="text-slate-500">
                         View, edit, and manage all platform jobs
                       </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="flex items-center space-x-2">
-                        <Search className="h-4 w-4 text-white/50" />
+                        <Search className="h-4 w-4 text-slate-400" />
                         <Input
                           placeholder="Search jobs..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-[#7B38FB] focus:ring-2 focus:ring-[#7B38FB]/20"
+                          className="bg-white border-slate-300 placeholder:text-slate-400"
                         />
                       </div>
                       <Select value={jobFilter} onValueChange={setJobFilter}>
-                        <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                        <SelectTrigger className="bg-white border-slate-300">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectContent className="bg-white border-slate-200">
                           <SelectItem value="all">All Jobs</SelectItem>
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
@@ -682,16 +682,16 @@ export default function UnifiedAdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {filteredJobs?.slice(0, 10).map((job: any) => (
-                      <div key={job.id} className="border border-white/20 rounded-lg p-4 bg-white/5">
+                      <div key={job.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="text-white font-semibold">{job.title}</h3>
-                            <p className="text-white/70 text-sm">{job.location}</p>
+                            <h3 className="text-slate-900 font-semibold">{job.title}</h3>
+                            <p className="text-slate-500 text-sm">{job.location}</p>
                             <div className="flex items-center gap-2 mt-2">
-                              <Badge className={job.status === 'approved' ? 'bg-green-500/20 text-green-300 border-green-500/30' : 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'}>
+                              <Badge className={job.status === 'approved' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}>
                                 {job.status}
                               </Badge>
-                              <Badge className={job.isActive ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' : 'bg-gray-500/20 text-gray-300 border-gray-500/30'}>
+                              <Badge className={job.isActive ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
                                 {job.isActive ? 'Active' : 'Inactive'}
                               </Badge>
                             </div>
@@ -716,10 +716,10 @@ export default function UnifiedAdminDashboard() {
                                 </Button>
                               </>
                             )}
-                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
                               <Edit className="h-3 w-3" />
                             </Button>
                           </div>
@@ -733,31 +733,31 @@ export default function UnifiedAdminDashboard() {
 
             {/* Applications Tab */}
             <TabsContent value="applications">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                     <div>
-                      <CardTitle className="text-white">Applications Management</CardTitle>
-                      <CardDescription className="text-white/70">
+                      <CardTitle className="text-slate-900">Applications Management</CardTitle>
+                      <CardDescription className="text-slate-500">
                         Monitor and manage all job applications
                       </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="flex items-center space-x-2">
-                        <Search className="h-4 w-4 text-white/50" />
+                        <Search className="h-4 w-4 text-slate-400" />
                         <Input
                           placeholder="Search applications..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-[#7B38FB] focus:ring-2 focus:ring-[#7B38FB]/20"
+                          className="bg-white border-slate-300 placeholder:text-slate-400"
                         />
                       </div>
                       <Select value={applicationFilter} onValueChange={setApplicationFilter}>
-                        <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                        <SelectTrigger className="bg-white border-slate-300">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectContent className="bg-white border-slate-200">
                           <SelectItem value="all">All Applications</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="reviewed">Reviewed</SelectItem>
@@ -771,27 +771,27 @@ export default function UnifiedAdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {filteredApplications?.slice(0, 10).map((application: any) => (
-                      <div key={application.id} className="border border-white/20 rounded-lg p-4 bg-white/5">
+                      <div key={application.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="text-white font-semibold">{application.name}</h3>
-                            <p className="text-white/70 text-sm">{application.email}</p>
-                            <p className="text-white/60 text-xs mt-1">Applied: {new Date(application.submittedAt).toLocaleDateString()}</p>
+                            <h3 className="text-slate-900 font-semibold">{application.name}</h3>
+                            <p className="text-slate-500 text-sm">{application.email}</p>
+                            <p className="text-slate-400 text-xs mt-1">Applied: {new Date(application.submittedAt).toLocaleDateString()}</p>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge className={
-                                application.status === 'shortlisted' ? 'bg-green-500/20 text-green-300 border-green-500/30' :
-                                application.status === 'rejected' ? 'bg-red-500/20 text-red-300 border-red-500/30' :
-                                'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                                application.status === 'shortlisted' ? 'bg-green-50 text-green-700 border-green-200' :
+                                application.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                                'bg-yellow-50 text-yellow-700 border-yellow-200'
                               }>
                                 {application.status}
                               </Badge>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
                               <Download className="h-3 w-3" />
                             </Button>
                           </div>
@@ -805,31 +805,31 @@ export default function UnifiedAdminDashboard() {
 
             {/* Users Tab */}
             <TabsContent value="users">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+              <Card className="shadow-sm">
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                     <div>
-                      <CardTitle className="text-white">User Management</CardTitle>
-                      <CardDescription className="text-white/70">
+                      <CardTitle className="text-slate-900">User Management</CardTitle>
+                      <CardDescription className="text-slate-500">
                         Manage user accounts and permissions
                       </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="flex items-center space-x-2">
-                        <Search className="h-4 w-4 text-white/50" />
+                        <Search className="h-4 w-4 text-slate-400" />
                         <Input
                           placeholder="Search users..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-[#7B38FB] focus:ring-2 focus:ring-[#7B38FB]/20"
+                          className="bg-white border-slate-300 placeholder:text-slate-400"
                         />
                       </div>
                       <Select value={userFilter} onValueChange={setUserFilter}>
-                        <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                        <SelectTrigger className="bg-white border-slate-300">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-800 border-slate-700">
+                        <SelectContent className="bg-white border-slate-200">
                           <SelectItem value="all">All Users</SelectItem>
                           <SelectItem value="admin">Admins</SelectItem>
                           <SelectItem value="recruiter">Recruiters</SelectItem>
@@ -842,27 +842,27 @@ export default function UnifiedAdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {filteredUsers?.slice(0, 10).map((user: any) => (
-                      <div key={user.id} className="border border-white/20 rounded-lg p-4 bg-white/5">
+                      <div key={user.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="text-white font-semibold">{user.username}</h3>
-                            <p className="text-white/70 text-sm">{user.email}</p>
-                            <p className="text-white/60 text-xs mt-1">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
+                            <h3 className="text-slate-900 font-semibold">{user.username}</h3>
+                            <p className="text-slate-500 text-sm">{user.email}</p>
+                            <p className="text-slate-400 text-xs mt-1">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge className={
-                                user.role === 'admin' ? 'bg-red-500/20 text-red-300 border-red-500/30' :
-                                user.role === 'recruiter' ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
-                                'bg-green-500/20 text-green-300 border-green-500/30'
+                                user.role === 'admin' ? 'bg-red-50 text-red-700 border-red-200' :
+                                user.role === 'recruiter' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                'bg-green-50 text-green-700 border-green-200'
                               }>
                                 {user.role}
                               </Badge>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
                               <Edit className="h-3 w-3" />
                             </Button>
                           </div>
@@ -875,7 +875,6 @@ export default function UnifiedAdminDashboard() {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
     </Layout>
   );
 }

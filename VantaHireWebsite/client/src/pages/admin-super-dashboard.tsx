@@ -267,52 +267,52 @@ export default function AdminSuperDashboard() {
 
   const getStatusConfig = (status: string) => {
     const configs = {
-      submitted: { color: "bg-blue-500/20 text-blue-300 border-blue-500/30", icon: Clock, label: "Submitted" },
-      reviewed: { color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", icon: Eye, label: "Under Review" },
-      shortlisted: { color: "bg-green-500/20 text-green-300 border-green-500/30", icon: UserCheck, label: "Shortlisted" },
-      rejected: { color: "bg-red-500/20 text-red-300 border-red-500/30", icon: XCircle, label: "Rejected" },
-      downloaded: { color: "bg-purple-500/20 text-purple-300 border-purple-500/30", icon: Download, label: "Downloaded" },
-      pending: { color: "bg-orange-500/20 text-orange-300 border-orange-500/30", icon: AlertCircle, label: "Pending Review" },
-      approved: { color: "bg-green-500/20 text-green-300 border-green-500/30", icon: CheckCircle, label: "Approved" },
+      submitted: { color: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock, label: "Submitted" },
+      reviewed: { color: "bg-yellow-50 text-yellow-700 border-yellow-200", icon: Eye, label: "Under Review" },
+      shortlisted: { color: "bg-green-50 text-green-700 border-green-200", icon: UserCheck, label: "Shortlisted" },
+      rejected: { color: "bg-red-50 text-red-700 border-red-200", icon: XCircle, label: "Rejected" },
+      downloaded: { color: "bg-purple-50 text-purple-700 border-purple-200", icon: Download, label: "Downloaded" },
+      pending: { color: "bg-orange-50 text-orange-700 border-orange-200", icon: AlertCircle, label: "Pending Review" },
+      approved: { color: "bg-green-50 text-green-700 border-green-200", icon: CheckCircle, label: "Approved" },
     };
     return configs[status as keyof typeof configs] || configs.submitted;
   };
 
   const getRoleColor = (role: string) => {
     const colors = {
-      admin: "bg-red-500/20 text-red-300 border-red-500/30",
-      recruiter: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-      candidate: "bg-blue-500/20 text-blue-300 border-blue-500/30",
+      admin: "bg-red-50 text-red-700 border-red-200",
+      recruiter: "bg-purple-50 text-purple-700 border-purple-200",
+      candidate: "bg-blue-50 text-blue-700 border-blue-200",
     };
     return colors[role as keyof typeof colors] || colors.candidate;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <Layout>
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center space-x-3">
-            <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
-              <Shield className="h-8 w-8 text-white" />
+        <div className="space-y-4 pt-8">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-primary/10 rounded-xl">
+              <Shield className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-4xl font-bold text-white">Admin Super Dashboard</h1>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Admin Super Dashboard</h1>
+              <p className="text-slate-500">Complete platform control and management</p>
+            </div>
           </div>
-          <p className="text-xl text-white/70">Complete platform control and management</p>
-          
+
           {/* Quick Actions */}
-          <div className="flex justify-center space-x-4 mt-6">
-            <Button 
+          <div className="flex gap-4 mt-6">
+            <Button
               onClick={() => window.location.href = '/admin/testing'}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
             >
               <BarChart3 className="h-4 w-4 mr-2" />
               Testing Dashboard
             </Button>
-            <Button 
+            <Button
               onClick={() => window.location.href = '/analytics'}
               variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
             >
               <Activity className="h-4 w-4 mr-2" />
               Analytics
@@ -322,71 +322,71 @@ export default function AdminSuperDashboard() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Total Jobs</CardTitle>
-              <Briefcase className="h-4 w-4 text-blue-400" />
+              <CardTitle className="text-sm font-medium text-slate-500">Total Jobs</CardTitle>
+              <Briefcase className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats?.totalJobs || 0}</div>
-              <p className="text-xs text-white/50">
+              <div className="text-2xl font-bold text-slate-900">{stats?.totalJobs || 0}</div>
+              <p className="text-xs text-slate-500">
                 {stats?.activeJobs || 0} active, {stats?.pendingJobs || 0} pending
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Total Applications</CardTitle>
-              <FileText className="h-4 w-4 text-green-400" />
+              <CardTitle className="text-sm font-medium text-slate-500">Total Applications</CardTitle>
+              <FileText className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats?.totalApplications || 0}</div>
-              <p className="text-xs text-white/50">Across all jobs</p>
+              <div className="text-2xl font-bold text-slate-900">{stats?.totalApplications || 0}</div>
+              <p className="text-xs text-slate-500">Across all jobs</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-purple-400" />
+              <CardTitle className="text-sm font-medium text-slate-500">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{stats?.totalUsers || 0}</div>
-              <p className="text-xs text-white/50">
+              <div className="text-2xl font-bold text-slate-900">{stats?.totalUsers || 0}</div>
+              <p className="text-xs text-slate-500">
                 {stats?.totalRecruiters || 0} recruiters
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Platform Activity</CardTitle>
-              <Activity className="h-4 w-4 text-orange-400" />
+              <CardTitle className="text-sm font-medium text-slate-500">Platform Activity</CardTitle>
+              <Activity className="h-4 w-4 text-orange-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">Live</div>
-              <p className="text-xs text-white/50">System operational</p>
+              <div className="text-2xl font-bold text-slate-900">Live</div>
+              <p className="text-xs text-slate-500">System operational</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Tabs */}
         <Tabs defaultValue="jobs" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 border-slate-700">
-            <TabsTrigger value="jobs" className="data-[state=active]:bg-purple-600">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="jobs">
               <Briefcase className="h-4 w-4 mr-2" />
               Jobs Management
             </TabsTrigger>
-            <TabsTrigger value="applications" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="applications">
               <FileText className="h-4 w-4 mr-2" />
               Applications
             </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="logs" className="data-[state=active]:bg-purple-600">
+            <TabsTrigger value="logs">
               <Settings className="h-4 w-4 mr-2" />
               System Logs
             </TabsTrigger>
@@ -394,31 +394,31 @@ export default function AdminSuperDashboard() {
 
           {/* Jobs Management Tab */}
           <TabsContent value="jobs" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="shadow-sm">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <CardTitle className="text-white">Jobs Management</CardTitle>
-                    <CardDescription className="text-white/70">
+                    <CardTitle className="text-slate-900">Jobs Management</CardTitle>
+                    <CardDescription className="text-slate-900/70">
                       View, edit, and manage all platform jobs
                     </CardDescription>
                   </div>
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     <div className="flex items-center space-x-2">
-                      <Search className="h-4 w-4 text-white/50" />
+                      <Search className="h-4 w-4 text-slate-900/50" />
                       <Input
                         placeholder="Search jobs..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white border-slate-300"
                       />
                     </div>
                     <Select value={jobFilter} onValueChange={setJobFilter}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-white border-slate-300">
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-white border-slate-200">
                         <SelectItem value="all">All Jobs</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
@@ -431,23 +431,23 @@ export default function AdminSuperDashboard() {
               </CardHeader>
               <CardContent>
                 {jobsLoading ? (
-                  <div className="text-center py-8 text-white/70">Loading jobs...</div>
+                  <div className="text-center py-8 text-slate-900/70">Loading jobs...</div>
                 ) : (
                   <div className="space-y-4">
                     {filteredJobs?.map((job) => (
-                      <div key={job.id} className="border border-slate-600 rounded-lg p-4 bg-slate-700/30">
+                      <div key={job.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-white">{job.title}</h3>
+                              <h3 className="text-lg font-semibold text-slate-900">{job.title}</h3>
                               <Badge className={getStatusConfig(job.status).color}>
                                 {getStatusConfig(job.status).label}
                               </Badge>
-                              <Badge className={job.isActive ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}>
+                              <Badge className={job.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}>
                                 {job.isActive ? "Active" : "Inactive"}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-white/70">
+                            <div className="flex items-center space-x-4 text-sm text-slate-900/70">
                               <span className="flex items-center space-x-1">
                                 <MapPin className="h-4 w-4" />
                                 <span>{job.company} • {job.location}</span>
@@ -461,7 +461,7 @@ export default function AdminSuperDashboard() {
                                 <span>{job.applicationCount} applications</span>
                               </span>
                             </div>
-                            <p className="text-white/60 text-sm">
+                            <p className="text-slate-900/60 text-sm">
                               Posted by: {job.postedBy.firstName} {job.postedBy.lastName} ({job.postedBy.username})
                             </p>
                           </div>
@@ -472,7 +472,7 @@ export default function AdminSuperDashboard() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'approved' })}
-                                  className="border-green-600 text-green-400 hover:bg-green-900/20 bg-green-900/10"
+                                  className="border-green-600 text-green-700 hover:bg-green-50 bg-white"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Approve
@@ -481,7 +481,7 @@ export default function AdminSuperDashboard() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'declined' })}
-                                  className="border-red-600 text-red-400 hover:bg-red-900/20 bg-red-900/10"
+                                  className="border-red-600 text-red-700 hover:bg-red-50 bg-white"
                                 >
                                   <XCircle className="h-4 w-4 mr-1" />
                                   Decline
@@ -492,7 +492,7 @@ export default function AdminSuperDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedJob(job)}
-                              className="border-slate-600 text-white hover:bg-slate-700 bg-slate-800/50 hover:border-slate-500"
+                              className="border-slate-300 text-slate-700 hover:bg-slate-100"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
@@ -501,7 +501,7 @@ export default function AdminSuperDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => updateJobMutation.mutate({ id: job.id, isActive: !job.isActive })}
-                              className="border-slate-600 text-white hover:bg-slate-700 bg-slate-800/50 hover:border-slate-500"
+                              className="border-slate-300 text-slate-700 hover:bg-slate-100"
                             >
                               {job.isActive ? "Deactivate" : "Activate"}
                             </Button>
@@ -510,20 +510,20 @@ export default function AdminSuperDashboard() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="border-red-600 text-red-400 hover:bg-red-900/20 bg-red-900/10"
+                                  className="border-red-600 text-red-700 hover:bg-red-50 bg-white"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-slate-800 border-slate-700">
+                              <AlertDialogContent className="bg-white border-slate-200">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle className="text-white">Delete Job</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-white/70">
+                                  <AlertDialogTitle className="text-slate-900">Delete Job</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-slate-900/70">
                                     Are you sure you want to delete "{job.title}"? This action cannot be undone and will remove all associated applications.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-slate-700 border-slate-600 text-white">Cancel</AlertDialogCancel>
+                                  <AlertDialogCancel className="bg-white border-slate-300">Cancel</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => deleteJobMutation.mutate(job.id)}
                                     className="bg-red-600 hover:bg-red-700"
@@ -545,31 +545,31 @@ export default function AdminSuperDashboard() {
 
           {/* Applications Management Tab */}
           <TabsContent value="applications" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="shadow-sm">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <CardTitle className="text-white">Applications Management</CardTitle>
-                    <CardDescription className="text-white/70">
+                    <CardTitle className="text-slate-900">Applications Management</CardTitle>
+                    <CardDescription className="text-slate-900/70">
                       Review and manage all job applications
                     </CardDescription>
                   </div>
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     <div className="flex items-center space-x-2">
-                      <Search className="h-4 w-4 text-white/50" />
+                      <Search className="h-4 w-4 text-slate-900/50" />
                       <Input
                         placeholder="Search applications..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white border-slate-300"
                       />
                     </div>
                     <Select value={applicationFilter} onValueChange={setApplicationFilter}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-white border-slate-300">
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-white border-slate-200">
                         <SelectItem value="all">All Applications</SelectItem>
                         <SelectItem value="submitted">Submitted</SelectItem>
                         <SelectItem value="reviewed">Under Review</SelectItem>
@@ -582,20 +582,20 @@ export default function AdminSuperDashboard() {
               </CardHeader>
               <CardContent>
                 {applicationsLoading ? (
-                  <div className="text-center py-8 text-white/70">Loading applications...</div>
+                  <div className="text-center py-8 text-slate-900/70">Loading applications...</div>
                 ) : (
                   <div className="space-y-4">
                     {filteredApplications?.map((application) => (
-                      <div key={application.id} className="border border-slate-600 rounded-lg p-4 bg-slate-700/30">
+                      <div key={application.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-white">{application.fullName}</h3>
+                              <h3 className="text-lg font-semibold text-slate-900">{application.fullName}</h3>
                               <Badge className={getStatusConfig(application.status).color}>
                                 {getStatusConfig(application.status).label}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-white/70">
+                            <div className="flex items-center space-x-4 text-sm text-slate-900/70">
                               <span>{application.email}</span>
                               <span>{application.phone}</span>
                               <span className="flex items-center space-x-1">
@@ -603,11 +603,11 @@ export default function AdminSuperDashboard() {
                                 <span>{format(new Date(application.appliedAt), "MMM d, yyyy")}</span>
                               </span>
                             </div>
-                            <p className="text-white/60 text-sm">
+                            <p className="text-slate-900/60 text-sm">
                               Applied for: {application.job.title} at {application.job.company}
                             </p>
                             {application.notes && (
-                              <p className="text-white/60 text-sm bg-slate-800/50 p-2 rounded">
+                              <p className="text-slate-900/60 text-sm bg-slate-100 p-2 rounded">
                                 Notes: {application.notes}
                               </p>
                             )}
@@ -617,7 +617,7 @@ export default function AdminSuperDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedApplication(application)}
-                              className="border-slate-600 text-white hover:bg-slate-700"
+                              className="border-slate-200 text-slate-900 hover:bg-slate-100"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
@@ -626,10 +626,10 @@ export default function AdminSuperDashboard() {
                               value={application.status}
                               onValueChange={(status) => updateApplicationMutation.mutate({ id: application.id, status })}
                             >
-                              <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-white">
+                              <SelectTrigger className="w-32 bg-white border-slate-300">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="bg-slate-800 border-slate-700">
+                              <SelectContent className="bg-white border-slate-200">
                                 <SelectItem value="submitted">Submitted</SelectItem>
                                 <SelectItem value="reviewed">Under Review</SelectItem>
                                 <SelectItem value="shortlisted">Shortlisted</SelectItem>
@@ -648,31 +648,31 @@ export default function AdminSuperDashboard() {
 
           {/* Users Management Tab */}
           <TabsContent value="users" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="shadow-sm">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <CardTitle className="text-white">Users Management</CardTitle>
-                    <CardDescription className="text-white/70">
+                    <CardTitle className="text-slate-900">Users Management</CardTitle>
+                    <CardDescription className="text-slate-900/70">
                       Manage user roles and permissions
                     </CardDescription>
                   </div>
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     <div className="flex items-center space-x-2">
-                      <Search className="h-4 w-4 text-white/50" />
+                      <Search className="h-4 w-4 text-slate-900/50" />
                       <Input
                         placeholder="Search users..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-white border-slate-300"
                       />
                     </div>
                     <Select value={userFilter} onValueChange={setUserFilter}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                      <SelectTrigger className="bg-white border-slate-300">
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectContent className="bg-white border-slate-200">
                         <SelectItem value="all">All Users</SelectItem>
                         <SelectItem value="admin">Admins</SelectItem>
                         <SelectItem value="recruiter">Recruiters</SelectItem>
@@ -684,22 +684,22 @@ export default function AdminSuperDashboard() {
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
-                  <div className="text-center py-8 text-white/70">Loading users...</div>
+                  <div className="text-center py-8 text-slate-900/70">Loading users...</div>
                 ) : (
                   <div className="space-y-4">
                     {filteredUsers?.map((user) => (
-                      <div key={user.id} className="border border-slate-600 rounded-lg p-4 bg-slate-700/30">
+                      <div key={user.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-white">
+                              <h3 className="text-lg font-semibold text-slate-900">
                                 {user.firstName} {user.lastName}
                               </h3>
                               <Badge className={getRoleColor(user.role)}>
                                 {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-white/70">
+                            <div className="flex items-center space-x-4 text-sm text-slate-900/70">
                               <span>{user.username}</span>
                               <span className="flex items-center space-x-1">
                                 <Calendar className="h-4 w-4" />
@@ -713,7 +713,7 @@ export default function AdminSuperDashboard() {
                               )}
                             </div>
                             {user.profile && (
-                              <div className="text-white/60 text-sm space-y-1">
+                              <div className="text-slate-900/60 text-sm space-y-1">
                                 {user.profile.location && (
                                   <p className="flex items-center space-x-1">
                                     <MapPin className="h-3 w-3" />
@@ -731,10 +731,10 @@ export default function AdminSuperDashboard() {
                               value={user.role}
                               onValueChange={(role) => updateUserRoleMutation.mutate({ id: user.id, role })}
                             >
-                              <SelectTrigger className="w-32 bg-slate-700 border-slate-600 text-white">
+                              <SelectTrigger className="w-32 bg-white border-slate-300">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="bg-slate-800 border-slate-700">
+                              <SelectContent className="bg-white border-slate-200">
                                 <SelectItem value="candidate">Candidate</SelectItem>
                                 <SelectItem value="recruiter">Recruiter</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
@@ -752,40 +752,40 @@ export default function AdminSuperDashboard() {
 
           {/* System Logs Tab */}
           <TabsContent value="logs" className="space-y-6">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white">System Activity Logs</CardTitle>
-                <CardDescription className="text-white/70">
+                <CardTitle className="text-slate-900">System Activity Logs</CardTitle>
+                <CardDescription className="text-slate-900/70">
                   Monitor platform activity and system events
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="border border-slate-600 rounded-lg p-4 bg-slate-700/30">
+                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                     <div className="flex items-center space-x-3 text-sm">
                       <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-white/70">{format(new Date(), "MMM d, yyyy HH:mm")}</span>
-                      <span className="text-white">System</span>
-                      <span className="text-green-400">Platform operational - All systems running</span>
+                      <span className="text-slate-900/70">{format(new Date(), "MMM d, yyyy HH:mm")}</span>
+                      <span className="text-slate-900">System</span>
+                      <span className="text-green-600">Platform operational - All systems running</span>
                     </div>
                   </div>
-                  <div className="border border-slate-600 rounded-lg p-4 bg-slate-700/30">
+                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                     <div className="flex items-center space-x-3 text-sm">
                       <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="text-white/70">{format(new Date(Date.now() - 300000), "MMM d, yyyy HH:mm")}</span>
-                      <span className="text-white">Database</span>
-                      <span className="text-blue-400">User profiles table created successfully</span>
+                      <span className="text-slate-900/70">{format(new Date(Date.now() - 300000), "MMM d, yyyy HH:mm")}</span>
+                      <span className="text-slate-900">Database</span>
+                      <span className="text-blue-600">User profiles table created successfully</span>
                     </div>
                   </div>
-                  <div className="border border-slate-600 rounded-lg p-4 bg-slate-700/30">
+                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                     <div className="flex items-center space-x-3 text-sm">
                       <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <span className="text-white/70">{format(new Date(Date.now() - 600000), "MMM d, yyyy HH:mm")}</span>
-                      <span className="text-white">Jobs</span>
-                      <span className="text-purple-400">Job scheduler activated - Daily cleanup at 2 AM</span>
+                      <span className="text-slate-900/70">{format(new Date(Date.now() - 600000), "MMM d, yyyy HH:mm")}</span>
+                      <span className="text-slate-900">Jobs</span>
+                      <span className="text-purple-600">Job scheduler activated - Daily cleanup at 2 AM</span>
                     </div>
                   </div>
-                  <div className="text-center py-4 text-white/50">
+                  <div className="text-center py-4 text-slate-900/50">
                     Real-time system monitoring active
                   </div>
                 </div>
@@ -798,37 +798,37 @@ export default function AdminSuperDashboard() {
       {/* Job Detail Dialog */}
       {selectedJob && (
         <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
+          <DialogContent className="bg-white border-slate-200 max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white">{selectedJob.title}</DialogTitle>
-              <DialogDescription className="text-white/70">
+              <DialogTitle className="text-slate-900">{selectedJob.title}</DialogTitle>
+              <DialogDescription className="text-slate-900/70">
                 {selectedJob.company} • {selectedJob.location}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-white/70">Status:</span>
+                  <span className="text-slate-900/70">Status:</span>
                   <Badge className={`ml-2 ${getStatusConfig(selectedJob.status).color}`}>
                     {getStatusConfig(selectedJob.status).label}
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-white/70">Active:</span>
-                  <Badge className={`ml-2 ${selectedJob.isActive ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+                  <span className="text-slate-900/70">Active:</span>
+                  <Badge className={`ml-2 ${selectedJob.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
                     {selectedJob.isActive ? "Yes" : "No"}
                   </Badge>
                 </div>
-                <div className="text-white/70">
-                  Applications: <span className="text-white">{selectedJob.applicationCount}</span>
+                <div className="text-slate-900/70">
+                  Applications: <span className="text-slate-900">{selectedJob.applicationCount}</span>
                 </div>
-                <div className="text-white/70">
-                  Posted: <span className="text-white">{format(new Date(selectedJob.createdAt), "MMM d, yyyy")}</span>
+                <div className="text-slate-900/70">
+                  Posted: <span className="text-slate-900">{format(new Date(selectedJob.createdAt), "MMM d, yyyy")}</span>
                 </div>
               </div>
               <div>
-                <span className="text-white/70">Posted by:</span>
-                <span className="text-white ml-2">
+                <span className="text-slate-900/70">Posted by:</span>
+                <span className="text-slate-900 ml-2">
                   {selectedJob.postedBy.firstName} {selectedJob.postedBy.lastName} ({selectedJob.postedBy.username})
                 </span>
               </div>
@@ -837,7 +837,7 @@ export default function AdminSuperDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => setSelectedJob(null)}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-slate-200 text-slate-900 hover:bg-slate-100"
               >
                 Close
               </Button>
@@ -849,43 +849,43 @@ export default function AdminSuperDashboard() {
       {/* Application Detail Dialog */}
       {selectedApplication && (
         <Dialog open={!!selectedApplication} onOpenChange={() => setSelectedApplication(null)}>
-          <DialogContent className="bg-slate-800 border-slate-700 max-w-2xl">
+          <DialogContent className="bg-white border-slate-200 max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white">{selectedApplication.fullName}</DialogTitle>
-              <DialogDescription className="text-white/70">
+              <DialogTitle className="text-slate-900">{selectedApplication.fullName}</DialogTitle>
+              <DialogDescription className="text-slate-900/70">
                 Application for {selectedApplication.job.title} at {selectedApplication.job.company}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-white/70">
-                  Email: <span className="text-white">{selectedApplication.email}</span>
+                <div className="text-slate-900/70">
+                  Email: <span className="text-slate-900">{selectedApplication.email}</span>
                 </div>
-                <div className="text-white/70">
-                  Phone: <span className="text-white">{selectedApplication.phone}</span>
+                <div className="text-slate-900/70">
+                  Phone: <span className="text-slate-900">{selectedApplication.phone}</span>
                 </div>
-                <div className="text-white/70">
+                <div className="text-slate-900/70">
                   Status: 
                   <Badge className={`ml-2 ${getStatusConfig(selectedApplication.status).color}`}>
                     {getStatusConfig(selectedApplication.status).label}
                   </Badge>
                 </div>
-                <div className="text-white/70">
-                  Applied: <span className="text-white">{format(new Date(selectedApplication.appliedAt), "MMM d, yyyy")}</span>
+                <div className="text-slate-900/70">
+                  Applied: <span className="text-slate-900">{format(new Date(selectedApplication.appliedAt), "MMM d, yyyy")}</span>
                 </div>
               </div>
               {selectedApplication.coverLetter && (
                 <div>
-                  <span className="text-white/70 block mb-2">Cover Letter:</span>
-                  <div className="bg-slate-700/50 p-3 rounded text-white text-sm max-h-32 overflow-y-auto">
+                  <span className="text-slate-900/70 block mb-2">Cover Letter:</span>
+                  <div className="bg-slate-100 p-3 rounded text-slate-900 text-sm max-h-32 overflow-y-auto">
                     {selectedApplication.coverLetter}
                   </div>
                 </div>
               )}
               {selectedApplication.notes && (
                 <div>
-                  <span className="text-white/70 block mb-2">Recruiter Notes:</span>
-                  <div className="bg-slate-700/50 p-3 rounded text-white text-sm">
+                  <span className="text-slate-900/70 block mb-2">Recruiter Notes:</span>
+                  <div className="bg-slate-100 p-3 rounded text-slate-900 text-sm">
                     {selectedApplication.notes}
                   </div>
                 </div>
@@ -895,7 +895,7 @@ export default function AdminSuperDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => setSelectedApplication(null)}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="border-slate-200 text-slate-900 hover:bg-slate-100"
               >
                 Close
               </Button>
@@ -903,6 +903,6 @@ export default function AdminSuperDashboard() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </Layout>
   );
 }

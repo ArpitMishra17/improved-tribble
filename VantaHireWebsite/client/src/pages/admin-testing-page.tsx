@@ -232,19 +232,19 @@ export default function AdminTestingPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'passed': return <CheckCircle className="h-4 w-4 text-green-400" />;
-      case 'failed': return <XCircle className="h-4 w-4 text-red-400" />;
-      case 'running': return <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />;
-      default: return <Clock className="h-4 w-4 text-gray-400" />;
+      case 'passed': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'failed': return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'running': return <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />;
+      default: return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'passed': return 'bg-green-500/20 text-green-300 border-green-500/30';
-      case 'failed': return 'bg-red-500/20 text-red-300 border-red-500/30';
-      case 'running': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+      case 'passed': return 'bg-green-50 text-green-700 border-green-200';
+      case 'failed': return 'bg-red-50 text-red-700 border-red-200';
+      case 'running': return 'bg-blue-50 text-blue-700 border-blue-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
@@ -255,93 +255,85 @@ export default function AdminTestingPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-        {/* Premium background effects */}
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] animate-pulse-slow"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.2s' }}></div>
-        
-        <div className={`container mx-auto px-4 py-8 relative z-10 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-          {/* Premium Header */}
-          <div className="mb-12 pt-16">
-            <div className="w-20 h-1.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] rounded-full mb-6 animate-slide-right"></div>
-            <div className="flex items-center gap-3 mb-4">
-              <BarChart3 className="h-8 w-8 text-[#7B38FB]" />
-              <h1 className="text-4xl md:text-5xl font-bold">
-                <span className="animate-gradient-text">Testing</span>
-                <span className="text-white ml-3">Dashboard</span>
-              </h1>
-            </div>
-            <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              Run and monitor comprehensive test suites for the VantaHire platform
-            </p>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-12 pt-8">
+          <div className="flex items-center gap-3 mb-4">
+            <BarChart3 className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+              Testing Dashboard
+            </h1>
           </div>
+          <p className="text-lg text-slate-500 max-w-2xl">
+            Run and monitor comprehensive test suites for the VantaHire platform
+          </p>
+        </div>
 
-          {/* Overview Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Total Tests</p>
-                    <p className="text-2xl font-bold text-white">{totalTests}</p>
-                  </div>
-                  <Activity className="h-8 w-8 text-[#7B38FB]" />
+        {/* Overview Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Total Tests</p>
+                  <p className="text-2xl font-bold text-slate-900">{totalTests}</p>
                 </div>
-              </CardContent>
-            </Card>
+                <Activity className="h-8 w-8 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Passed</p>
-                    <p className="text-2xl font-bold text-green-400">{totalPassed}</p>
-                  </div>
-                  <CheckCircle className="h-8 w-8 text-green-400" />
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Passed</p>
+                  <p className="text-2xl font-bold text-green-600">{totalPassed}</p>
                 </div>
-              </CardContent>
-            </Card>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Failed</p>
-                    <p className="text-2xl font-bold text-red-400">{totalFailed}</p>
-                  </div>
-                  <XCircle className="h-8 w-8 text-red-400" />
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Failed</p>
+                  <p className="text-2xl font-bold text-red-600">{totalFailed}</p>
                 </div>
-              </CardContent>
-            </Card>
+                <XCircle className="h-8 w-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-white/70">Coverage</p>
-                    <p className="text-2xl font-bold text-blue-400">{Math.round(averageCoverage)}%</p>
-                  </div>
-                  <BarChart3 className="h-8 w-8 text-blue-400" />
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-500">Coverage</p>
+                  <p className="text-2xl font-bold text-blue-600">{Math.round(averageCoverage)}%</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <BarChart3 className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
           {/* Run All Tests */}
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card mb-8">
+          <Card className="shadow-sm mb-8">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white">Test Execution</CardTitle>
-                  <CardDescription className="text-white/70">
+                  <CardTitle className="text-slate-900">Test Execution</CardTitle>
+                  <CardDescription className="text-slate-900/70">
                     Run comprehensive test suites for the entire platform
                   </CardDescription>
                 </div>
                 <Button 
                   onClick={runAllTests}
                   disabled={isRunningAll}
-                  className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {isRunningAll ? (
                     <>
@@ -360,7 +352,7 @@ export default function AdminTestingPage() {
             {isRunningAll && (
               <CardContent>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-white/70">
+                  <div className="flex justify-between text-sm text-slate-900/70">
                     <span>Overall Progress</span>
                     <span>{Math.round(overallProgress)}%</span>
                   </div>
@@ -372,12 +364,12 @@ export default function AdminTestingPage() {
 
           {/* Test Suites */}
           <Tabs defaultValue="unit" className="space-y-6">
-            <TabsList className="bg-white/10 border-white/20">
+            <TabsList className="bg-slate-50 border-slate-200">
               {testSuites.map((suite) => (
                 <TabsTrigger 
                   key={suite.id} 
                   value={suite.id}
-                  className="text-white data-[state=active]:bg-white/20"
+                  className="text-slate-900 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                 >
                   <suite.icon className="h-4 w-4 mr-2" />
                   {suite.name}
@@ -387,22 +379,22 @@ export default function AdminTestingPage() {
 
             {testSuites.map((suite) => (
               <TabsContent key={suite.id} value={suite.id}>
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+                <Card className="shadow-sm">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-white flex items-center gap-2">
-                          <suite.icon className="h-5 w-5 text-[#7B38FB]" />
+                        <CardTitle className="text-slate-900 flex items-center gap-2">
+                          <suite.icon className="h-5 w-5 text-primary" />
                           {suite.name}
                         </CardTitle>
-                        <CardDescription className="text-white/70">
+                        <CardDescription className="text-slate-900/70">
                           {suite.description}
                         </CardDescription>
                       </div>
                       <Button 
                         onClick={() => runTestSuite(suite.id)}
                         variant="outline"
-                        className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                        className="border-slate-300 text-slate-700 hover:bg-slate-100"
                       >
                         <Play className="h-4 w-4 mr-2" />
                         Run Suite
@@ -411,16 +403,16 @@ export default function AdminTestingPage() {
                     
                     <div className="grid grid-cols-3 gap-4 mt-4">
                       <div className="text-center">
-                        <p className="text-sm text-white/70">Total</p>
-                        <p className="text-xl font-bold text-white">{suite.totalTests}</p>
+                        <p className="text-sm text-slate-900/70">Total</p>
+                        <p className="text-xl font-bold text-slate-900">{suite.totalTests}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-white/70">Passed</p>
-                        <p className="text-xl font-bold text-green-400">{suite.passedTests}</p>
+                        <p className="text-sm text-slate-900/70">Passed</p>
+                        <p className="text-xl font-bold text-green-600">{suite.passedTests}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-white/70">Coverage</p>
-                        <p className="text-xl font-bold text-blue-400">{suite.coverage}%</p>
+                        <p className="text-sm text-slate-900/70">Coverage</p>
+                        <p className="text-xl font-bold text-blue-600">{suite.coverage}%</p>
                       </div>
                     </div>
                   </CardHeader>
@@ -430,21 +422,21 @@ export default function AdminTestingPage() {
                       {suite.tests.map((test) => (
                         <div 
                           key={test.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10"
+                          className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-200"
                         >
                           <div className="flex items-center gap-3">
                             {getStatusIcon(test.status)}
                             <div>
-                              <p className="text-white font-medium">{test.name}</p>
+                              <p className="text-slate-900 font-medium">{test.name}</p>
                               {test.details && (
-                                <p className="text-xs text-white/60">{test.details}</p>
+                                <p className="text-xs text-slate-900/60">{test.details}</p>
                               )}
                             </div>
                           </div>
                           
                           <div className="flex items-center gap-2">
                             {test.duration && (
-                              <span className="text-xs text-white/60">
+                              <span className="text-xs text-slate-900/60">
                                 {test.duration}ms
                               </span>
                             )}
@@ -462,48 +454,48 @@ export default function AdminTestingPage() {
           </Tabs>
 
           {/* Test Commands */}
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20 premium-card mt-8">
+          <Card className="shadow-sm mt-8">
             <CardHeader>
-              <CardTitle className="text-white">Manual Test Commands</CardTitle>
-              <CardDescription className="text-white/70">
+              <CardTitle className="text-slate-900">Manual Test Commands</CardTitle>
+              <CardDescription className="text-slate-900/70">
                 Run these commands in your terminal to execute specific test suites
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <h4 className="text-white font-medium">Unit Tests</h4>
-                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                  <h4 className="text-slate-900 font-medium">Unit Tests</h4>
+                  <code className="block p-2 bg-slate-800 rounded text-green-600 text-sm">
                     npm test test/unit
                   </code>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-white font-medium">Integration Tests</h4>
-                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                  <h4 className="text-slate-900 font-medium">Integration Tests</h4>
+                  <code className="block p-2 bg-slate-800 rounded text-green-600 text-sm">
                     npm test test/integration
                   </code>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-white font-medium">E2E Tests</h4>
-                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                  <h4 className="text-slate-900 font-medium">E2E Tests</h4>
+                  <code className="block p-2 bg-slate-800 rounded text-green-600 text-sm">
                     npm test test/e2e
                   </code>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-white font-medium">Security Tests</h4>
-                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                  <h4 className="text-slate-900 font-medium">Security Tests</h4>
+                  <code className="block p-2 bg-slate-800 rounded text-green-600 text-sm">
                     npm run test:security
                   </code>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-white font-medium">Performance Tests</h4>
-                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                  <h4 className="text-slate-900 font-medium">Performance Tests</h4>
+                  <code className="block p-2 bg-slate-800 rounded text-green-600 text-sm">
                     npm run test:load:smoke
                   </code>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-white font-medium">Load Tests (Full)</h4>
-                  <code className="block p-2 bg-black/30 rounded text-green-400 text-sm">
+                  <h4 className="text-slate-900 font-medium">Load Tests (Full)</h4>
+                  <code className="block p-2 bg-slate-800 rounded text-green-600 text-sm">
                     npm run test:load
                   </code>
                 </div>
@@ -511,7 +503,6 @@ export default function AdminTestingPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
     </Layout>
   );
 }

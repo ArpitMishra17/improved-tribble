@@ -39,12 +39,16 @@ export default function JobPostPage() {
 
   if (!['recruiter', 'admin'].includes(user.role)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p>You need recruiter or admin privileges to post jobs.</p>
+      <Layout>
+        <div className="container mx-auto px-4 py-16">
+          <Card className="max-w-md mx-auto shadow-sm">
+            <CardContent className="p-8 text-center">
+              <h1 className="text-xl font-semibold text-slate-900 mb-2">Access Denied</h1>
+              <p className="text-slate-500">You need recruiter or admin privileges to post jobs.</p>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -83,7 +87,7 @@ export default function JobPostPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const jobData = {
         ...formData,
@@ -108,11 +112,14 @@ export default function JobPostPage() {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Post a New <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">Job</span>
-          </h1>
-          <p className="text-xl text-gray-300">
+        <div className="mb-8 pt-8">
+          <div className="flex items-center gap-3 mb-2">
+            <Briefcase className="h-7 w-7 text-primary" />
+            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+              Post a New Job
+            </h1>
+          </div>
+          <p className="text-slate-500 text-sm md:text-base">
             Find the perfect candidate for your team
           </p>
         </div>
@@ -121,182 +128,181 @@ export default function JobPostPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           {/* Job Form - 2/3 width */}
           <div className="lg:col-span-2">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Briefcase className="h-6 w-6" />
+                <CardTitle className="text-slate-900 flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5 text-primary" />
                   Job Details
                 </CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardDescription>
                   Fill out the information below to create your job posting
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Job Title */}
-                <div>
-                  <Label htmlFor="title" className="text-white flex items-center gap-2 mb-2">
-                    <FileText className="h-4 w-4" />
-                    Job Title *
-                  </Label>
-                  <Input
-                    id="title"
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                    placeholder="e.g. Senior Software Engineer"
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
-                  />
-                </div>
-
-                {/* Location and Type */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Job Title */}
                   <div>
-                    <Label htmlFor="location" className="text-white flex items-center gap-2 mb-2">
-                      <MapPin className="h-4 w-4" />
-                      Location *
+                    <Label htmlFor="title" className="flex items-center gap-2 mb-2">
+                      <FileText className="h-4 w-4 text-slate-500" />
+                      Job Title *
                     </Label>
                     <Input
-                      id="location"
+                      id="title"
                       type="text"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       required
-                      placeholder="e.g. San Francisco, CA"
-                      className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                      placeholder="e.g. Senior Software Engineer"
                     />
                   </div>
 
+                  {/* Location and Type */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="location" className="flex items-center gap-2 mb-2">
+                        <MapPin className="h-4 w-4 text-slate-500" />
+                        Location *
+                      </Label>
+                      <Input
+                        id="location"
+                        type="text"
+                        value={formData.location}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                        required
+                        placeholder="e.g. San Francisco, CA"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="type" className="mb-2 block">Job Type *</Label>
+                      <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="full-time">Full-time</SelectItem>
+                          <SelectItem value="part-time">Part-time</SelectItem>
+                          <SelectItem value="contract">Contract</SelectItem>
+                          <SelectItem value="remote">Remote</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Application Deadline */}
                   <div>
-                    <Label htmlFor="type" className="text-white mb-2 block">Job Type *</Label>
-                    <Select value={formData.type} onValueChange={(value: any) => setFormData({ ...formData, type: value })}>
-                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="full-time">Full-time</SelectItem>
-                        <SelectItem value="part-time">Part-time</SelectItem>
-                        <SelectItem value="contract">Contract</SelectItem>
-                        <SelectItem value="remote">Remote</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Application Deadline */}
-                <div>
-                  <Label htmlFor="deadline" className="text-white flex items-center gap-2 mb-2">
-                    <Calendar className="h-4 w-4" />
-                    Application Deadline (Optional)
-                  </Label>
-                  <Input
-                    id="deadline"
-                    type="date"
-                    value={formData.deadline}
-                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="bg-white/5 border-white/20 text-white"
-                  />
-                </div>
-
-                {/* Skills */}
-                <div>
-                  <Label className="text-white flex items-center gap-2 mb-2">
-                    <Tag className="h-4 w-4" />
-                    Required Skills
-                  </Label>
-                  
-                  <div className="flex gap-2 mb-3">
+                    <Label htmlFor="deadline" className="flex items-center gap-2 mb-2">
+                      <Calendar className="h-4 w-4 text-slate-500" />
+                      Application Deadline (Optional)
+                    </Label>
                     <Input
-                      type="text"
-                      value={newSkill}
-                      onChange={(e) => setNewSkill(e.target.value)}
-                      placeholder="Add a skill..."
-                      className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 flex-1"
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+                      id="deadline"
+                      type="date"
+                      value={formData.deadline}
+                      onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
                     />
+                  </div>
+
+                  {/* Skills */}
+                  <div>
+                    <Label className="flex items-center gap-2 mb-2">
+                      <Tag className="h-4 w-4 text-slate-500" />
+                      Required Skills
+                    </Label>
+
+                    <div className="flex gap-2 mb-3">
+                      <Input
+                        type="text"
+                        value={newSkill}
+                        onChange={(e) => setNewSkill(e.target.value)}
+                        placeholder="Add a skill..."
+                        className="flex-1"
+                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleAddSkill}
+                        size="icon"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {skills.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {skills.map((skill, index) => (
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="bg-primary/10 text-primary border-primary/20 pl-3 pr-1 py-1"
+                          >
+                            {skill}
+                            <Button
+                              type="button"
+                              onClick={() => handleRemoveSkill(skill)}
+                              variant="ghost"
+                              size="icon"
+                              className="ml-2 p-0 h-4 w-4 hover:bg-red-100 text-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Job Description */}
+                  <div>
+                    <Label htmlFor="description" className="mb-2 block">
+                      Job Description *
+                    </Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      required
+                      placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity exciting..."
+                      className="min-h-[200px]"
+                    />
+                    <p className="text-sm text-slate-500 mt-1">
+                      {formData.description.length}/5000 characters
+                    </p>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="flex gap-4">
                     <Button
                       type="button"
-                      onClick={handleAddSkill}
-                      className="bg-purple-500 hover:bg-purple-600"
+                      variant="outline"
+                      onClick={() => setLocation("/jobs")}
+                      className="flex-1"
                     >
-                      <Plus className="h-4 w-4" />
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={jobMutation.isPending}
+                      className="flex-1"
+                    >
+                      {jobMutation.isPending ? "Posting Job..." : "Post Job"}
                     </Button>
                   </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
 
-                  {skills.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {skills.map((skill, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className="bg-blue-500/20 text-blue-300 border-blue-500/30 pl-3 pr-1 py-1"
-                        >
-                          {skill}
-                          <Button
-                            type="button"
-                            onClick={() => handleRemoveSkill(skill)}
-                            className="ml-2 p-0 h-4 w-4 bg-transparent hover:bg-red-500/20 text-red-300"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Job Description */}
-                <div>
-                  <Label htmlFor="description" className="text-white mb-2 block">
-                    Job Description *
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    required
-                    placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity exciting..."
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 min-h-[200px]"
-                  />
-                  <p className="text-sm text-gray-400 mt-1">
-                    {formData.description.length}/5000 characters
-                  </p>
-                </div>
-
-                {/* Submit Button */}
-                <div className="flex gap-4">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setLocation("/jobs")}
-                    className="flex-1 bg-slate-700 text-white border-slate-600 hover:bg-slate-600"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={jobMutation.isPending}
-                    className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-                  >
-                    {jobMutation.isPending ? "Posting Job..." : "Post Job"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* AI Analysis Panel - 1/3 width */}
-        <div className="lg:col-span-1">
-          <AIAnalysisPanel
-            description={formData.description}
-            title={formData.title}
-          />
+          {/* AI Analysis Panel - 1/3 width */}
+          <div className="lg:col-span-1">
+            <AIAnalysisPanel
+              description={formData.description}
+              title={formData.title}
+            />
+          </div>
         </div>
       </div>
-    </div>
     </Layout>
   );
 }

@@ -103,15 +103,15 @@ export function ApplicationDetailPanel({
   const currentStage = pipelineStages.find((s) => s.id === application.currentStage);
 
   return (
-    <div className="h-full flex flex-col bg-slate-900/95 backdrop-blur-sm border-l border-white/20">
+    <div className="h-full flex flex-col bg-white border-l border-slate-200">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/20">
-        <h2 className="text-white text-lg font-semibold">Application Details</h2>
+      <div className="flex items-center justify-between p-4 border-b border-slate-200">
+        <h2 className="text-slate-900 text-lg font-semibold">Application Details</h2>
         <Button
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="text-white hover:bg-white/10"
+          className="text-slate-600 hover:bg-slate-100"
           aria-label="Close panel"
         >
           <X className="h-4 w-4" />
@@ -121,7 +121,7 @@ export function ApplicationDetailPanel({
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-white/5">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="summary">Summary</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -131,24 +131,24 @@ export function ApplicationDetailPanel({
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-4">
-            <Card className="bg-white/5 backdrop-blur-sm border-white/20">
+            <Card className="bg-slate-50 border-slate-200">
               <CardHeader>
-                <CardTitle className="text-white text-lg">{application.name}</CardTitle>
+                <CardTitle className="text-slate-900 text-lg">{application.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Mail className="h-4 w-4 text-purple-400" />
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Mail className="h-4 w-4 text-primary" />
                     <span className="text-sm">{application.email}</span>
                   </div>
                   {application.phone && (
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Phone className="h-4 w-4 text-purple-400" />
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Phone className="h-4 w-4 text-primary" />
                       <span className="text-sm">{application.phone}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Clock className="h-4 w-4 text-purple-400" />
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Clock className="h-4 w-4 text-primary" />
                     <span className="text-sm">
                       Applied {new Date(application.appliedAt).toLocaleDateString()}
                     </span>
@@ -156,16 +156,16 @@ export function ApplicationDetailPanel({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="border-blue-400/50 text-blue-300">
+                  <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
                     {application.status}
                   </Badge>
                   {currentStage && (
-                    <Badge variant="outline" className="border-purple-400/50 text-purple-300">
+                    <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">
                       {currentStage.name}
                     </Badge>
                   )}
                   {application.interviewDate && (
-                    <Badge variant="outline" className="border-green-400/50 text-green-300">
+                    <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
                       Interview Scheduled
                     </Badge>
                   )}
@@ -173,17 +173,17 @@ export function ApplicationDetailPanel({
 
                 <Button
                   onClick={onDownloadResume}
-                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                  className="w-full bg-primary hover:bg-primary/90"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Download Resume
                 </Button>
 
                 {/* Move Stage */}
-                <div className="space-y-2 pt-4 border-t border-white/20">
-                  <Label className="text-white">Move to Stage</Label>
+                <div className="space-y-2 pt-4 border-t border-slate-200">
+                  <Label className="text-slate-900">Move to Stage</Label>
                   <Select value={selectedStageId} onValueChange={setSelectedStageId}>
-                    <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                    <SelectTrigger className="bg-white border-slate-300">
                       <SelectValue placeholder="Select stage" />
                     </SelectTrigger>
                     <SelectContent>
@@ -198,7 +198,7 @@ export function ApplicationDetailPanel({
                     placeholder="Add notes (optional)"
                     value={stageNotes}
                     onChange={(e) => setStageNotes(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    className="bg-white border-slate-300 placeholder:text-slate-500"
                   />
                   <Button
                     onClick={handleMoveStage}
@@ -211,10 +211,10 @@ export function ApplicationDetailPanel({
 
                 {/* Send Email */}
                 {emailTemplates.length > 0 && (
-                  <div className="space-y-2 pt-4 border-t border-white/20">
-                    <Label className="text-white">Send Email</Label>
+                  <div className="space-y-2 pt-4 border-t border-slate-200">
+                    <Label className="text-slate-900">Send Email</Label>
                     <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                      <SelectTrigger className="bg-white border-slate-300">
                         <SelectValue placeholder="Select template" />
                       </SelectTrigger>
                       <SelectContent>
@@ -229,7 +229,7 @@ export function ApplicationDetailPanel({
                       onClick={handleSendEmail}
                       disabled={!selectedTemplateId}
                       variant="outline"
-                      className="w-full border-white/20 text-white hover:bg-white/10"
+                      className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
                     >
                       <Mail className="h-4 w-4 mr-2" />
                       Send Email
@@ -239,10 +239,10 @@ export function ApplicationDetailPanel({
 
                 {/* Send Form */}
                 {formTemplates.length > 0 && (
-                  <div className="space-y-2 pt-4 border-t border-white/20">
-                    <Label className="text-white">Invite to Form</Label>
+                  <div className="space-y-2 pt-4 border-t border-slate-200">
+                    <Label className="text-slate-900">Invite to Form</Label>
                     <Select value={selectedFormId} onValueChange={setSelectedFormId}>
-                      <SelectTrigger className="bg-white/5 border-white/20 text-white">
+                      <SelectTrigger className="bg-white border-slate-300">
                         <SelectValue placeholder="Select form" />
                       </SelectTrigger>
                       <SelectContent>
@@ -257,13 +257,13 @@ export function ApplicationDetailPanel({
                       placeholder="Custom message (optional)"
                       value={formMessage}
                       onChange={(e) => setFormMessage(e.target.value)}
-                      className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                      className="bg-white border-slate-300 placeholder:text-slate-500"
                     />
                     <Button
                       onClick={handleSendForm}
                       disabled={!selectedFormId}
                       variant="outline"
-                      className="w-full border-white/20 text-white hover:bg-white/10"
+                      className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Send Invitation
@@ -277,20 +277,20 @@ export function ApplicationDetailPanel({
           {/* History Tab */}
           <TabsContent value="history" className="space-y-3">
             {stageHistory.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-8">No history available</p>
+              <p className="text-slate-500 text-sm text-center py-8">No history available</p>
             ) : (
               stageHistory.map((entry: any, index: number) => (
-                <Card key={index} className="bg-white/5 backdrop-blur-sm border-white/20">
+                <Card key={index} className="bg-slate-50 border-slate-200">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <HistoryIcon className="h-4 w-4 text-purple-400 mt-1" />
+                      <HistoryIcon className="h-4 w-4 text-primary mt-1" />
                       <div className="flex-1">
-                        <p className="text-white text-sm font-medium">{entry.action}</p>
-                        <p className="text-gray-400 text-xs mt-1">
+                        <p className="text-slate-900 text-sm font-medium">{entry.action}</p>
+                        <p className="text-slate-500 text-xs mt-1">
                           {new Date(entry.timestamp).toLocaleString()}
                         </p>
                         {entry.notes && (
-                          <p className="text-gray-300 text-sm mt-2">{entry.notes}</p>
+                          <p className="text-slate-600 text-sm mt-2">{entry.notes}</p>
                         )}
                       </div>
                     </div>
@@ -302,18 +302,18 @@ export function ApplicationDetailPanel({
 
           {/* Notes Tab */}
           <TabsContent value="notes" className="space-y-3">
-            <Card className="bg-white/5 backdrop-blur-sm border-white/20">
+            <Card className="bg-slate-50 border-slate-200">
               <CardContent className="p-4 space-y-3">
                 <Textarea
                   placeholder="Add a note..."
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 min-h-[100px]"
+                  className="bg-white border-slate-300 placeholder:text-slate-500 min-h-[100px]"
                 />
                 <Button
                   onClick={handleAddNote}
                   disabled={!newNote.trim()}
-                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                  className="w-full bg-primary hover:bg-primary/90"
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Add Note
@@ -323,11 +323,11 @@ export function ApplicationDetailPanel({
 
             {application.recruiterNotes && application.recruiterNotes.length > 0 ? (
               application.recruiterNotes.map((note: any, index: number) => (
-                <Card key={index} className="bg-white/5 backdrop-blur-sm border-white/20">
+                <Card key={index} className="bg-slate-50 border-slate-200">
                   <CardContent className="p-4">
-                    <p className="text-gray-300 text-sm">{note.content || note}</p>
+                    <p className="text-slate-600 text-sm">{note.content || note}</p>
                     {note.timestamp && (
-                      <p className="text-gray-400 text-xs mt-2">
+                      <p className="text-slate-500 text-xs mt-2">
                         {new Date(note.timestamp).toLocaleString()}
                       </p>
                     )}
@@ -335,57 +335,57 @@ export function ApplicationDetailPanel({
                 </Card>
               ))
             ) : (
-              <p className="text-gray-400 text-sm text-center py-8">No notes yet</p>
+              <p className="text-slate-500 text-sm text-center py-8">No notes yet</p>
             )}
           </TabsContent>
 
           {/* Interview Tab */}
           <TabsContent value="interview" className="space-y-3">
-            <Card className="bg-white/5 backdrop-blur-sm border-white/20">
+            <Card className="bg-slate-50 border-slate-200">
               <CardHeader>
-                <CardTitle className="text-white text-base">Schedule Interview</CardTitle>
+                <CardTitle className="text-slate-900 text-base">Schedule Interview</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <Label className="text-white">Date</Label>
+                  <Label className="text-slate-900">Date</Label>
                   <Input
                     type="date"
                     value={interviewDate}
                     onChange={(e) => setInterviewDate(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
+                    className="bg-white border-slate-300"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-white">Time</Label>
+                  <Label className="text-slate-900">Time</Label>
                   <Input
                     type="time"
                     value={interviewTime}
                     onChange={(e) => setInterviewTime(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
+                    className="bg-white border-slate-300"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-white">Location</Label>
+                  <Label className="text-slate-900">Location</Label>
                   <Input
                     placeholder="Office, Zoom link, etc."
                     value={interviewLocation}
                     onChange={(e) => setInterviewLocation(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    className="bg-white border-slate-300 placeholder:text-slate-500"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-white">Notes (optional)</Label>
+                  <Label className="text-slate-900">Notes (optional)</Label>
                   <Textarea
                     placeholder="Additional interview details..."
                     value={interviewNotes}
                     onChange={(e) => setInterviewNotes(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white placeholder:text-gray-400"
+                    className="bg-white border-slate-300 placeholder:text-slate-500"
                   />
                 </div>
                 <Button
                   onClick={handleScheduleInterview}
                   disabled={!interviewDate || !interviewTime || !interviewLocation}
-                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                  className="w-full bg-primary hover:bg-primary/90"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Interview
@@ -394,29 +394,29 @@ export function ApplicationDetailPanel({
             </Card>
 
             {application.interviewDate && (
-              <Card className="bg-white/5 backdrop-blur-sm border-white/20">
+              <Card className="bg-slate-50 border-slate-200">
                 <CardHeader>
-                  <CardTitle className="text-white text-base">Current Interview</CardTitle>
+                  <CardTitle className="text-slate-900 text-base">Current Interview</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-gray-300">
-                    <Calendar className="h-4 w-4 text-purple-400" />
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Calendar className="h-4 w-4 text-primary" />
                     <span className="text-sm">{new Date(application.interviewDate).toLocaleDateString()}</span>
                   </div>
                   {application.interviewTime && (
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <Clock className="h-4 w-4 text-purple-400" />
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Clock className="h-4 w-4 text-primary" />
                       <span className="text-sm">{application.interviewTime}</span>
                     </div>
                   )}
                   {application.interviewLocation && (
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <MapPin className="h-4 w-4 text-purple-400" />
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <MapPin className="h-4 w-4 text-primary" />
                       <span className="text-sm">{application.interviewLocation}</span>
                     </div>
                   )}
                   {application.interviewNotes && (
-                    <p className="text-gray-300 text-sm mt-3">{application.interviewNotes}</p>
+                    <p className="text-slate-600 text-sm mt-3">{application.interviewNotes}</p>
                   )}
                 </CardContent>
               </Card>
@@ -425,34 +425,34 @@ export function ApplicationDetailPanel({
 
           {/* Rating Tab */}
           <TabsContent value="rating" className="space-y-3">
-            <Card className="bg-white/5 backdrop-blur-sm border-white/20">
+            <Card className="bg-slate-50 border-slate-200">
               <CardHeader>
-                <CardTitle className="text-white text-base">Candidate Rating</CardTitle>
+                <CardTitle className="text-slate-900 text-base">Candidate Rating</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <Label className="text-white">Rating (1-5)</Label>
+                  <Label className="text-slate-900">Rating (1-5)</Label>
                   <Input
                     type="number"
                     min="1"
                     max="5"
                     value={rating}
                     onChange={(e) => setRating(e.target.value)}
-                    className="bg-white/5 border-white/20 text-white"
+                    className="bg-white border-slate-300"
                   />
                 </div>
                 <Button
                   onClick={handleSetRating}
                   disabled={!rating || parseInt(rating) < 1 || parseInt(rating) > 5}
-                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                  className="w-full bg-primary hover:bg-primary/90"
                 >
                   <Star className="h-4 w-4 mr-2" />
                   Set Rating
                 </Button>
                 {application.rating !== null && application.rating !== undefined && (
-                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-white/20">
+                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-200">
                     <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    <span className="text-white text-lg font-semibold">{application.rating}/5</span>
+                    <span className="text-slate-900 text-lg font-semibold">{application.rating}/5</span>
                   </div>
                 )}
               </CardContent>

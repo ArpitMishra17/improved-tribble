@@ -19,12 +19,12 @@ interface KpiCardProps {
 export function KpiCard({ label, value, icon: Icon, delta, isLoading, className }: KpiCardProps) {
   if (isLoading) {
     return (
-      <Card className={cn("bg-slate-900 border-slate-700", className)}>
+      <Card className={cn("shadow-sm", className)}>
         <CardHeader className="pb-2">
-          <Skeleton className="h-4 w-24 bg-slate-700" />
+          <Skeleton className="h-4 w-24" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-8 w-16 bg-slate-700" />
+          <Skeleton className="h-8 w-16" />
         </CardContent>
       </Card>
     );
@@ -34,13 +34,13 @@ export function KpiCard({ label, value, icon: Icon, delta, isLoading, className 
   const deltaIsNegative = delta && delta.value < 0;
 
   return (
-    <Card className={cn("bg-slate-900 border-slate-700", className)}>
+    <Card className={cn("shadow-sm hover:shadow-md transition-shadow", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-slate-400">{label}</CardTitle>
+          <CardTitle className="text-sm font-medium text-slate-500">{label}</CardTitle>
           {Icon && (
-            <div className="bg-purple-500/20 p-2 rounded-md">
-              <Icon className="w-4 h-4 text-purple-300" />
+            <div className="bg-primary/10 p-2 rounded-md">
+              <Icon className="w-4 h-4 text-primary" />
             </div>
           )}
         </div>
@@ -48,18 +48,18 @@ export function KpiCard({ label, value, icon: Icon, delta, isLoading, className 
       <CardContent>
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-3xl font-bold text-white">{value}</p>
+            <p className="text-3xl font-bold text-slate-900">{value}</p>
             {delta && (
               <div className="flex items-center gap-1 mt-1">
-                {deltaIsPositive && <TrendingUp className="w-3 h-3 text-green-400" />}
-                {deltaIsNegative && <TrendingDown className="w-3 h-3 text-red-400" />}
+                {deltaIsPositive && <TrendingUp className="w-3 h-3 text-green-600" />}
+                {deltaIsNegative && <TrendingDown className="w-3 h-3 text-red-600" />}
                 <Badge
                   variant="outline"
                   className={cn(
                     "text-xs border-0",
-                    deltaIsPositive && "bg-green-500/20 text-green-300",
-                    deltaIsNegative && "bg-red-500/20 text-red-300",
-                    !deltaIsPositive && !deltaIsNegative && "bg-slate-500/20 text-slate-300"
+                    deltaIsPositive && "bg-green-50 text-green-700",
+                    deltaIsNegative && "bg-red-50 text-red-700",
+                    !deltaIsPositive && !deltaIsNegative && "bg-slate-100 text-slate-600"
                   )}
                 >
                   {deltaIsPositive && "+"}
