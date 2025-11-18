@@ -246,28 +246,26 @@ export default function JobDetailsPage() {
             {/* Job Header */}
             <Card className="mb-8 bg-white/10 backdrop-blur-sm border-white/20 premium-card animate-slide-up" style={{ animationDelay: '0.5s' }}>
               <CardHeader>
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <CardTitle className="text-3xl font-bold text-white mb-2">
-                      {job.title}
-                    </CardTitle>
-                    <CardDescription className="text-gray-300 text-lg flex items-center gap-6">
-                      <span className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5" />
-                        {job.location}
-                      </span>
-                      <span className="flex items-center gap-2">
-                        <Clock className="h-5 w-5" />
-                        Posted {formatDate(job.createdAt)}
-                      </span>
-                    </CardDescription>
-                  </div>
-                  <Badge 
-                    variant="secondary" 
-                    className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-lg px-4 py-2"
-                  >
-                    {job.type.replace('-', ' ')}
-                  </Badge>
+                <div className="mb-4">
+                  <CardTitle className="text-3xl font-bold text-white mb-2">
+                    {job.title}
+                  </CardTitle>
+                  <CardDescription className="text-gray-300 text-lg flex flex-wrap items-center gap-3">
+                    <span className="flex items-center gap-2">
+                      <MapPin className="h-5 w-5" />
+                      {job.location}
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Posted {formatDate(job.createdAt)}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="bg-purple-500/20 text-purple-300 border-purple-500/30 px-3 py-1 capitalize"
+                    >
+                      {job.type.replace('-', ' ')}
+                    </Badge>
+                  </CardDescription>
                 </div>
 
                 {job.deadline && (

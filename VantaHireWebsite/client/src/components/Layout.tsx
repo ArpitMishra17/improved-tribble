@@ -356,62 +356,6 @@ const Layout = ({ children }: LayoutProps) => {
               </>
             )}
 
-            {/* Dashboard links for authenticated users based on role */}
-            {user && isCandidate && (
-              <a 
-                href="/my-dashboard" 
-                className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
-                onClick={(e) => { e.preventDefault(); setLocation("/my-dashboard"); }}
-              >
-                <span className="relative z-10">My Dashboard</span>
-                <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
-              </a>
-            )}
-
-            {user && isRecruiter && (
-              <a
-                href="/recruiter-dashboard"
-                className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
-                onClick={(e) => { e.preventDefault(); setLocation("/recruiter-dashboard"); }}
-              >
-                <span className="relative z-10">Recruiter Dashboard</span>
-                <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
-              </a>
-            )}
-
-            {/* Forms link (for both admin and recruiter) */}
-            {user && (isAdmin || isRecruiter) && (
-              <a
-                href="/admin/forms"
-                className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
-                onClick={(e) => { e.preventDefault(); setLocation("/admin/forms"); }}
-              >
-                <span className="relative z-10">Forms</span>
-                <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
-              </a>
-            )}
-
-            {/* Admin links */}
-            {user && isAdmin && (
-              <>
-                <a 
-                  href="/admin" 
-                  className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
-                  onClick={(e) => { e.preventDefault(); setLocation("/admin"); }}
-                >
-                  <span className="relative z-10">Admin</span>
-                  <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
-                </a>
-                <a 
-                  href="/analytics" 
-                  className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
-                  onClick={(e) => { e.preventDefault(); setLocation("/analytics"); }}
-                >
-                  <span className="relative z-10">Analytics</span>
-                  <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
-                </a>
-              </>
-            )}
 
             {/* User Actions */}
             {user ? (
@@ -549,56 +493,6 @@ const Layout = ({ children }: LayoutProps) => {
                 </>
               )}
               
-              {/* Mobile dashboard links based on role */}
-              {user && isCandidate && (
-                <a 
-                  href="/my-dashboard" 
-                  className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
-                  onClick={(e) => { e.preventDefault(); setLocation("/my-dashboard"); setIsMenuOpen(false); }}
-                >
-                  My Dashboard
-                </a>
-              )}
-
-              {user && isRecruiter && (
-                <a
-                  href="/recruiter-dashboard"
-                  className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
-                  onClick={(e) => { e.preventDefault(); setLocation("/recruiter-dashboard"); setIsMenuOpen(false); }}
-                >
-                  Recruiter Dashboard
-                </a>
-              )}
-
-              {/* Forms link (for both admin and recruiter) */}
-              {user && (isAdmin || isRecruiter) && (
-                <a
-                  href="/admin/forms"
-                  className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
-                  onClick={(e) => { e.preventDefault(); setLocation("/admin/forms"); setIsMenuOpen(false); }}
-                >
-                  Forms
-                </a>
-              )}
-
-              {user && isAdmin && (
-                <>
-                  <a 
-                    href="/admin" 
-                    className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
-                    onClick={(e) => { e.preventDefault(); setLocation("/admin"); setIsMenuOpen(false); }}
-                  >
-                    Admin
-                  </a>
-                  <a 
-                    href="/analytics" 
-                    className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
-                    onClick={(e) => { e.preventDefault(); setLocation("/analytics"); setIsMenuOpen(false); }}
-                  >
-                    Analytics
-                  </a>
-                </>
-              )}
 
               {user ? (
                 <Button
