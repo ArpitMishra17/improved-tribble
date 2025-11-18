@@ -40,7 +40,6 @@ import { Job, Application, PipelineStage, EmailTemplate } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formsApi, type FormTemplateDTO } from "@/lib/formsApi";
 import Layout from "@/components/Layout";
-import { ApplicationBreadcrumb } from "@/components/Breadcrumb";
 import { AddCandidateModal } from "@/components/AddCandidateModal";
 import {
   Dialog,
@@ -818,20 +817,19 @@ export default function ApplicationManagementPage() {
     <Layout>
       <div className={`container mx-auto px-4 py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="max-w-7xl mx-auto">
-          {/* Breadcrumb and Quick Actions Toolbar */}
+          {/* Quick Actions Toolbar */}
           <div className="flex flex-col md:flex-row justify-between gap-4 mb-6 pt-8">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setLocation("/recruiter-dashboard")}
+                onClick={() => setLocation("/my-jobs")}
                 className="text-slate-600 hover:bg-slate-100"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Back to Dashboard</span>
+                <span className="hidden sm:inline">Back to My Jobs</span>
                 <span className="sm:hidden">Back</span>
               </Button>
-              <ApplicationBreadcrumb jobTitle={job.title} />
             </div>
 
             <div className="flex flex-wrap justify-end gap-2">
