@@ -61,7 +61,7 @@ export interface IStorage {
   }): Promise<{ jobs: Job[]; total: number }>;
   updateJobStatus(id: number, isActive: boolean, reason?: string, performedBy?: number): Promise<Job | undefined>;
   logJobAction(data: { jobId: number; action: string; performedBy: number; reason?: string; metadata?: any }): Promise<JobAuditLog>;
-  getJobsByUser(userId: number): Promise<Job[]>;
+  getJobsByUser(userId: number): Promise<(Job & { applicationCount: number })[]>;
   reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined>;
   getJobsByStatus(status: string, page?: number, limit?: number): Promise<{ jobs: Job[]; total: number }>;
   
@@ -354,10 +354,22 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
   
-  async getJobsByUser(userId: number): Promise<Job[]> {
-    return db.select().from(jobs)
+  async getJobsByUser(userId: number): Promise<(Job & { applicationCount: number })[]> {
+    const results = await db
+      .select({
+        job: jobs,
+        applicationCount: sql<number>`COUNT(${applications.id})`,
+      })
+      .from(jobs)
+      .leftJoin(applications, eq(applications.jobId, jobs.id))
       .where(eq(jobs.postedBy, userId))
+      .groupBy(jobs.id)
       .orderBy(desc(jobs.createdAt));
+
+    return results.map((row: any) => ({
+      ...row.job,
+      applicationCount: row.applicationCount ?? 0,
+    }));
   }
   
   // Phase 3: Enhanced application methods with status management
