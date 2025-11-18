@@ -668,6 +668,7 @@ export class DatabaseStorage implements IStorage {
         phone: applications.phone,
         coverLetter: applications.coverLetter,
         resumeUrl: applications.resumeUrl,
+        currentStage: applications.currentStage,
         // AI fit fields for recruiter views
         aiFitScore: applications.aiFitScore,
         aiFitLabel: applications.aiFitLabel,

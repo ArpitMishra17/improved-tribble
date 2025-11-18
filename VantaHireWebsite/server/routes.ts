@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
-import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages, applicationStageHistory, jobs } from "@shared/schema";
+import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages, applicationStageHistory, jobs, emailTemplates } from "@shared/schema";
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
@@ -24,6 +24,10 @@ import { randomBytes } from "crypto";
 const updateStageSchema = z.object({
   stageId: z.number().int().positive(),
   notes: z.string().optional(),
+});
+
+const updateEmailTemplateSchema = z.object({
+  isDefault: z.boolean().optional(),
 });
 
 // Be lenient: allow date-only (YYYY-MM-DD) or full ISO datetime; empty strings treated as undefined
@@ -1298,6 +1302,60 @@ New job application received:
         res.status(400).json({ error: 'Validation error', details: e.errors });
         return;
       }
+      next(e);
+    }
+  });
+
+  // Update email template (admin-only approval for default flag)
+  app.patch("/api/email-templates/:id", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: "Missing ID parameter" });
+        return;
+      }
+      const templateId = Number(idParam);
+      if (!Number.isFinite(templateId) || templateId <= 0 || !Number.isInteger(templateId)) {
+        res.status(400).json({ error: "Invalid template ID" });
+        return;
+      }
+
+      const parsed = updateEmailTemplateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Validation error", details: parsed.error.errors });
+        return;
+      }
+
+      const updates: Partial<InsertEmailTemplate> & { isDefault?: boolean } = {};
+
+      // Only admins can approve/mark templates as default
+      if (parsed.data.isDefault !== undefined) {
+        if (req.user!.role !== "admin") {
+          res.status(403).json({ error: "Only admins can approve email templates" });
+          return;
+        }
+        updates.isDefault = parsed.data.isDefault;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        res.status(400).json({ error: "No updatable fields provided" });
+        return;
+      }
+
+      const [updated] = await db
+        .update(emailTemplates)
+        .set(updates)
+        .where(eq(emailTemplates.id, templateId))
+        .returning();
+
+      if (!updated) {
+        res.status(404).json({ error: "Email template not found" });
+        return;
+      }
+
+      res.json(updated);
+      return;
+    } catch (e) {
       next(e);
     }
   });

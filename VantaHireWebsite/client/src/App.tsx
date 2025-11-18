@@ -17,6 +17,7 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSuperDashboard from "@/pages/admin-super-dashboard";
 import AdminTestingPage from "@/pages/admin-testing-page";
 import AdminFormsPage from "@/pages/admin-forms-page";
+import AdminEmailTemplatesPage from "@/pages/admin-email-templates-page";
 import FormEditorPage from "@/pages/form-editor-page";
 import UnifiedAdminDashboard from "@/pages/unified-admin-dashboard";
 import ApplicationManagementPage from "@/pages/application-management-page";
@@ -57,6 +58,7 @@ function Router() {
       <ProtectedRoute path="/admin/testing" component={AdminTestingPage} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/forms/editor/:id?" component={FormEditorPage} requiredRole={['admin', 'recruiter']} />
       <ProtectedRoute path="/admin/forms" component={AdminFormsPage} requiredRole={['admin', 'recruiter']} />
+      <ProtectedRoute path="/admin/email-templates" component={AdminEmailTemplatesPage} requiredRole={['admin', 'recruiter']} />
       <ProtectedRoute path="/analytics" component={JobAnalyticsDashboard} requiredRole={['recruiter', 'admin']} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />

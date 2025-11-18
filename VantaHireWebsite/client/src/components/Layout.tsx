@@ -151,6 +151,17 @@ const Layout = ({ children }: LayoutProps) => {
                   >
                     Forms
                   </Link>
+                  <Link
+                    href="/admin/email-templates"
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location.startsWith('/admin/email-templates')
+                        ? "text-primary bg-primary/5"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    Email
+                  </Link>
                 </>
               )}
             </div>
