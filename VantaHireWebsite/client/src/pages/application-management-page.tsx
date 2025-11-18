@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { FormsModal } from "@/components/FormsModal";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
@@ -89,6 +90,13 @@ export default function ApplicationManagementPage() {
   const [bulkFormsProgress, setBulkFormsProgress] = useState<{ sent: number; total: number }>({ sent: 0, total: 0 });
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [showFormsDialog, setShowFormsDialog] = useState(false);
+  const [showBatchInterviewDialog, setShowBatchInterviewDialog] = useState(false);
+  const [batchInterviewDate, setBatchInterviewDate] = useState("");
+  const [batchInterviewTime, setBatchInterviewTime] = useState("");
+  const [batchIntervalHours, setBatchIntervalHours] = useState("0");
+  const [batchLocation, setBatchLocation] = useState("");
+  const [batchNotes, setBatchNotes] = useState("");
+  const [batchStageId, setBatchStageId] = useState<string>("");
 
   const jobId = params?.id ? parseInt(params.id) : null;
 
@@ -162,6 +170,23 @@ export default function ApplicationManagementPage() {
     },
     enabled: !!selectedApp?.id && showHistoryDialog,
   });
+
+  // ATS: Auto-select an Interview stage in the batch interview dialog (if available)
+  useEffect(() => {
+    if (!showBatchInterviewDialog || batchStageId || pipelineStages.length === 0) {
+      return;
+    }
+
+    // Prefer the earliest "Interview" stage by order if multiple exist
+    const sortedStages = [...pipelineStages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const interviewStage = sortedStages.find((stage) =>
+      stage.name.toLowerCase().includes("interview")
+    );
+
+    if (interviewStage) {
+      setBatchStageId(interviewStage.id.toString());
+    }
+  }, [showBatchInterviewDialog, batchStageId, pipelineStages]);
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ applicationId, status, notes }: { applicationId: number; status: string; notes?: string }) => {
@@ -394,6 +419,51 @@ export default function ApplicationManagementPage() {
     onError: (error: Error) => {
       toast({
         title: "Bulk forms failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // ATS: Batch interview scheduling mutation
+  const batchInterviewMutation = useMutation({
+    mutationFn: async () => {
+      if (!jobId) throw new Error("Invalid job id");
+      const interval = parseFloat(batchIntervalHours || "0");
+      const startIso = batchInterviewDate && batchInterviewTime
+        ? new Date(`${batchInterviewDate}T${batchInterviewTime}`).toISOString()
+        : new Date(batchInterviewDate).toISOString();
+
+      const res = await apiRequest("PATCH", "/api/applications/bulk/interview", {
+        applicationIds: selectedApplications,
+        start: startIso,
+        intervalHours: interval,
+        location: batchLocation,
+        timeRangeLabel: interval === 0 && batchInterviewTime
+          ? batchInterviewTime
+          : undefined,
+        notes: batchNotes || undefined,
+        stageId: batchStageId ? parseInt(batchStageId, 10) : undefined,
+      });
+      return await res.json();
+    },
+    onSuccess: (data: { total: number; scheduledCount: number; failedCount: number }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", jobId, "applications"] });
+      setShowBatchInterviewDialog(false);
+      setBatchInterviewDate("");
+      setBatchInterviewTime("");
+      setBatchIntervalHours("0");
+      setBatchLocation("");
+      setBatchNotes("");
+      setBatchStageId("");
+      toast({
+        title: "Batch interviews scheduled",
+        description: `${data.scheduledCount} of ${data.total} candidates scheduled.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Batch scheduling failed",
         description: error.message,
         variant: "destructive",
       });
@@ -749,10 +819,22 @@ export default function ApplicationManagementPage() {
       <div className={`container mx-auto px-4 py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="max-w-7xl mx-auto">
           {/* Breadcrumb and Quick Actions Toolbar */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pt-8">
-            <ApplicationBreadcrumb jobTitle={job.title} />
+          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6 pt-8">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation("/recruiter-dashboard")}
+                className="text-slate-600 hover:bg-slate-100"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Back to Dashboard</span>
+                <span className="sm:hidden">Back</span>
+              </Button>
+              <ApplicationBreadcrumb jobTitle={job.title} />
+            </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -766,7 +848,9 @@ export default function ApplicationManagementPage() {
                     return;
                   }
                   if (selectedApplications.length > 20) {
-                    const ok = window.confirm(`You are about to email ${selectedApplications.length} candidates. Proceed?`);
+                    const ok = window.confirm(
+                      `You are about to email ${selectedApplications.length} candidates. Proceed?`
+                    );
                     if (!ok) return;
                   }
                   setShowBulkEmailDialog(true);
@@ -788,7 +872,9 @@ export default function ApplicationManagementPage() {
                     return;
                   }
                   if (selectedApplications.length > 20) {
-                    const ok = window.confirm(`You are about to send forms to ${selectedApplications.length} candidates. Proceed?`);
+                    const ok = window.confirm(
+                      `You are about to send forms to ${selectedApplications.length} candidates. Proceed?`
+                    );
                     if (!ok) return;
                   }
                   setShowBulkFormsDialog(true);
@@ -800,15 +886,22 @@ export default function ApplicationManagementPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => alert("Batch interview feature - Select candidates first")}
+                onClick={() => {
+                  if (selectedApplications.length === 0) {
+                    toast({
+                      title: "No candidates selected",
+                      description: "Select candidates using the checkboxes first.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setShowBatchInterviewDialog(true);
+                }}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Batch Interview
               </Button>
-              <Button
-                size="sm"
-                onClick={() => setAddCandidateModalOpen(true)}
-              >
+              <Button size="sm" onClick={() => setAddCandidateModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Candidate
               </Button>
@@ -819,14 +912,6 @@ export default function ApplicationManagementPage() {
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Export CSV
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setLocation("/recruiter-dashboard")}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
               </Button>
             </div>
           </div>
@@ -1258,6 +1343,120 @@ export default function ApplicationManagementPage() {
                 </p>
               )}
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Batch Interview Dialog */}
+        <Dialog open={showBatchInterviewDialog} onOpenChange={setShowBatchInterviewDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Schedule Batch Interviews</DialogTitle>
+              <DialogDescription>
+                Schedule interviews for the selected candidates. Use an interval to create back-to-back slots.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-900 text-sm">Date</Label>
+                  <Input
+                    type="date"
+                    value={batchInterviewDate}
+                    onChange={(e) => setBatchInterviewDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-900 text-sm">Start time</Label>
+                  <Input
+                    type="time"
+                    value={batchInterviewTime}
+                    onChange={(e) => setBatchInterviewTime(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-slate-900 text-sm">Interval between interviews</Label>
+                  <Select
+                    value={batchIntervalHours}
+                    onValueChange={setBatchIntervalHours}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Interval" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0 hours (same time)</SelectItem>
+                      <SelectItem value="0.5">0.5 hours</SelectItem>
+                      <SelectItem value="1">1 hour</SelectItem>
+                      <SelectItem value="2">2 hours</SelectItem>
+                      <SelectItem value="3">3 hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-slate-900 text-sm">Move to stage</Label>
+                  <Select
+                    value={batchStageId}
+                    onValueChange={setBatchStageId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Keep current" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pipelineStages.map((stage) => (
+                        <SelectItem key={stage.id} value={stage.id.toString()}>
+                          {stage.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-slate-900 text-sm">Location</Label>
+                <Input
+                  placeholder="e.g. Zoom link or office address"
+                  value={batchLocation}
+                  onChange={(e) => setBatchLocation(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label className="text-slate-900 text-sm">Notes (optional)</Label>
+                <Textarea
+                  value={batchNotes}
+                  onChange={(e) => setBatchNotes(e.target.value)}
+                  placeholder="Add any interviewer or candidate instructions..."
+                />
+              </div>
+
+              <p className="text-xs text-slate-500">
+                When an interval is set, each candidate will be scheduled in sequence starting from the selected time.
+                Times are based on your browser&apos;s local timezone.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowBatchInterviewDialog(false)}
+                disabled={batchInterviewMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => batchInterviewMutation.mutate()}
+                disabled={
+                  batchInterviewMutation.isPending ||
+                  !batchInterviewDate ||
+                  !batchLocation ||
+                  selectedApplications.length === 0
+                }
+              >
+                {batchInterviewMutation.isPending ? "Scheduling..." : "Schedule Interviews"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

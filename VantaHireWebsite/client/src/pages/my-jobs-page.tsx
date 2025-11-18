@@ -199,13 +199,6 @@ export default function MyJobsPage() {
                             <Eye className="h-4 w-4 mr-1" />
                             View Applications
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                          >
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
                           {job.status === 'approved' && !job.isActive && (
                             <Button
                               size="sm"

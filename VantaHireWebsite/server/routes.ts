@@ -726,6 +726,149 @@ New job application received:
     }
   );
 
+  // ====== ATS: Bulk interview scheduling ======
+
+  app.patch(
+    "/api/applications/bulk/interview",
+    doubleCsrfProtection,
+    requireRole(['recruiter','admin']),
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const bodySchema = z.object({
+          applicationIds: z.array(z.number().int().positive()).min(1),
+          start: z.string(), // ISO string or YYYY-MM-DD
+          intervalHours: z.number().min(0).max(24).default(0),
+          location: z.string().min(1),
+          timeRangeLabel: z.string().optional(),
+          notes: z.string().optional(),
+          stageId: z.number().int().positive().optional(),
+        });
+
+        const parsed = bodySchema.safeParse(req.body);
+        if (!parsed.success) {
+          res.status(400).json({
+            error: "Validation error",
+            details: parsed.error.errors,
+          });
+          return;
+        }
+
+        const data = parsed.data as z.infer<typeof bodySchema>;
+        const {
+          applicationIds,
+          start,
+          intervalHours,
+          location,
+          timeRangeLabel,
+          notes,
+          stageId,
+        } = data;
+
+        // Normalize base start date
+        let baseDate: Date | undefined;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(start)) {
+          baseDate = new Date(`${start}T00:00:00Z`);
+        } else {
+          const parsedStart = new Date(start);
+          if (!isNaN(parsedStart.getTime())) {
+            baseDate = parsedStart;
+          }
+        }
+
+        if (!baseDate) {
+          res.status(400).json({ error: "Invalid start datetime" });
+          return;
+        }
+
+        const results: { id: number; success: boolean; error?: string }[] = [];
+
+        // Preload pipeline stages and map stageId -> order
+        let stageOrderMap = new Map<number, number>();
+        let targetStageOrder: number | null = null;
+        const targetStageId = stageId ?? null;
+        if (targetStageId !== null) {
+          const stages = await storage.getPipelineStages();
+          stageOrderMap = new Map(stages.map((s) => [s.id, s.order ?? 0]));
+          targetStageOrder = stageOrderMap.get(targetStageId) ?? null;
+        }
+
+        for (let index = 0; index < applicationIds.length; index++) {
+          const appId = Number(applicationIds[index]);
+          try {
+            const offsetMs = intervalHours * 60 * 60 * 1000 * index;
+            const slotDate = new Date(baseDate.getTime() + offsetMs);
+
+            // Persist interview details
+            const interviewFields: { date?: Date; time?: string; location?: string; notes?: string } = {
+              date: slotDate,
+              location,
+            };
+            if (typeof timeRangeLabel === "string" && timeRangeLabel.length > 0) {
+              interviewFields.time = timeRangeLabel;
+            }
+            if (typeof notes === "string" && notes.length > 0) {
+              interviewFields.notes = notes;
+            }
+            await storage.scheduleInterview(appId, interviewFields);
+
+            // Optional: move to a specific stage
+            if (targetStageId !== null && targetStageOrder !== null) {
+              const appRecord = await storage.getApplication(appId);
+              const currentStageId = appRecord?.currentStage ?? null;
+
+              // Only move if no stage yet, or current stage order is lower than target
+              if (currentStageId == null) {
+                await storage.updateApplicationStage(appId, targetStageId, req.user!.id, notes);
+              } else {
+                const currentOrder = stageOrderMap.get(currentStageId) ?? null;
+                if (currentOrder === null || currentOrder < targetStageOrder) {
+                  await storage.updateApplicationStage(appId, targetStageId, req.user!.id, notes);
+                }
+              }
+            }
+
+            // Fire-and-forget interview invite (if automation enabled)
+            const autoEmails = process.env.EMAIL_AUTOMATION_ENABLED === "true" || process.env.EMAIL_AUTOMATION_ENABLED === "1";
+            if (autoEmails) {
+              // Use base date/time string for email copy (slotDate as ISO)
+              const dateStr = slotDate.toISOString();
+              const timeLabel = timeRangeLabel ?? "";
+              sendInterviewInvitation(appId, {
+                date: dateStr,
+                time: timeLabel,
+                location,
+              }).catch((err) =>
+                console.error("Bulk interview email error:", err)
+              );
+            }
+
+            results.push({ id: appId, success: true });
+          } catch (err: any) {
+            console.error("Bulk interview scheduling error:", err);
+            results.push({
+              id: appId,
+              success: false,
+              error: err?.message ?? "Unknown error",
+            });
+          }
+        }
+
+        const scheduledCount = results.filter((r) => r.success).length;
+        const failed = results.filter((r) => !r.success);
+
+        res.json({
+          total: applicationIds.length,
+          scheduledCount,
+          failedCount: failed.length,
+          failed,
+        });
+        return;
+      } catch (error) {
+        next(error);
+      }
+    }
+  );
+
   // Get applications for a specific job (recruiters only)
   app.get("/api/jobs/:id/applications", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
