@@ -508,15 +508,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Create application record
+      // Determine default pipeline stage for new applications (if stages are configured)
+      let initialStageId: number | null = null;
+      try {
+        const stages = await storage.getPipelineStages();
+        if (stages && stages.length > 0) {
+          const explicitDefault = stages.find((s) => s.isDefault);
+          const chosen = explicitDefault ?? stages[0]!;
+          initialStageId = chosen.id;
+        }
+      } catch (stageError) {
+        console.error("Failed to load pipeline stages for default assignment:", stageError);
+      }
+
+      const now = new Date();
+
+      // Create application record (with optional initial stage assignment)
       const application = await storage.createApplication({
         ...applicationData,
         jobId,
         resumeUrl,
         resumeFilename: req.file?.originalname ?? null, // Save original filename for proper downloads
         // Bind to user account if authenticated (for candidate access control)
-        ...(req.user?.id !== undefined && { userId: req.user.id })
+        ...(req.user?.id !== undefined && { userId: req.user.id }),
+        ...(initialStageId !== null && {
+          currentStage: initialStageId,
+          stageChangedAt: now,
+          // Attribute initial stage assignment to the recruiter who posted the job
+          stageChangedBy: job.postedBy,
+        }),
       });
+
+      // Log initial stage assignment to history table (if a default stage was applied)
+      if (initialStageId !== null) {
+        await db.insert(applicationStageHistory).values({
+          applicationId: application.id,
+          fromStage: null,
+          toStage: initialStageId,
+          changedBy: job.postedBy,
+          notes: "Initial stage assigned automatically at application submission",
+        });
+      }
 
       // Fire-and-forget: candidate confirmation (if enabled)
       const autoEmails = process.env.EMAIL_AUTOMATION_ENABLED === 'true' || process.env.EMAIL_AUTOMATION_ENABLED === '1';
