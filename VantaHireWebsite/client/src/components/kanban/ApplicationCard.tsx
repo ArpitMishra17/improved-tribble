@@ -50,8 +50,8 @@ export function ApplicationCard({
     >
       <Card
         className={cn(
-          "bg-white/5 backdrop-blur-sm border-white/20 hover:bg-white/10 transition-all cursor-pointer",
-          isSelected && "ring-2 ring-purple-400"
+          "bg-card border border-border hover:shadow-md transition-all cursor-pointer shadow-sm",
+          isSelected && "ring-2 ring-primary/60"
         )}
         onClick={() => onOpenDetails(application)}
       >
@@ -61,7 +61,7 @@ export function ApplicationCard({
             <button
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white mt-1 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
+              className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-primary rounded"
               onClick={(e) => e.stopPropagation()}
               aria-label={`Drag to move ${application.name}'s application`}
               aria-describedby={`drag-help-${application.id}`}
@@ -87,16 +87,16 @@ export function ApplicationCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-medium text-sm truncate">
+                  <h4 className="text-slate-900 font-medium text-sm truncate">
                     {application.name}
                   </h4>
                   <div className="flex flex-col gap-1 mt-1">
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-1 text-xs text-slate-500">
                       <Mail className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">{application.email}</span>
                     </div>
                     {application.phone && (
-                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-1 text-xs text-slate-500">
                         <Phone className="h-3 w-3 flex-shrink-0" />
                         <span>{application.phone}</span>
                       </div>
@@ -116,12 +116,18 @@ export function ApplicationCard({
               {/* Tags */}
               <div className="flex flex-wrap gap-1 mt-2">
                 {application.status && (
-                  <Badge variant="outline" className="text-xs border-blue-400/50 text-blue-300">
+                  <Badge
+                    variant="outline"
+                    className="text-xs border-blue-200 bg-blue-50 text-blue-700"
+                  >
                     {application.status}
                   </Badge>
                 )}
                 {application.interviewDate && (
-                  <Badge variant="outline" className="text-xs border-green-400/50 text-green-300">
+                  <Badge
+                    variant="outline"
+                    className="text-xs border-green-200 bg-green-50 text-green-700"
+                  >
                     Interview
                   </Badge>
                 )}

@@ -23,6 +23,8 @@ import ApplicationManagementPage from "@/pages/application-management-page";
 import CandidateDashboard from "@/pages/candidate-dashboard";
 import JobAnalyticsDashboard from "@/pages/job-analytics-dashboard";
 import RecruiterDashboard from "@/pages/recruiter-dashboard";
+import ApplicationsPage from "@/pages/applications-page";
+import MyJobsPage from "@/pages/my-jobs-page";
 import ConsultantsPage from "@/pages/consultants-page";
 import PublicFormPage from "@/pages/public-form-page";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
@@ -48,7 +50,8 @@ function Router() {
       <Route path="/jobs/:id" component={JobDetailsPage} />
       <ProtectedRoute path="/my-dashboard" component={CandidateDashboard} requiredRole={['candidate']} />
       <ProtectedRoute path="/recruiter-dashboard" component={RecruiterDashboard} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/applications" component={RecruiterDashboard} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/applications" component={ApplicationsPage} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/my-jobs" component={MyJobsPage} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/admin" component={UnifiedAdminDashboard} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/super" component={AdminSuperDashboard} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/testing" component={AdminTestingPage} requiredRole={['admin']} />

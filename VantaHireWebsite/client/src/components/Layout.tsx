@@ -2,12 +2,19 @@ import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Menu, X, User, LogOut, Briefcase, Plus } from "lucide-react";
+import { Menu, X, User, LogOut, Briefcase, Plus, ChevronDown, Settings, BarChart3, Shield, TestTube } from "lucide-react";
 import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
 import QuickAccessBar from "@/components/QuickAccessBar";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import type { User as SelectUser } from "@shared/schema";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -32,6 +39,7 @@ const Layout = ({ children }: LayoutProps) => {
     const atsRoutes = [
       '/recruiter-dashboard',
       '/applications',
+      '/my-jobs',
       '/jobs/post',
       '/admin',
       '/analytics',
@@ -97,32 +105,40 @@ const Layout = ({ children }: LayoutProps) => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-1">
-              {isRecruiter && (
-                <Link
-                  href="/recruiter-dashboard"
-                  className={cn(
-                    "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    location === '/recruiter-dashboard'
-                      ? "text-primary bg-primary/5"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                  )}
-                >
-                  Dashboard
-                </Link>
-              )}
-
               {(isRecruiter || isAdmin) && (
                 <>
                   <Link
-                    href="/jobs/post"
+                    href="/recruiter-dashboard"
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                      location === '/jobs/post'
+                      location === '/recruiter-dashboard'
                         ? "text-primary bg-primary/5"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                     )}
                   >
-                    Post Job
+                    Dashboard
+                  </Link>
+                  <Link
+                    href="/applications"
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location === '/applications'
+                        ? "text-primary bg-primary/5"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    Applications
+                  </Link>
+                  <Link
+                    href="/my-jobs"
+                    className={cn(
+                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                      location === '/my-jobs'
+                        ? "text-primary bg-primary/5"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    )}
+                  >
+                    My Jobs
                   </Link>
                   <Link
                     href="/admin/forms"
@@ -137,49 +153,68 @@ const Layout = ({ children }: LayoutProps) => {
                   </Link>
                 </>
               )}
-
-              {isAdmin && (
-                <>
-                  <Link
-                    href="/admin"
-                    className={cn(
-                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                      location === '/admin' || location.startsWith('/admin/super') || location.startsWith('/admin/testing')
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                    )}
-                  >
-                    Admin
-                  </Link>
-                  <Link
-                    href="/analytics"
-                    className={cn(
-                      "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                      location === '/analytics'
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                    )}
-                  >
-                    Analytics
-                  </Link>
-                </>
-              )}
             </div>
 
             {/* User Actions */}
-            <div className="flex items-center gap-4">
-              <span className="text-slate-600 text-sm hidden sm:inline">
-                {displayName}
-              </span>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="border-slate-200 text-slate-700 hover:bg-slate-100"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+            <div className="flex items-center gap-3">
+              {/* Post Job CTA */}
+              {(isRecruiter || isAdmin) && (
+                <Button
+                  onClick={() => setLocation("/jobs/post")}
+                  size="sm"
+                  className="hidden md:flex"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Post Job
+                </Button>
+              )}
+
+              {/* User Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">{displayName}</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-white">
+                  <div className="px-2 py-1.5 text-sm font-medium text-slate-900">
+                    {user?.firstName} {user?.lastName}
+                  </div>
+                  <div className="px-2 py-1 text-xs text-slate-500">
+                    @{user?.username}
+                  </div>
+                  <DropdownMenuSeparator />
+
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuItem onClick={() => setLocation("/admin")} className="cursor-pointer">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin Control Center
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation("/admin/super")} className="cursor-pointer">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Super Admin Dashboard
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation("/admin/testing")} className="cursor-pointer">
+                        <TestTube className="h-4 w-4 mr-2" />
+                        Testing Dashboard
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setLocation("/analytics")} className="cursor-pointer">
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Job Analytics
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </nav>
         </header>

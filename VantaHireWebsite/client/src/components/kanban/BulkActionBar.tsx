@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PipelineStage, EmailTemplate } from "@shared/schema";
-import { FormTemplateDTO } from "@/lib/formsApi";
+import type { FormTemplateDTO } from "@/lib/formsApi";
 import {
   Dialog,
   DialogContent,
@@ -52,82 +52,88 @@ export function BulkActionBar({
 
   const handleMoveStage = async () => {
     if (!selectedStageId) return;
-    await onMoveStage(parseInt(selectedStageId));
+    await onMoveStage(parseInt(selectedStageId, 10));
     setShowMoveDialog(false);
     setSelectedStageId("");
   };
 
   const handleSendEmails = async () => {
     if (!selectedTemplateId) return;
-    await onSendEmails(parseInt(selectedTemplateId));
+    await onSendEmails(parseInt(selectedTemplateId, 10));
     setShowEmailDialog(false);
     setSelectedTemplateId("");
   };
 
   const handleSendForms = async () => {
     if (!selectedFormId) return;
-    await onSendForms(parseInt(selectedFormId), formMessage);
+    await onSendForms(parseInt(selectedFormId, 10), formMessage);
     setShowFormsDialog(false);
     setSelectedFormId("");
     setFormMessage("");
   };
 
-  const progressPercentage = bulkProgress
-    ? (bulkProgress.sent / bulkProgress.total) * 100
-    : 0;
+  const progressPercentage =
+    bulkProgress && bulkProgress.total > 0
+      ? (bulkProgress.sent / bulkProgress.total) * 100
+      : 0;
 
   return (
     <>
-      <div className="sticky top-0 z-50 bg-purple-900/95 backdrop-blur-sm border-b border-white/20 p-4" role="status" aria-live="polite" aria-atomic="true">
+      <div
+        className="sticky top-0 z-20 bg-white border-b border-slate-200 p-4 shadow-sm"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <div className="container mx-auto flex items-center gap-4">
-          <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+          <Badge
+            variant="secondary"
+            className="bg-primary/10 text-primary border-primary/20"
+          >
             {selectedCount} selected
           </Badge>
 
           <div className="flex items-center gap-2 flex-1">
             <Button
-              variant="outline"
               size="sm"
               onClick={() => setShowMoveDialog(true)}
               disabled={isBulkProcessing}
-              className="border-white/20 text-white hover:bg-white/10"
             >
               <MoveRight className="h-4 w-4 mr-2" />
               Move Stage
             </Button>
 
             <Button
-              variant="outline"
               size="sm"
               onClick={() => setShowEmailDialog(true)}
               disabled={isBulkProcessing || emailTemplates.length === 0}
-              className="border-white/20 text-white hover:bg-white/10"
             >
               <Mail className="h-4 w-4 mr-2" />
               Send Email
             </Button>
 
             <Button
-              variant="outline"
               size="sm"
               onClick={() => setShowFormsDialog(true)}
               disabled={isBulkProcessing || formTemplates.length === 0}
-              className="border-white/20 text-white hover:bg-white/10"
             >
               <FileText className="h-4 w-4 mr-2" />
               Invite to Form
             </Button>
           </div>
 
-          {isBulkProcessing && bulkProgress && (
-            <div className="flex items-center gap-2 min-w-[200px]" role="status" aria-live="polite" aria-atomic="true">
+          {isBulkProcessing && bulkProgress && bulkProgress.total > 0 && (
+            <div
+              className="flex items-center gap-2 min-w-[220px]"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               <Progress value={progressPercentage} className="h-2" />
-              <span className="text-sm text-white whitespace-nowrap">
+              <span className="text-sm text-slate-600 whitespace-nowrap">
                 {bulkProgress.sent}/{bulkProgress.total}
               </span>
-              <span className="sr-only">
-                Processing {bulkProgress.sent} of {bulkProgress.total} applications
-              </span>
+              <span className="sr-only">Bulk operation in progress</span>
             </div>
           )}
 
@@ -136,26 +142,27 @@ export function BulkActionBar({
             size="sm"
             onClick={onClearSelection}
             disabled={isBulkProcessing}
-            className="text-white hover:bg-white/10"
+            className="text-slate-600 hover:bg-slate-100"
             aria-label="Clear selection"
           >
             <X className="h-4 w-4" />
+            <span className="sr-only">Clear selection</span>
           </Button>
         </div>
       </div>
 
       {/* Move Stage Dialog */}
       <Dialog open={showMoveDialog} onOpenChange={setShowMoveDialog}>
-        <DialogContent className="bg-slate-900/95 backdrop-blur-sm border-white/20 text-white">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Move {selectedCount} Applications</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Select a stage to move the selected applications to.
+            <DialogTitle>Move Selected Applications</DialogTitle>
+            <DialogDescription>
+              Choose a new stage for the selected applications.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Select value={selectedStageId} onValueChange={setSelectedStageId}>
-              <SelectTrigger className="bg-white/5 border-white/20 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Select stage" />
               </SelectTrigger>
               <SelectContent>
@@ -168,18 +175,10 @@ export function BulkActionBar({
             </Select>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowMoveDialog(false)}
-              className="border-white/20 text-white hover:bg-white/10"
-            >
+            <Button variant="outline" onClick={() => setShowMoveDialog(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleMoveStage}
-              disabled={!selectedStageId}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-            >
+            <Button onClick={handleMoveStage} disabled={!selectedStageId}>
               Move Applications
             </Button>
           </DialogFooter>
@@ -188,16 +187,16 @@ export function BulkActionBar({
 
       {/* Send Email Dialog */}
       <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-        <DialogContent className="bg-slate-900/95 backdrop-blur-sm border-white/20 text-white">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Send Email to {selectedCount} Candidates</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription>
               Select an email template to send to the selected applications.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-              <SelectTrigger className="bg-white/5 border-white/20 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Select template" />
               </SelectTrigger>
               <SelectContent>
@@ -213,14 +212,12 @@ export function BulkActionBar({
             <Button
               variant="outline"
               onClick={() => setShowEmailDialog(false)}
-              className="border-white/20 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSendEmails}
               disabled={!selectedTemplateId}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
             >
               Send Emails
             </Button>
@@ -230,16 +227,17 @@ export function BulkActionBar({
 
       {/* Send Forms Dialog */}
       <Dialog open={showFormsDialog} onOpenChange={setShowFormsDialog}>
-        <DialogContent className="bg-slate-900/95 backdrop-blur-sm border-white/20 text-white">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Invite {selectedCount} Candidates to Form</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Select a form template to send invitations to the selected applications.
+            <DialogDescription>
+              Select a form template to send invitations to the selected
+              applications.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Select value={selectedFormId} onValueChange={setSelectedFormId}>
-              <SelectTrigger className="bg-white/5 border-white/20 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Select form" />
               </SelectTrigger>
               <SelectContent>
@@ -251,12 +249,14 @@ export function BulkActionBar({
               </SelectContent>
             </Select>
             <div className="space-y-2">
-              <label className="text-sm text-gray-400">Custom message (optional)</label>
+              <label className="text-sm text-slate-600">
+                Custom message (optional)
+              </label>
               <textarea
                 value={formMessage}
                 onChange={(e) => setFormMessage(e.target.value)}
                 placeholder="Add a personalized message..."
-                className="w-full min-h-[80px] bg-white/5 border border-white/20 rounded-md p-2 text-white placeholder:text-gray-400"
+                className="w-full min-h-[80px] rounded-md border border-slate-300 bg-white p-2 text-slate-900 placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -264,14 +264,12 @@ export function BulkActionBar({
             <Button
               variant="outline"
               onClick={() => setShowFormsDialog(false)}
-              className="border-white/20 text-white hover:bg-white/10"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSendForms}
               disabled={!selectedFormId}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
             >
               Send Invitations
             </Button>
@@ -281,3 +279,4 @@ export function BulkActionBar({
     </>
   );
 }
+
