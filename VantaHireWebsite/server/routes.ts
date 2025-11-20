@@ -1710,7 +1710,7 @@ New job application received:
         return;
       }
 
-      // Get resume text
+      // Get resume or candidate text
       let resumeText = '';
 
       // First, try to get from candidate resume library if resumeId is set
@@ -1721,11 +1721,15 @@ New job application received:
         resumeText = resumeData?.extractedText || '';
       }
 
-      // If still no text, return error (we need resume text to generate summary)
-      if (!resumeText) {
+      // Fallback: if no extracted resume text, use cover letter or job description
+      const effectiveText =
+        resumeText || application.coverLetter || job.description || '';
+
+      if (!effectiveText) {
         res.status(400).json({
           error: 'Resume text not available',
-          message: 'Resume text is required to generate AI summary. Please ensure the candidate has uploaded a resume.'
+          message:
+            'We could not find any candidate text to summarize. Please ensure a resume or cover letter is available.',
         });
         return;
       }
@@ -1733,7 +1737,7 @@ New job application received:
       // Generate the AI summary
       const startTime = Date.now();
       const summaryResult = await generateCandidateSummary(
-        resumeText,
+        effectiveText,
         job.title,
         job.description,
         application.name

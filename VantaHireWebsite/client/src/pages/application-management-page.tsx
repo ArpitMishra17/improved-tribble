@@ -143,7 +143,7 @@ export default function ApplicationManagementPage() {
     enabled: !!jobId,
   });
 
-  const { data: shortlists = [] } = useQuery<JobShortlistSummary[]>({
+  const { data: rawShortlists } = useQuery<JobShortlistSummary[]>({
     queryKey: ["/api/jobs", jobId, "client-shortlists"],
     queryFn: async () => {
       if (!jobId) return [];
@@ -155,6 +155,7 @@ export default function ApplicationManagementPage() {
     },
     enabled: !!jobId && !!job?.clientId,
   });
+  const shortlists: JobShortlistSummary[] = Array.isArray(rawShortlists) ? rawShortlists : [];
 
   const { data: applications, isLoading: applicationsLoading } = useQuery<Application[]>({
     queryKey: ["/api/jobs", jobId, "applications"],
