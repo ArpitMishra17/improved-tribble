@@ -16,7 +16,7 @@ import rateLimit from 'express-rate-limit';
 import { db } from './db';
 import { candidateResumes, applications, jobs, users } from '../shared/schema';
 import { eq, and, inArray, sql, desc } from 'drizzle-orm';
-import { upload, uploadToGCS } from './gcs-storage';
+import { upload, uploadToGCS, downloadFromGCS } from './gcs-storage';
 import { extractResumeText, validateResumeText } from './lib/resumeExtractor';
 import { generateJDDigest, JDDigest } from './lib/jdDigest';
 import { computeFitScore, isFitStale, getStalenessReason } from './lib/aiMatchingEngine';
@@ -431,12 +431,27 @@ export function registerAIRoutes(app: Express): void {
 
         if (!resumeText && application.resumeUrl) {
           // Fall back to application resume URL if no library resume
-          // TODO: Extract text from application.resumeUrl
-          res.status(400).json({
-            error: 'Resume text not available',
-            message: 'Please save your resume to your library first.',
-          });
-       return;
+          try {
+            const buffer = await downloadFromGCS(application.resumeUrl);
+            const extraction = await extractResumeText(buffer);
+
+            if (!extraction.success || !validateResumeText(extraction.text)) {
+              res.status(400).json({
+                error: 'Resume text extraction failed',
+                message: extraction.error || 'Unable to extract text from resume.',
+              });
+              return;
+            }
+
+            resumeText = extraction.text;
+          } catch (error) {
+            console.error('Failed to download/extract resume from GCS:', error);
+            res.status(400).json({
+              error: 'Resume download failed',
+              message: 'Unable to access resume file from storage.',
+            });
+            return;
+          }
         }
 
         // Get or generate JD digest
@@ -624,13 +639,32 @@ export function registerAIRoutes(app: Express): void {
             let resumeText = resumeData?.extractedText || '';
 
             if (!resumeText && app.resumeUrl) {
-              results.push({
-                applicationId: appId,
-                success: false,
-                status: 'error',
-                error: 'Resume text not available. Please save your resume to your library first.',
-              });
-              continue;
+              // Fall back to application resume URL if no library resume
+              try {
+                const buffer = await downloadFromGCS(app.resumeUrl);
+                const extraction = await extractResumeText(buffer);
+
+                if (!extraction.success || !validateResumeText(extraction.text)) {
+                  results.push({
+                    applicationId: appId,
+                    success: false,
+                    status: 'error',
+                    error: extraction.error || 'Unable to extract text from resume.',
+                  });
+                  continue;
+                }
+
+                resumeText = extraction.text;
+              } catch (error) {
+                console.error(`Failed to download/extract resume from GCS for app ${appId}:`, error);
+                results.push({
+                  applicationId: appId,
+                  success: false,
+                  status: 'error',
+                  error: 'Unable to access resume file from storage.',
+                });
+                continue;
+              }
             }
 
             // Get or generate JD digest

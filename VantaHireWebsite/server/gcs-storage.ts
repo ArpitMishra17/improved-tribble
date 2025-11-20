@@ -187,6 +187,32 @@ export async function getSignedDownloadUrl(
 }
 
 /**
+ * Download file buffer from GCS
+ * @param gcsPath - Full GCS path (gs://bucket/path)
+ * @returns File buffer
+ */
+export async function downloadFromGCS(gcsPath: string): Promise<Buffer> {
+  if (!storage) {
+    throw new Error('Google Cloud Storage not configured');
+  }
+
+  // Extract bucket and filename from gs:// URL
+  const match = gcsPath.match(/^gs:\/\/([^/]+)\/(.+)$/);
+  if (!match) {
+    throw new Error('Invalid GCS path format');
+  }
+
+  const [, bucket, filepath] = match;
+  if (!bucket || !filepath) {
+    throw new Error('Invalid GCS path components');
+  }
+
+  const file = storage.bucket(bucket).file(filepath);
+  const [buffer] = await file.download();
+  return buffer;
+}
+
+/**
  * Check if file exists in GCS
  * @param gcsPath - Full GCS path (gs://bucket/path)
  * @returns True if file exists
