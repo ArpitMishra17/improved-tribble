@@ -484,6 +484,29 @@ export async function ensureAtsSchema(): Promise<void> {
     END $$;
   `);
 
+  // ATS: Application feedback (hiring manager feedback)
+  console.log('  Creating application_feedback table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS application_feedback (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+      author_id INTEGER NOT NULL REFERENCES users(id),
+      overall_score INTEGER NOT NULL,
+      recommendation TEXT NOT NULL,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS application_feedback_application_id_idx ON application_feedback(application_id);
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS application_feedback_author_id_idx ON application_feedback(author_id);
+  `);
+
   // Consulting/Agency Feature: Clients
   console.log('  Creating clients table...');
   await db.execute(sql`
@@ -511,6 +534,8 @@ export async function ensureAtsSchema(): Promise<void> {
       client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
       job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
       token TEXT NOT NULL UNIQUE,
+      title TEXT,
+      message TEXT,
       created_by INTEGER NOT NULL REFERENCES users(id),
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
       expires_at TIMESTAMP,
@@ -549,6 +574,33 @@ export async function ensureAtsSchema(): Promise<void> {
 
   await db.execute(sql`
     CREATE INDEX IF NOT EXISTS client_shortlist_items_application_id_idx ON client_shortlist_items(application_id);
+  `);
+
+  // Consulting/Agency Feature: Client Feedback
+  console.log('  Creating client_feedback table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS client_feedback (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      shortlist_id INTEGER REFERENCES client_shortlists(id) ON DELETE SET NULL,
+      recommendation TEXT NOT NULL,
+      notes TEXT,
+      rating INTEGER,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_feedback_application_id_idx ON client_feedback(application_id);
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_feedback_client_id_idx ON client_feedback(client_id);
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_feedback_shortlist_id_idx ON client_feedback(shortlist_id);
   `);
 
   // Consulting/Agency Feature: Add clientId column to jobs table
