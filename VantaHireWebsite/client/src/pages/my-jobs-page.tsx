@@ -15,6 +15,13 @@ import type { Job } from "@shared/schema";
 type JobWithCounts = Job & {
   company?: string;
   applicationCount?: number;
+  hiringManager?: {
+    id: number;
+    firstName: string | null;
+    lastName: string | null;
+    username: string;
+  };
+  clientName?: string | null;
 };
 
 export default function MyJobsPage() {
@@ -64,6 +71,7 @@ export default function MyJobsPage() {
     const matchesSearch = !searchQuery ||
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.location.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus =
@@ -169,6 +177,16 @@ export default function MyJobsPage() {
                         <div className="flex-1">
                           <h3 className="text-slate-900 font-medium text-lg">{job.title}</h3>
                           <p className="text-slate-600">{job.company} • {job.location}</p>
+                          {job.hiringManager && (
+                            <p className="text-slate-500 text-sm mt-1">
+                              Hiring Manager: {job.hiringManager.firstName && job.hiringManager.lastName
+                                ? `${job.hiringManager.firstName} ${job.hiringManager.lastName}`
+                                : job.hiringManager.username}
+                            </p>
+                          )}
+                          {!job.hiringManager && (
+                            <p className="text-slate-400 text-sm mt-1">Hiring Manager: —</p>
+                          )}
                           <p className="text-slate-500 text-sm mt-1">{job.type}</p>
                         </div>
                         <div className="flex items-center space-x-2">

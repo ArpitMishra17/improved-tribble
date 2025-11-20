@@ -32,6 +32,7 @@ export default function AdminEmailTemplatesPage() {
   const [templateType, setTemplateType] = useState<string>("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   // Redirect if not admin or recruiter
   if (user && !["admin", "recruiter"].includes(user.role)) {
@@ -170,6 +171,28 @@ export default function AdminEmailTemplatesPage() {
                 ? "All email templates (system defaults and custom templates)"
                 : "Email templates available for your ATS workflows"}
             </CardDescription>
+
+            {/* Filter Chips */}
+            <div className="flex flex-wrap gap-2 pt-3">
+              {[
+                { value: "all", label: "All" },
+                { value: "application_received", label: "App Received" },
+                { value: "interview_invite", label: "Interview" },
+                { value: "status_update", label: "Status Update" },
+                { value: "offer_extended", label: "Offer" },
+                { value: "rejection", label: "Rejection" },
+                { value: "custom", label: "Custom" },
+              ].map(({ value, label }) => (
+                <Badge
+                  key={value}
+                  variant={typeFilter === value ? "default" : "outline"}
+                  className="cursor-pointer hover:bg-primary/10"
+                  onClick={() => setTypeFilter(value)}
+                >
+                  {label}
+                </Badge>
+              ))}
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -198,10 +221,18 @@ export default function AdminEmailTemplatesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {templates.map((tpl) => (
+                  {templates
+                    .filter((t) => typeFilter === "all" || t.templateType === typeFilter)
+                    .sort((a, b) => {
+                      // Sort defaults to top
+                      if (a.isDefault && !b.isDefault) return -1;
+                      if (!a.isDefault && b.isDefault) return 1;
+                      return a.name.localeCompare(b.name);
+                    })
+                    .map((tpl) => (
                     <TableRow
                       key={tpl.id}
-                      className="border-slate-200 hover:bg-slate-50"
+                      className={`border-slate-200 hover:bg-slate-50 ${tpl.isDefault ? 'bg-green-50/30' : ''}`}
                     >
                       <TableCell className="text-slate-900 font-medium">
                         {tpl.name}

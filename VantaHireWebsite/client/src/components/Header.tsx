@@ -199,8 +199,24 @@ const Header = () => {
 
           {/* Recruiter dashboard link */}
           {user && user.role === 'recruiter' && (
-            <Link href="/recruiter-dashboard" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
-              <span className="relative z-10">Recruiter Dashboard</span>
+            <>
+              <Link href="/recruiter-dashboard" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
+                <span className="relative z-10">Recruiter Dashboard</span>
+                <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
+                <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
+              </Link>
+              <Link href="/candidates" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
+                <span className="relative z-10">Candidates</span>
+                <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
+                <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
+              </Link>
+            </>
+          )}
+
+          {/* Hiring Manager dashboard link */}
+          {user && user.role === 'hiring_manager' && (
+            <Link href="/hiring-manager" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
+              <span className="relative z-10">My Dashboard</span>
               <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
               <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
             </Link>

@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { db } from "./db";
-import { forms, formFields, formInvitations, formResponses, formResponseAnswers, applications, jobs, emailAuditLog } from "@shared/schema";
+import { forms, formFields, formInvitations, formResponses, formResponseAnswers, applications, jobs, emailAuditLog, userAiUsage } from "@shared/schema";
 import { insertFormSchema, insertFormFieldSchema, insertFormInvitationSchema, insertFormResponseAnswerSchema } from "@shared/schema";
 import { requireAuth, requireRole } from "./auth";
 import { eq, and, desc, sql, or, inArray } from "drizzle-orm";
@@ -11,6 +11,8 @@ import { getEmailService } from "./simpleEmailService";
 import { upload, uploadToGCS } from "./gcs-storage";
 import type { FormSnapshot, FormFieldSnapshot, FormAnswer, FileUploadResult } from "@shared/forms.types";
 import { parseFormSnapshot, isValidFieldType, parseSelectOptions, normalizeYesNoValue } from "@shared/forms.types";
+import { generateFormQuestions, isAIEnabled } from "./aiJobAnalyzer";
+import { aiAnalysisRateLimit } from "./rateLimit";
 
 // Environment configuration
 const FORM_INVITE_EXPIRY_DAYS = parseInt(process.env.FORM_INVITE_EXPIRY_DAYS || '14', 10);
@@ -78,6 +80,12 @@ const updateTemplateSchema = z.object({
   fields: z.array(insertFormFieldSchema).optional(),
 });
 
+const aiSuggestSchema = z.object({
+  jobId: z.number().int().positive().optional(),
+  jobDescription: z.string().max(5000).optional(),
+  goals: z.array(z.string()).default([]),
+});
+
 export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request, res: Response, next: NextFunction) => void): void {
   console.log('📋 Registering forms routes...');
 
@@ -126,6 +134,88 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
         }
         console.error('Error creating form template:', error);
         return res.status(500).json({ error: 'Failed to create form template' });
+      }
+    }
+  );
+
+  // AI-suggest form questions
+  app.post(
+    "/api/forms/ai-suggest",
+    requireAuth,
+    requireRole(['recruiter', 'admin']),
+    csrf,
+    aiAnalysisRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        // Check if AI features are enabled
+        if (!isAIEnabled()) {
+          return res.status(503).json({ error: 'AI features are not enabled. Please configure GROQ_API_KEY.' });
+        }
+
+        const body = aiSuggestSchema.parse(req.body);
+        const startTime = Date.now();
+
+        let jobDescription = body.jobDescription || "";
+        let skills: string[] = [];
+
+        // If jobId provided, fetch job details
+        if (body.jobId) {
+          const [job] = await db.select().from(jobs).where(eq(jobs.id, body.jobId));
+          if (!job) {
+            return res.status(404).json({ error: 'Job not found' });
+          }
+          jobDescription = job.description;
+          skills = job.skills || [];
+        }
+
+        // Validate that we have job description
+        if (!jobDescription || jobDescription.trim().length === 0) {
+          return res.status(400).json({ error: 'Job description is required (either via jobId or jobDescription)' });
+        }
+
+        // Generate AI suggestions
+        const result = await generateFormQuestions(
+          jobDescription,
+          skills,
+          body.goals
+        );
+
+        const durationMs = Date.now() - startTime;
+
+        // Calculate cost using Groq pricing for llama-3.3-70b-versatile
+        const PRICE_PER_1M_INPUT_TOKENS = 0.59;
+        const PRICE_PER_1M_OUTPUT_TOKENS = 0.79;
+        const costUsd = (
+          (result.tokensUsed.input / 1_000_000) * PRICE_PER_1M_INPUT_TOKENS +
+          (result.tokensUsed.output / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS
+        ).toFixed(8);
+
+        // Track AI usage for billing/analytics
+        await db.insert(userAiUsage).values({
+          userId: req.user!.id,
+          kind: 'form_ai',
+          tokensIn: result.tokensUsed.input,
+          tokensOut: result.tokensUsed.output,
+          costUsd,
+          metadata: {
+            jobId: body.jobId || null,
+            goals: body.goals,
+            fieldsGenerated: result.fields.length,
+            durationMs,
+          },
+        });
+
+        return res.json({
+          fields: result.fields,
+          modelVersion: result.model_version,
+        });
+      } catch (error: any) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+        }
+        console.error('Error generating AI form suggestions:', error);
+        const errorMessage = error?.message || 'Failed to generate form suggestions';
+        return res.status(500).json({ error: errorMessage });
       }
     }
   );

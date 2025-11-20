@@ -1,0 +1,467 @@
+import { useEffect, useState } from "react";
+import { useRoute } from "wouter";
+import Layout from "@/components/Layout";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Users,
+  Briefcase,
+  MapPin,
+  Mail,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+
+type ShortlistState = "loading" | "ready" | "submitting" | "success" | "expired" | "error";
+
+type Recommendation = "advance" | "reject" | "hold";
+
+interface ShortlistCandidate {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  position: number;
+  notes: string | null;
+  resumeUrl: string | null;
+  coverLetter: string | null;
+  appliedAt: string;
+}
+
+interface ShortlistResponse {
+  title: string;
+  message: string | null;
+  client: {
+    name: string;
+  };
+  job: {
+    title: string;
+    location: string;
+    type: string;
+  };
+  candidates: ShortlistCandidate[];
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+interface CandidateFeedbackState {
+  recommendation: Recommendation | "";
+  notes: string;
+  rating: number | null;
+}
+
+export default function ClientShortlistPage() {
+  const [, params] = useRoute("/client-shortlist/:token");
+  const token = params?.token;
+  const { toast } = useToast();
+
+  const [state, setState] = useState<ShortlistState>("loading");
+  const [data, setData] = useState<ShortlistResponse | null>(null);
+  const [feedback, setFeedback] = useState<Record<number, CandidateFeedbackState>>({});
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
+  useEffect(() => {
+    if (!token) {
+      setState("error");
+      setErrorMessage("Invalid shortlist link.");
+      return;
+    }
+
+    setState("loading");
+    fetch(`/client-shortlist/${token}`)
+      .then(async (res) => {
+        if (res.status === 410) {
+          setState("expired");
+          return null;
+        }
+        if (!res.ok) {
+          throw new Error("Failed to load shortlist.");
+        }
+        const json = (await res.json()) as ShortlistResponse;
+        return json;
+      })
+      .then((json) => {
+        if (!json) return;
+        setData(json);
+        // Initialise feedback state
+        const initial: Record<number, CandidateFeedbackState> = {};
+        json.candidates.forEach((c) => {
+          initial[c.id] = { recommendation: "", notes: "", rating: null };
+        });
+        setFeedback(initial);
+        setState("ready");
+      })
+      .catch((err: unknown) => {
+        console.error("Error fetching shortlist:", err);
+        setState("error");
+        setErrorMessage("Unable to load shortlist. Please check the link or try again later.");
+      });
+  }, [token]);
+
+  const handleRecommendationChange = (applicationId: number, value: Recommendation) => {
+    setFeedback((prev) => ({
+      ...prev,
+      [applicationId]: {
+        ...(prev[applicationId] || { recommendation: "", notes: "", rating: null }),
+        recommendation: value,
+      },
+    }));
+  };
+
+  const handleNotesChange = (applicationId: number, value: string) => {
+    setFeedback((prev) => ({
+      ...prev,
+      [applicationId]: {
+        ...(prev[applicationId] || { recommendation: "", notes: "", rating: null }),
+        notes: value,
+      },
+    }));
+  };
+
+  const handleRatingChange = (applicationId: number, value: string) => {
+    const parsed = value ? parseInt(value, 10) : null;
+    setFeedback((prev) => ({
+      ...prev,
+      [applicationId]: {
+        ...(prev[applicationId] || { recommendation: "", notes: "", rating: null }),
+        rating: parsed && !Number.isNaN(parsed) ? parsed : null,
+      },
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!token || !data) return;
+
+    const payload = Object.entries(feedback)
+      .filter(([, fb]) => fb.recommendation !== "")
+      .map(([applicationId, fb]) => ({
+        applicationId: Number(applicationId),
+        recommendation: fb.recommendation,
+        ...(fb.notes.trim() && { notes: fb.notes.trim() }),
+        ...(fb.rating && { rating: fb.rating }),
+      }));
+
+    if (payload.length === 0) {
+      toast({
+        title: "No Feedback Selected",
+        description: "Please choose Advance, Hold, or Reject for at least one candidate.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setState("submitting");
+    try {
+      const res = await fetch(`/client-shortlist/${token}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || error.error || "Failed to submit feedback");
+      }
+
+      setState("success");
+      toast({
+        title: "Feedback Submitted",
+        description: "Thank you for reviewing these candidates.",
+      });
+    } catch (err: any) {
+      console.error("Error submitting client feedback:", err);
+      setState("ready");
+      toast({
+        title: "Submission Failed",
+        description: err?.message || "Unable to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderContent = () => {
+    if (state === "loading") {
+      return (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+          <p className="text-slate-600">Loading shortlist...</p>
+        </div>
+      );
+    }
+
+    if (state === "expired") {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
+          <p className="text-slate-800 font-semibold mb-1">This shortlist has expired.</p>
+          <p className="text-slate-600 text-sm">
+            Please contact your recruiter if you need a new link.
+          </p>
+        </div>
+      );
+    }
+
+    if (state === "error" || !data) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
+          <p className="text-slate-800 font-semibold mb-1">Unable to load shortlist.</p>
+          <p className="text-slate-600 text-sm">{errorMessage}</p>
+        </div>
+      );
+    }
+
+    if (state === "success") {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <CheckCircle2 className="h-10 w-10 text-green-500 mb-4" />
+          <p className="text-slate-800 font-semibold mb-1">Feedback submitted.</p>
+          <p className="text-slate-600 text-sm">
+            Thank you for reviewing candidates for {data.job.title}.
+          </p>
+        </div>
+      );
+    }
+
+    // ready or submitting
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-slate-900">
+              <Users className="h-5 w-5 text-primary" />
+              {data.title || data.job.title}
+            </CardTitle>
+            <CardDescription className="text-slate-600">
+              Candidate shortlist for {data.client.name} &middot; {data.job.title} (
+              {data.job.type}) in {data.job.location}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.message && (
+              <p className="text-sm text-slate-700 leading-relaxed">{data.message}</p>
+            )}
+            <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+              <span>
+                Created on {new Date(data.createdAt).toLocaleDateString()}
+              </span>
+              {data.expiresAt && (
+                <>
+                  <span>•</span>
+                  <span>
+                    Expires on {new Date(data.expiresAt).toLocaleDateString()}
+                  </span>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Candidates */}
+        {data.candidates.map((candidate) => {
+          const fb = feedback[candidate.id] || {
+            recommendation: "",
+            notes: "",
+            rating: null,
+          };
+
+          return (
+            <Card key={candidate.id} className="shadow-sm border-slate-200">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base text-slate-900">
+                      {candidate.name}
+                    </CardTitle>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                      <span className="inline-flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {candidate.email}
+                      </span>
+                      {candidate.phone && (
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {candidate.phone}
+                        </span>
+                      )}
+                      <span>
+                        Applied on{" "}
+                        {new Date(candidate.appliedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    #{candidate.position}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {candidate.notes && (
+                  <div>
+                    <Label className="text-xs text-slate-600">
+                      Recruiter Notes
+                    </Label>
+                    <p className="text-sm text-slate-700 mt-1">
+                      {candidate.notes}
+                    </p>
+                  </div>
+                )}
+
+                {candidate.coverLetter && (
+                  <div>
+                    <Label className="text-xs text-slate-600">
+                      Candidate Cover Letter
+                    </Label>
+                    <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">
+                      {candidate.coverLetter}
+                    </p>
+                  </div>
+                )}
+
+                {/* Feedback controls */}
+                <div className="space-y-3 border-t border-slate-200 pt-3">
+                  <div>
+                    <Label className="text-sm text-slate-900">
+                      Recommendation
+                    </Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(
+                        [
+                          ["advance", "Advance"],
+                          ["hold", "Hold"],
+                          ["reject", "Reject"],
+                        ] as [Recommendation, string][]
+                      ).map(([value, label]) => (
+                        <Button
+                          key={value}
+                          type="button"
+                          size="sm"
+                          variant={
+                            fb.recommendation === value ? "default" : "outline"
+                          }
+                          className={
+                            fb.recommendation === value
+                              ? "bg-primary text-white"
+                              : ""
+                          }
+                          onClick={() =>
+                            handleRecommendationChange(candidate.id, value)
+                          }
+                        >
+                          {value === "advance" && (
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                          )}
+                          {value === "hold" && (
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                          )}
+                          {value === "reject" && (
+                            <XCircle className="h-3 w-3 mr-1" />
+                          )}
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm text-slate-900">
+                        Notes (Optional)
+                      </Label>
+                      <Textarea
+                        value={fb.notes}
+                        onChange={(e) =>
+                          handleNotesChange(candidate.id, e.target.value)
+                        }
+                        rows={3}
+                        className="text-sm"
+                        placeholder="Share your thoughts or concerns about this candidate..."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm text-slate-900">
+                        Rating (Optional)
+                      </Label>
+                      <SelectRating
+                        value={fb.rating}
+                        onChange={(val) =>
+                          handleRatingChange(candidate.id, val)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+
+        <div className="flex justify-end pt-2">
+          <Button
+            onClick={handleSubmit}
+            disabled={state === "submitting"}
+            className="min-w-[180px]"
+          >
+            {state === "submitting" ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Feedback"
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <Layout>
+      <div className="min-h-screen bg-slate-50">
+        <div className="container mx-auto px-4 py-10 max-w-4xl">
+          {renderContent()}
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+interface SelectRatingProps {
+  value: number | null;
+  onChange: (value: string) => void;
+}
+
+function SelectRating({ value, onChange }: SelectRatingProps) {
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="border border-slate-300 rounded-md px-2 py-1 text-sm bg-white"
+      >
+        <option value="">No rating</option>
+        <option value="1">1 - Poor</option>
+        <option value="2">2 - Fair</option>
+        <option value="3">3 - Good</option>
+        <option value="4">4 - Very Good</option>
+        <option value="5">5 - Excellent</option>
+      </select>
+    </div>
+  );
+}
+

@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { queryClient } from "@/lib/queryClient";
+import { HiringMetricsPanel } from "@/components/HiringMetricsPanel";
 
 interface AdminStats {
   totalJobs: number;
@@ -420,10 +421,14 @@ export default function UnifiedAdminDashboard() {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full">
+          <TabsList className="grid grid-cols-6 w-full">
             <TabsTrigger value="overview">
               <BarChart3 className="h-4 w-4 mr-2" />
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Analytics
             </TabsTrigger>
             <TabsTrigger value="testing">
               <Activity className="h-4 w-4 mr-2" />
@@ -532,6 +537,11 @@ export default function UnifiedAdminDashboard() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics">
+              <HiringMetricsPanel />
             </TabsContent>
 
             {/* Testing Tab */}

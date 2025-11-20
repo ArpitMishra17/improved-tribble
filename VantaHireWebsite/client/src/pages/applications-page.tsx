@@ -9,13 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Eye, Download, Users, Search, Sparkles, Brain, AlertCircle } from "lucide-react";
+import { Eye, Download, Users, Search, Sparkles, Brain, AlertCircle, MessageCircle } from "lucide-react";
 import Layout from "@/components/Layout";
-import type { Application } from "@shared/schema";
+import type { Application, PipelineStage } from "@shared/schema";
 
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
   job?: { title: string };
+  feedbackCount?: number;
 };
 
 export default function ApplicationsPage() {
@@ -26,10 +27,18 @@ export default function ApplicationsPage() {
   const [newStatus, setNewStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState<string>("all");
+  const [feedbackFilter, setFeedbackFilter] = useState<string>("all");
+  const [minRating, setMinRating] = useState<string>("0");
 
   // Fetch all applications for recruiter's jobs
   const { data: applications = [], isLoading: applicationsLoading } = useQuery<ApplicationWithJob[]>({
     queryKey: ["/api/my-applications-received"],
+  });
+
+  // Fetch pipeline stages for stage filter
+  const { data: pipelineStages = [] } = useQuery<PipelineStage[]>({
+    queryKey: ["/api/pipeline/stages"],
   });
 
   // Update application status mutation
@@ -120,7 +129,20 @@ export default function ApplicationsPage() {
 
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Stage filter
+    const matchesStage = stageFilter === "all" ||
+      (stageFilter === "unassigned" && !app.currentStage) ||
+      (app.currentStage && app.currentStage.toString() === stageFilter);
+
+    // Rating filter
+    const matchesRating = minRating === "0" || (app.rating && app.rating >= Number(minRating));
+
+    // Feedback filter (uses feedbackCount from backend)
+    const matchesFeedback = feedbackFilter === "all" ||
+      (feedbackFilter === "with-feedback" && (app.feedbackCount ?? 0) > 0) ||
+      (feedbackFilter === "without-feedback" && (app.feedbackCount ?? 0) === 0);
+
+    return matchesSearch && matchesStatus && matchesStage && matchesRating && matchesFeedback;
   });
 
   if (applicationsLoading) {
@@ -148,28 +170,77 @@ export default function ApplicationsPage() {
           {/* Filters */}
           <Card className="shadow-sm">
             <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search by name, email, or job title..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="space-y-4">
+                {/* Row 1: Search and Status */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                    <Input
+                      placeholder="Search by name, email, or job title..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="submitted">Submitted</SelectItem>
+                      <SelectItem value="reviewed">Reviewed</SelectItem>
+                      <SelectItem value="shortlisted">Shortlisted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="submitted">Submitted</SelectItem>
-                    <SelectItem value="reviewed">Reviewed</SelectItem>
-                    <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
+
+                {/* Row 2: Stage, Feedback, and Rating filters */}
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Stage Filter */}
+                  <Select value={stageFilter} onValueChange={setStageFilter}>
+                    <SelectTrigger className="w-full md:w-56">
+                      <SelectValue placeholder="Filter by stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Stages</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {pipelineStages.map((stage) => (
+                        <SelectItem key={stage.id} value={stage.id.toString()}>
+                          {stage.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Feedback Filter */}
+                  <Select value={feedbackFilter} onValueChange={setFeedbackFilter}>
+                    <SelectTrigger className="w-full md:w-56">
+                      <SelectValue placeholder="Filter by feedback" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Applications</SelectItem>
+                      <SelectItem value="with-feedback">With Feedback</SelectItem>
+                      <SelectItem value="without-feedback">No Feedback</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {/* Rating Filter */}
+                  <Select value={minRating} onValueChange={setMinRating}>
+                    <SelectTrigger className="w-full md:w-48">
+                      <SelectValue placeholder="Min rating" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">All Ratings</SelectItem>
+                      <SelectItem value="1">⭐ 1+</SelectItem>
+                      <SelectItem value="2">⭐ 2+</SelectItem>
+                      <SelectItem value="3">⭐ 3+</SelectItem>
+                      <SelectItem value="4">⭐ 4+</SelectItem>
+                      <SelectItem value="5">⭐ 5</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -212,6 +283,15 @@ export default function ApplicationsPage() {
                           <Badge className={getStatusColor(application.status)}>
                             {application.status}
                           </Badge>
+                          {typeof application.feedbackCount === "number" && application.feedbackCount > 0 && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-emerald-200 bg-emerald-50 text-emerald-700 font-medium flex items-center gap-1"
+                            >
+                              <MessageCircle className="h-3 w-3" />
+                              {application.feedbackCount} {application.feedbackCount === 1 ? "feedback" : "feedback"}
+                            </Badge>
+                          )}
                           {getFitBadge(application.aiFitScore, application.aiFitLabel)}
                           <Button
                             variant="outline"

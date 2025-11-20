@@ -11,6 +11,11 @@ import {
   applicationStageHistory,
   emailTemplates,
   automationSettings,
+  applicationFeedback,
+  clients,
+  clientShortlists,
+  clientShortlistItems,
+  clientFeedback,
   type User,
   type InsertUser,
   type ContactSubmission,
@@ -31,14 +36,42 @@ import {
   type AutomationSetting,
   consultants,
   type Consultant,
-  type InsertConsultant
+  type InsertConsultant,
+  type Client,
+  type InsertClient,
+  type ClientShortlist,
+  type ClientShortlistItem,
+  type ClientFeedback,
+  type InsertClientFeedback,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, sql, or, inArray, count } from "drizzle-orm";
 
+export type JobHealthStatus = 'green' | 'amber' | 'red';
+
+export interface JobHealthSummary {
+  jobId: number;
+  jobTitle: string;
+  isActive: boolean;
+  status: JobHealthStatus;
+  reason: string;
+  totalApplications: number;
+  daysSincePosted: number;
+  daysSinceLastApplication: number | null;
+  conversionRate: number;
+}
+
+export interface StaleCandidatesSummary {
+  jobId: number;
+  jobTitle: string;
+  count: number;
+  oldestStaleDays: number;
+}
+
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -61,7 +94,7 @@ export interface IStorage {
   }): Promise<{ jobs: Job[]; total: number }>;
   updateJobStatus(id: number, isActive: boolean, reason?: string, performedBy?: number): Promise<Job | undefined>;
   logJobAction(data: { jobId: number; action: string; performedBy: number; reason?: string; metadata?: any }): Promise<JobAuditLog>;
-  getJobsByUser(userId: number): Promise<(Job & { applicationCount: number })[]>;
+  getJobsByUser(userId: number): Promise<(Job & { applicationCount: number; hiringManager?: { id: number; firstName: string | null; lastName: string | null; username: string } })[]>;
   reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined>;
   getJobsByStatus(status: string, page?: number, limit?: number): Promise<{ jobs: Job[]; total: number }>;
   
@@ -94,9 +127,21 @@ export interface IStorage {
   getApplicationsByEmail(email: string): Promise<(Application & { job: Job })[]>;
   getApplicationsByUserId(userId: number): Promise<(Application & { job: Job })[]>;
   withdrawApplication(applicationId: number, userId: number): Promise<boolean>;
-  getRecruiterApplications(recruiterId: number): Promise<(Application & { job: Job })[]>;
+  getRecruiterApplications(recruiterId: number): Promise<(Application & { job: Job; feedbackCount?: number })[]>;
   claimApplicationsForUser(userId: number, username: string): Promise<number>;
-  
+  getCandidatesForRecruiter(recruiterId: number, filters?: {
+    search?: string;
+    minRating?: number;
+    hasTags?: string[];
+  }): Promise<Array<{
+    email: string;
+    name: string;
+    jobsAppliedCount: number;
+    lastApplicationDate: Date;
+    highestRating: number | null;
+    allTags: string[];
+  }>>;
+
   // Admin operations
   getAdminStats(): Promise<{
     totalJobs: number;
@@ -111,6 +156,11 @@ export interface IStorage {
   getAllUsersWithDetails(): Promise<any[]>;
   updateUserRole(userId: number, role: string): Promise<User | undefined>;
   deleteJob(jobId: number): Promise<boolean>;
+  // Client operations
+  getClients(): Promise<Client[]>;
+  getClient(id: number): Promise<Client | undefined>;
+  createClient(client: InsertClient & { createdBy: number }): Promise<Client>;
+  updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined>;
   
   // Job analytics operations
   getJobAnalytics(jobId: number): Promise<JobAnalytics | undefined>;
@@ -120,6 +170,18 @@ export interface IStorage {
   updateConversionRate(jobId: number): Promise<JobAnalytics | undefined>;
   updateJobAnalytics(jobId: number, updates: { aiScoreCache?: number; aiModelVersion?: string }): Promise<JobAnalytics | undefined>;
   getJobsWithAnalytics(userId?: number): Promise<any[]>;
+  getJobHealthSummary(userId?: number): Promise<JobHealthSummary[]>;
+  getAnalyticsNudges(userId?: number): Promise<{
+    jobsNeedingAttention: JobHealthSummary[];
+    staleCandidates: StaleCandidatesSummary[];
+  }>;
+  getClientAnalytics(userId?: number): Promise<Array<{
+    clientId: number;
+    clientName: string;
+    rolesCount: number;
+    totalApplications: number;
+    placementsCount: number;
+  }>>;
   
   // ATS: pipeline & interview
   getPipelineStages(): Promise<PipelineStage[]>;
@@ -141,6 +203,21 @@ export interface IStorage {
   createConsultant(consultant: InsertConsultant): Promise<Consultant>;
   updateConsultant(id: number, consultant: Partial<InsertConsultant>): Promise<Consultant | undefined>;
   deleteConsultant(id: number): Promise<boolean>;
+
+  // AI cross-job matching
+  getSimilarCandidatesForJob(jobId: number, recruiterId: number, options?: {
+    minFitScore?: number;
+    limit?: number;
+  }): Promise<Array<{
+    applicationId: number;
+    candidateName: string;
+    candidateEmail: string;
+    sourceJobId: number;
+    sourceJobTitle: string;
+    aiFitScore: number | null;
+    aiFitLabel: string | null;
+    currentStage: number | null;
+  }>>;
 }
 
 // Database storage implementation using Drizzle ORM
@@ -149,6 +226,10 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(users.username);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -185,7 +266,212 @@ export class DatabaseStorage implements IStorage {
   async getAllContactSubmissions(): Promise<ContactSubmission[]> {
     return db.select().from(contactSubmissions).orderBy(contactSubmissions.submittedAt);
   }
-  
+
+  // Client methods
+  async getClients(): Promise<Client[]> {
+    return db.select().from(clients).orderBy(clients.name);
+  }
+
+  async getClient(id: number): Promise<Client | undefined> {
+    const [client] = await db.select().from(clients).where(eq(clients.id, id));
+    return client || undefined;
+  }
+
+  async createClient(client: InsertClient & { createdBy: number }): Promise<Client> {
+    const [created] = await db
+      .insert(clients)
+      .values({
+        name: client.name,
+        domain: client.domain ?? null,
+        primaryContactName: client.primaryContactName ?? null,
+        primaryContactEmail: client.primaryContactEmail ?? null,
+        notes: client.notes ?? null,
+        createdBy: client.createdBy,
+      })
+      .returning();
+    return created;
+  }
+
+  async updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined> {
+    const updates: Partial<Client> = {};
+
+    if (client.name !== undefined) updates.name = client.name;
+    if (client.domain !== undefined) updates.domain = client.domain;
+    if (client.primaryContactName !== undefined) updates.primaryContactName = client.primaryContactName;
+    if (client.primaryContactEmail !== undefined) updates.primaryContactEmail = client.primaryContactEmail;
+    if (client.notes !== undefined) updates.notes = client.notes;
+
+    if (Object.keys(updates).length === 0) {
+      const existing = await this.getClient(id);
+      return existing;
+    }
+
+    const [updated] = await db
+      .update(clients)
+      .set(updates)
+      .where(eq(clients.id, id))
+      .returning();
+
+    return updated || undefined;
+  }
+
+  // Client Shortlist methods
+  async createClientShortlist(data: {
+    clientId: number;
+    jobId: number;
+    applicationIds: number[];
+    title?: string;
+    message?: string;
+    expiresAt?: Date;
+    createdBy: number;
+  }): Promise<ClientShortlist> {
+    // Generate secure random token (32 bytes = 64 hex chars)
+    const { randomBytes } = await import('crypto');
+    const token = randomBytes(32).toString('hex');
+
+    // Create shortlist
+    const [shortlist] = await db
+      .insert(clientShortlists)
+      .values({
+        clientId: data.clientId,
+        jobId: data.jobId,
+        token,
+        title: data.title ?? null,
+        message: data.message ?? null,
+        expiresAt: data.expiresAt ?? null,
+        createdBy: data.createdBy,
+      })
+      .returning();
+
+    // Create shortlist items
+    const itemsToInsert = data.applicationIds.map((applicationId, index) => ({
+      shortlistId: shortlist.id,
+      applicationId,
+      position: index,
+      notes: null,
+    }));
+
+    await db.insert(clientShortlistItems).values(itemsToInsert);
+
+    return shortlist;
+  }
+
+  async getClientShortlistByToken(token: string): Promise<{
+    shortlist: ClientShortlist | null;
+    client: Client | null;
+    job: Job | null;
+    items: Array<{
+      application: Application;
+      position: number;
+      notes: string | null;
+    }>;
+  }> {
+    // Get shortlist
+    const [shortlist] = await db
+      .select()
+      .from(clientShortlists)
+      .where(eq(clientShortlists.token, token));
+
+    if (!shortlist) {
+      return { shortlist: null, client: null, job: null, items: [] };
+    }
+
+    // Check if expired
+    if (shortlist.expiresAt && new Date() > new Date(shortlist.expiresAt)) {
+      // Mark as expired
+      await db
+        .update(clientShortlists)
+        .set({ status: 'expired' })
+        .where(eq(clientShortlists.id, shortlist.id));
+
+      return { shortlist: null, client: null, job: null, items: [] };
+    }
+
+    // Get client
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, shortlist.clientId));
+
+    // Get job
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, shortlist.jobId));
+
+    // Get shortlist items with applications
+    const itemsData = await db
+      .select({
+        applicationId: clientShortlistItems.applicationId,
+        position: clientShortlistItems.position,
+        notes: clientShortlistItems.notes,
+        application: applications,
+      })
+      .from(clientShortlistItems)
+      .innerJoin(applications, eq(applications.id, clientShortlistItems.applicationId))
+      .where(eq(clientShortlistItems.shortlistId, shortlist.id))
+      .orderBy(clientShortlistItems.position);
+
+    const items = itemsData.map((item: { applicationId: number; position: number; notes: string | null; application: Application }) => ({
+      application: item.application,
+      position: item.position,
+      notes: item.notes,
+    }));
+
+    return {
+      shortlist,
+      client: client || null,
+      job: job || null,
+      items,
+    };
+  }
+
+  async addClientFeedback(data: InsertClientFeedback & {
+    clientId: number;
+    shortlistId?: number;
+  }): Promise<ClientFeedback> {
+    const [feedback] = await db
+      .insert(clientFeedback)
+      .values({
+        applicationId: data.applicationId,
+        clientId: data.clientId,
+        shortlistId: data.shortlistId ?? null,
+        recommendation: data.recommendation,
+        notes: data.notes ?? null,
+        rating: data.rating ?? null,
+      })
+      .returning();
+
+    return feedback;
+  }
+
+  async getClientFeedbackForApplication(applicationId: number): Promise<ClientFeedback[]> {
+    const feedback = await db
+      .select()
+      .from(clientFeedback)
+      .where(eq(clientFeedback.applicationId, applicationId))
+      .orderBy(desc(clientFeedback.createdAt));
+
+    return feedback;
+  }
+
+  async getClientShortlistsByJob(jobId: number): Promise<Array<ClientShortlist & { client: Client | null }>> {
+    const shortlists = await db
+      .select({
+        shortlist: clientShortlists,
+        client: clients,
+      })
+      .from(clientShortlists)
+      .leftJoin(clients, eq(clients.id, clientShortlists.clientId))
+      .where(eq(clientShortlists.jobId, jobId))
+      .orderBy(desc(clientShortlists.createdAt));
+
+    return shortlists.map((row: { shortlist: ClientShortlist; client: Client | null }) => ({
+      ...row.shortlist,
+      client: row.client,
+    }));
+  }
+
   // Job methods
   async createJob(job: InsertJob & { postedBy: number }): Promise<Job> {
     // Generate SEO-friendly slug from title
@@ -354,21 +640,32 @@ export class DatabaseStorage implements IStorage {
     return log;
   }
   
-  async getJobsByUser(userId: number): Promise<(Job & { applicationCount: number })[]> {
+  async getJobsByUser(userId: number): Promise<(Job & { applicationCount: number; hiringManager?: { id: number; firstName: string | null; lastName: string | null; username: string }; clientName?: string | null })[]> {
     const results = await db
       .select({
         job: jobs,
-        applicationCount: sql<number>`COUNT(${applications.id})`,
+        applicationCount: sql<number>`COUNT(DISTINCT ${applications.id})`,
+        hiringManager: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+        },
+        clientName: clients.name,
       })
       .from(jobs)
       .leftJoin(applications, eq(applications.jobId, jobs.id))
+      .leftJoin(users, eq(jobs.hiringManagerId, users.id))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
       .where(eq(jobs.postedBy, userId))
-      .groupBy(jobs.id)
+      .groupBy(jobs.id, users.id, users.firstName, users.lastName, users.username, clients.id, clients.name)
       .orderBy(desc(jobs.createdAt));
 
     return results.map((row: any) => ({
       ...row.job,
       applicationCount: row.applicationCount ?? 0,
+      hiringManager: row.hiringManager?.id ? row.hiringManager : undefined,
+      clientName: row.clientName ?? null,
     }));
   }
   
@@ -670,7 +967,7 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount || 0) > 0;
   }
 
-  async getRecruiterApplications(recruiterId: number): Promise<(Application & { job: Job })[]> {
+  async getRecruiterApplications(recruiterId: number): Promise<(Application & { job: Job; feedbackCount?: number })[]> {
     const results = await db
       .select({
         id: applications.id,
@@ -681,6 +978,7 @@ export class DatabaseStorage implements IStorage {
         coverLetter: applications.coverLetter,
         resumeUrl: applications.resumeUrl,
         currentStage: applications.currentStage,
+        rating: applications.rating,
         // AI fit fields for recruiter views
         aiFitScore: applications.aiFitScore,
         aiFitLabel: applications.aiFitLabel,
@@ -696,6 +994,7 @@ export class DatabaseStorage implements IStorage {
         downloadedAt: applications.downloadedAt,
         appliedAt: applications.appliedAt,
         updatedAt: applications.updatedAt,
+        feedbackCount: sql<number>`COALESCE(COUNT(DISTINCT ${applicationFeedback.id}), 0)`,
         job: {
           id: jobs.id,
           title: jobs.title,
@@ -716,12 +1015,15 @@ export class DatabaseStorage implements IStorage {
       })
       .from(applications)
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .leftJoin(applicationFeedback, eq(applicationFeedback.applicationId, applications.id))
       .where(eq(jobs.postedBy, recruiterId))
+      .groupBy(applications.id, jobs.id)
       .orderBy(desc(applications.appliedAt));
 
     return results.map((result: any) => ({
       ...result,
-      job: result.job
+      job: result.job,
+      feedbackCount: result.feedbackCount ?? 0
     }));
   }
 
@@ -739,6 +1041,75 @@ export class DatabaseStorage implements IStorage {
       console.error('[claimApplicationsForUser] error:', err);
       return 0;
     }
+  }
+
+  async getCandidatesForRecruiter(
+    recruiterId: number,
+    filters?: {
+      search?: string;
+      minRating?: number;
+      hasTags?: string[];
+    }
+  ): Promise<Array<{
+    email: string;
+    name: string;
+    jobsAppliedCount: number;
+    lastApplicationDate: Date;
+    highestRating: number | null;
+    allTags: string[];
+  }>> {
+    // Build the SQL query with aggregation
+    let query = sql`
+      SELECT
+        a.email,
+        a.name,
+        COUNT(DISTINCT a.job_id)::int as jobs_applied_count,
+        MAX(a.applied_at) as last_application_date,
+        MAX(a.rating)::int as highest_rating,
+        ARRAY_AGG(DISTINCT unnest(a.tags)) FILTER (WHERE a.tags IS NOT NULL AND array_length(a.tags, 1) > 0) as all_tags
+      FROM applications a
+      INNER JOIN jobs j ON a.job_id = j.id
+      WHERE j.posted_by = ${recruiterId}
+    `;
+
+    // Add search filter
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      query = sql`${query} AND (LOWER(a.name) LIKE ${searchTerm} OR LOWER(a.email) LIKE ${searchTerm})`;
+    }
+
+    // Group by email and name
+    query = sql`${query} GROUP BY a.email, a.name`;
+
+    // Add filters that apply after aggregation
+    if (filters?.minRating !== undefined) {
+      query = sql`${query} HAVING MAX(a.rating) >= ${filters.minRating}`;
+    }
+
+    // Order by last application date (most recent first)
+    query = sql`${query} ORDER BY last_application_date DESC`;
+
+    const results: any[] = await db.execute(query);
+
+    // Post-process results to filter by tags if needed
+    let candidates = results;
+
+    if (filters?.hasTags && filters.hasTags.length > 0) {
+      candidates = candidates.filter((candidate: any) => {
+        if (!candidate.all_tags) return false;
+        const candidateTags = candidate.all_tags || [];
+        return filters.hasTags!.some(tag => candidateTags.includes(tag));
+      });
+    }
+
+    return candidates.map((row: any) => ({
+      email: row.email,
+      name: row.name,
+      jobsAppliedCount: row.jobs_applied_count || 0,
+      lastApplicationDate: new Date(row.last_application_date),
+      highestRating: row.highest_rating,
+      allTags: row.all_tags || []
+    }));
   }
 
   // ============= PHASE 5: ADMIN SUPER DASHBOARD METHODS =============
@@ -1088,6 +1459,8 @@ export class DatabaseStorage implements IStorage {
         createdAt: jobs.createdAt,
         isActive: jobs.isActive,
         status: jobs.status,
+         clientId: jobs.clientId,
+         clientName: clients.name,
         postedBy: jobs.postedBy,
         postedByUser: {
           id: users.id,
@@ -1103,7 +1476,8 @@ export class DatabaseStorage implements IStorage {
       })
       .from(jobs)
       .innerJoin(users, eq(jobs.postedBy, users.id))
-      .leftJoin(jobAnalytics, eq(jobs.id, jobAnalytics.jobId));
+      .leftJoin(jobAnalytics, eq(jobs.id, jobAnalytics.jobId))
+      .leftJoin(clients, eq(jobs.clientId, clients.id));
 
     if (userId) {
       query = query.where(eq(jobs.postedBy, userId)) as any;
@@ -1113,7 +1487,228 @@ export class DatabaseStorage implements IStorage {
 
     return results.map((row: any) => ({
       ...row,
-      analytics: row.analytics || { views: 0, applyClicks: 0, conversionRate: "0.00" }
+      analytics: row.analytics || { views: 0, applyClicks: 0, conversionRate: "0.00" },
+      clientId: row.clientId ?? null,
+      clientName: row.clientName ?? null,
+    }));
+  }
+
+  async getJobHealthSummary(userId?: number): Promise<JobHealthSummary[]> {
+    const now = new Date();
+
+    let query = db
+      .select({
+        jobId: jobs.id,
+        jobTitle: jobs.title,
+        isActive: jobs.isActive,
+        jobStatus: jobs.status,
+        createdAt: jobs.createdAt,
+        conversionRate: jobAnalytics.conversionRate,
+        totalApplications: sql<number>`COUNT(${applications.id})::int`,
+        lastApplicationAt: sql<Date | null>`MAX(${applications.appliedAt})`,
+      })
+      .from(jobs)
+      .leftJoin(jobAnalytics, eq(jobs.id, jobAnalytics.jobId))
+      .leftJoin(applications, eq(applications.jobId, jobs.id));
+
+    if (userId) {
+      query = query.where(eq(jobs.postedBy, userId)) as any;
+    }
+
+    const rows = await query
+      .groupBy(
+        jobs.id,
+        jobs.title,
+        jobs.isActive,
+        jobs.status,
+        jobs.createdAt,
+        jobAnalytics.conversionRate,
+      )
+      .orderBy(desc(jobs.createdAt));
+
+    return rows.map((row: any): JobHealthSummary => {
+      const createdAt: Date = row.createdAt;
+      const daysSincePosted = Math.max(
+        0,
+        Math.round((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)),
+      );
+
+      const lastApplicationAt: Date | null = row.lastApplicationAt;
+      const daysSinceLastApplication = lastApplicationAt
+        ? Math.max(
+            0,
+            Math.round(
+              (now.getTime() - lastApplicationAt.getTime()) / (1000 * 60 * 60 * 24),
+            ),
+          )
+        : null;
+
+      const conversionRateRaw = row.conversionRate;
+      const conversionRate =
+        conversionRateRaw != null ? parseFloat(String(conversionRateRaw)) : 0;
+
+      const totalApplications: number = row.totalApplications ?? 0;
+      const isActive: boolean = row.isActive;
+      const jobStatus: string = row.jobStatus;
+
+      let status: JobHealthStatus = "green";
+      let reason = "Healthy pipeline";
+
+      if (!isActive) {
+        status = "red";
+        reason = "Job is inactive";
+      } else if (jobStatus !== "approved") {
+        status = "amber";
+        reason = "Job not yet approved";
+      } else if (totalApplications === 0 && daysSincePosted > 7) {
+        status = "red";
+        reason = "No applications after the first week";
+      } else if (totalApplications < 3 && daysSincePosted > 14) {
+        status = "red";
+        reason = "Very low application volume for job age";
+      } else if (
+        daysSinceLastApplication !== null &&
+        daysSinceLastApplication > 14
+      ) {
+        status = "amber";
+        reason = "No new applications in the last 14 days";
+      } else if (conversionRate < 5 && totalApplications >= 5) {
+        status = "amber";
+        reason = "Low conversion from views to applications";
+      }
+
+      return {
+        jobId: row.jobId,
+        jobTitle: row.jobTitle,
+        isActive,
+        status,
+        reason,
+        totalApplications,
+        daysSincePosted,
+        daysSinceLastApplication,
+        conversionRate,
+      };
+    });
+  }
+
+  async getAnalyticsNudges(
+    userId?: number,
+  ): Promise<{
+    jobsNeedingAttention: JobHealthSummary[];
+    staleCandidates: StaleCandidatesSummary[];
+  }> {
+    const jobHealth = await this.getJobHealthSummary(userId);
+    const jobsNeedingAttention = jobHealth.filter((job) => job.status !== "green");
+
+    const now = new Date();
+    const STALE_DAYS = 10;
+    const staleThresholdMs = STALE_DAYS * 24 * 60 * 60 * 1000;
+
+    let query = db
+      .select({
+        jobId: jobs.id,
+        jobTitle: jobs.title,
+        applicationId: applications.id,
+        status: applications.status,
+        isActive: jobs.isActive,
+        stageChangedAt: applications.stageChangedAt,
+        appliedAt: applications.appliedAt,
+      })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.jobId, jobs.id));
+
+    if (userId) {
+      query = query.where(eq(jobs.postedBy, userId)) as any;
+    }
+
+    const rows = await query;
+
+    const staleMap = new Map<
+      number,
+      { jobTitle: string; count: number; oldestStaleMs: number }
+    >();
+
+    for (const row of rows as any[]) {
+      if (!row.isActive) continue;
+      if (row.status === "rejected") continue;
+
+      const baseDate: Date | null = row.stageChangedAt || row.appliedAt;
+      if (!baseDate) continue;
+
+      const diffMs = now.getTime() - new Date(baseDate).getTime();
+      if (diffMs < staleThresholdMs) continue;
+
+      const existing = staleMap.get(row.jobId);
+      if (!existing) {
+        staleMap.set(row.jobId, {
+          jobTitle: row.jobTitle,
+          count: 1,
+          oldestStaleMs: diffMs,
+        });
+      } else {
+        existing.count += 1;
+        if (diffMs > existing.oldestStaleMs) {
+          existing.oldestStaleMs = diffMs;
+        }
+      }
+    }
+
+    const staleCandidates: StaleCandidatesSummary[] = Array.from(
+      staleMap.entries(),
+    ).map(([jobId, data]) => ({
+      jobId,
+      jobTitle: data.jobTitle,
+      count: data.count,
+      oldestStaleDays: Math.max(
+        0,
+        Math.round(data.oldestStaleMs / (1000 * 60 * 60 * 24)),
+      ),
+    }));
+
+    staleCandidates.sort((a, b) => b.count - a.count);
+
+    return {
+      jobsNeedingAttention,
+      staleCandidates,
+    };
+  }
+
+  async getClientAnalytics(
+    userId?: number,
+  ): Promise<
+    Array<{
+      clientId: number;
+      clientName: string;
+      rolesCount: number;
+      totalApplications: number;
+      placementsCount: number;
+    }>
+  > {
+    let query = db
+      .select({
+        clientId: clients.id,
+        clientName: clients.name,
+        rolesCount: sql<number>`COUNT(DISTINCT ${jobs.id})::int`,
+        totalApplications: sql<number>`COUNT(${applications.id})::int`,
+      })
+      .from(clients)
+      .leftJoin(jobs, eq(jobs.clientId, clients.id))
+      .leftJoin(applications, eq(applications.jobId, jobs.id));
+
+    if (userId) {
+      query = query.where(eq(jobs.postedBy, userId)) as any;
+    }
+
+    const rows = await query
+      .groupBy(clients.id, clients.name)
+      .orderBy(clients.name);
+
+    return rows.map((row: any) => ({
+      clientId: row.clientId,
+      clientName: row.clientName,
+      rolesCount: row.rolesCount ?? 0,
+      totalApplications: row.totalApplications ?? 0,
+      placementsCount: 0,
     }));
   }
 
@@ -1280,6 +1875,60 @@ export class DatabaseStorage implements IStorage {
   async deleteConsultant(id: number): Promise<boolean> {
     const result = await db.delete(consultants).where(eq(consultants.id, id));
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  // AI cross-job matching
+  async getSimilarCandidatesForJob(
+    jobId: number,
+    recruiterId: number,
+    options?: { minFitScore?: number; limit?: number }
+  ): Promise<Array<{
+    applicationId: number;
+    candidateName: string;
+    candidateEmail: string;
+    sourceJobId: number;
+    sourceJobTitle: string;
+    aiFitScore: number | null;
+    aiFitLabel: string | null;
+    currentStage: number | null;
+  }>> {
+    const minFit = options?.minFitScore ?? 70;
+    const limit = options?.limit ?? 20;
+
+    // 1. Load target job, ensure it belongs to this recruiter
+    const job = await this.getJob(jobId);
+    if (!job) {
+      throw new Error("Job not found");
+    }
+
+    // 2. Query candidates from other jobs with overlapping skills and high fit
+    const results = await db
+      .select({
+        applicationId: applications.id,
+        candidateName: applications.name,
+        candidateEmail: applications.email,
+        sourceJobId: jobs.id,
+        sourceJobTitle: jobs.title,
+        aiFitScore: applications.aiFitScore,
+        aiFitLabel: applications.aiFitLabel,
+        currentStage: applications.currentStage,
+      })
+      .from(applications)
+      .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .where(
+        and(
+          eq(jobs.postedBy, recruiterId),
+          sql`${jobs.id} <> ${jobId}`,
+          sql`${applications.aiFitScore} IS NOT NULL AND ${applications.aiFitScore} >= ${minFit}`,
+          job.skills && job.skills.length > 0
+            ? sql`${jobs.skills} && ${job.skills}` // array overlap operator
+            : sql`TRUE`
+        )
+      )
+      .orderBy(desc(applications.aiFitScore))
+      .limit(limit);
+
+    return results;
   }
 }
 

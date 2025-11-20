@@ -2,20 +2,23 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { sql, eq, and } from "drizzle-orm";
-import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, type InsertEmailTemplate, applications, pipelineStages, applicationStageHistory, jobs, emailTemplates } from "@shared/schema";
+import { sql, eq, and, inArray } from "drizzle-orm";
+import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruiterAddApplicationSchema, insertPipelineStageSchema, insertEmailTemplateSchema, insertApplicationFeedbackSchema, insertClientSchema, insertClientShortlistSchema, insertClientFeedbackSchema, type InsertEmailTemplate, type InsertClient, applications, pipelineStages, applicationStageHistory, jobs, emailTemplates, candidateResumes, userAiUsage, applicationFeedback, clientShortlistItems, clients, clientShortlists } from "@shared/schema";
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
 import { upload, uploadToGCS, getSignedDownloadUrl } from "./gcs-storage";
 import rateLimit from "express-rate-limit";
-import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled } from "./aiJobAnalyzer";
+import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled, generateCandidateSummary, generateEmailDraft } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
 import { generateJobsSitemapXML } from "./seoUtils";
+import { generateInterviewICS, getICSFilename } from "./lib/icsGenerator";
+import { getHiringMetrics } from "./lib/analyticsHelper";
 import helmet from "helmet";
 import { registerFormsRoutes } from "./forms.routes";
 import { registerTestRunnerRoutes } from "./testRunner.routes";
 import { registerAIRoutes } from "./ai.routes";
+import { aiAnalysisRateLimit } from "./rateLimit";
 // Import csrf-csrf with compatibility for CJS/ESM builds
 import { createRequire } from "module";
 import { randomBytes } from "crypto";
@@ -30,12 +33,20 @@ const updateEmailTemplateSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+const updateClientSchema = insertClientSchema.partial();
+
 // Be lenient: allow date-only (YYYY-MM-DD) or full ISO datetime; empty strings treated as undefined
 const scheduleInterviewSchema = z.object({
   date: z.string().optional(),
   time: z.string().optional(),
   location: z.string().optional(),
   notes: z.string().optional(),
+});
+
+const emailDraftSchema = z.object({
+  templateId: z.number().int().positive(),
+  applicationId: z.number().int().positive(),
+  tone: z.enum(['friendly', 'formal']).optional().default('friendly'),
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -162,16 +173,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     message: { error: 'Job posting limit reached (10/day). Try again tomorrow.' },
     standardHeaders: true,
     legacyHeaders: false,
-  });
-
-  // Rate limiting for AI analysis - per day per user
-  const aiAnalysisRateLimit = rateLimit({
-    windowMs: 24 * 60 * 60 * 1000, // 24 hours
-    max: 20, // 20 AI requests per day per user
-    message: { error: "AI analysis limit reached (20/day). Try again tomorrow." },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => req.user?.id?.toString() || req.ip || 'anonymous',
   });
 
   // Rate limiting for recruiter-add - 50 candidates per day per recruiter
@@ -357,8 +358,371 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============= CLIENT MANAGEMENT ROUTES =============
+
+  // Get all clients (recruiter/admin)
+  app.get("/api/clients", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+      const clients = await storage.getClients();
+
+      const filtered = search
+        ? clients.filter((client) => {
+            const haystack = `${client.name} ${client.domain ?? ''} ${client.primaryContactName ?? ''} ${client.primaryContactEmail ?? ''}`.toLowerCase();
+            return haystack.includes(search.toLowerCase());
+          })
+        : clients;
+
+      res.json(filtered);
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Create a new client
+  app.post("/api/clients", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const body = insertClientSchema.parse(req.body as InsertClient);
+      const client = await storage.createClient({
+        ...body,
+        createdBy: req.user!.id,
+      });
+      res.status(201).json(client);
+      return;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          error: 'Validation error',
+          details: error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        });
+        return;
+      }
+      next(error);
+    }
+  });
+
+  // Update an existing client
+  app.patch("/api/clients/:id", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const clientId = Number(idParam);
+      if (!Number.isFinite(clientId) || clientId <= 0 || !Number.isInteger(clientId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
+
+      const parsed = updateClientSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({
+          error: 'Validation error',
+          details: parsed.error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        });
+        return;
+      }
+
+      const updates = parsed.data as Partial<InsertClient>;
+      const updated = await storage.updateClient(clientId, updates);
+      if (!updated) {
+        res.status(404).json({ error: 'Client not found' });
+        return;
+      }
+
+      res.json(updated);
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // ============= CLIENT SHORTLIST ROUTES =============
+
+  /**
+   * POST /api/client-shortlists
+   * Create a new client shortlist for sharing candidates
+   * Requires: recruiter or admin role
+   */
+  app.post("/api/client-shortlists", doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const body = insertClientShortlistSchema.parse(req.body);
+
+      // Verify client exists and job has that clientId
+      const client = await storage.getClient(body.clientId);
+      if (!client) {
+        res.status(404).json({ error: 'Client not found' });
+        return;
+      }
+
+      const job = await storage.getJob(body.jobId);
+      if (!job) {
+        res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      if (job.clientId !== body.clientId) {
+        res.status(400).json({ error: 'Job is not associated with this client' });
+        return;
+      }
+
+      // Create shortlist
+      const shortlist = await storage.createClientShortlist({
+        clientId: body.clientId,
+        jobId: body.jobId,
+        applicationIds: body.applicationIds,
+        ...(body.title ? { title: body.title } : {}),
+        ...(body.message ? { message: body.message } : {}),
+        ...(body.expiresAt ? { expiresAt: new Date(body.expiresAt) } : {}),
+        createdBy: req.user!.id,
+      });
+
+      // Return shortlist with public URL
+      const publicUrl = `/client-shortlist/${shortlist.token}`;
+      res.status(201).json({
+        ...shortlist,
+        publicUrl,
+        fullUrl: `${req.protocol}://${req.get('host')}${publicUrl}`,
+      });
+      return;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          error: 'Validation error',
+          details: error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        });
+        return;
+      }
+      next(error);
+    }
+  });
+
+  /**
+   * GET /client-shortlist/:token
+   * View a client shortlist (public, no auth required)
+   */
+  app.get("/client-shortlist/:token", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        res.status(400).json({ error: 'Missing token' });
+        return;
+      }
+
+      const shortlistData = await storage.getClientShortlistByToken(token);
+
+      if (!shortlistData.shortlist || !shortlistData.client || !shortlistData.job) {
+        res.status(410).json({ error: 'Shortlist not found or expired' });
+        return;
+      }
+
+      // Return sanitized data (no internal IDs, emails, etc.)
+      const candidates = shortlistData.items.map((item, index) => ({
+        id: item.application.id,
+        name: item.application.name,
+        email: item.application.email,
+        phone: item.application.phone || null,
+        position: item.position,
+        notes: item.notes,
+        resumeUrl: item.application.resumeUrl || null,
+        coverLetter: item.application.coverLetter || null,
+        appliedAt: item.application.appliedAt,
+      }));
+
+      res.json({
+        title: shortlistData.shortlist.title || shortlistData.job.title,
+        message: shortlistData.shortlist.message,
+        client: {
+          name: shortlistData.client.name,
+        },
+        job: {
+          title: shortlistData.job.title,
+          location: shortlistData.job.location,
+          type: shortlistData.job.type,
+        },
+        candidates,
+        createdAt: shortlistData.shortlist.createdAt,
+        expiresAt: shortlistData.shortlist.expiresAt,
+      });
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * POST /client-shortlist/:token/feedback
+   * Submit client feedback on candidates (public, no auth required)
+   */
+  app.post("/client-shortlist/:token/feedback", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { token } = req.params;
+
+      if (!token) {
+        res.status(400).json({ error: 'Missing token' });
+        return;
+      }
+
+      // Verify shortlist exists and is active
+      const shortlistData = await storage.getClientShortlistByToken(token);
+
+      if (!shortlistData.shortlist || !shortlistData.client) {
+        res.status(410).json({ error: 'Shortlist not found or expired' });
+        return;
+      }
+
+      // Parse feedback (can be single or multiple)
+      const feedbackArray = Array.isArray(req.body) ? req.body : [req.body];
+
+      const savedFeedback = [];
+      for (const feedbackData of feedbackArray) {
+        const parsed = insertClientFeedbackSchema.parse(feedbackData);
+
+        // Verify application is in this shortlist
+        const inShortlist = shortlistData.items.some(
+          item => item.application.id === parsed.applicationId
+        );
+
+        if (!inShortlist) {
+          res.status(400).json({
+            error: `Application ${parsed.applicationId} is not in this shortlist`
+          });
+          return;
+        }
+
+        const feedback = await storage.addClientFeedback({
+          ...parsed,
+          clientId: shortlistData.client.id,
+          shortlistId: shortlistData.shortlist.id,
+        });
+
+        savedFeedback.push(feedback);
+      }
+
+      res.status(201).json({
+        success: true,
+        count: savedFeedback.length,
+        message: 'Feedback submitted successfully',
+      });
+      return;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          error: 'Validation error',
+          details: error.errors.map(e => ({
+            field: e.path.join('.'),
+            message: e.message,
+          })),
+        });
+        return;
+      }
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/applications/:id/client-feedback
+   * Get client feedback for an application (requires auth)
+  */
+  app.get("/api/applications/:id/client-feedback", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const applicationId = Number(req.params.id);
+
+      if (!Number.isFinite(applicationId) || applicationId <= 0) {
+        res.status(400).json({ error: 'Invalid application ID' });
+        return;
+      }
+
+      const feedback = await storage.getClientFeedbackForApplication(applicationId);
+      res.json(feedback);
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // ============= JOB MANAGEMENT ROUTES =============
-  
+
+  /**
+   * GET /api/jobs/:id/client-shortlists
+   * Returns all client shortlists for a given job (recruiter/admin)
+   */
+  app.get("/api/jobs/:id/client-shortlists", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
+        res.status(400).json({ error: 'Invalid job ID' });
+        return;
+      }
+
+      // Verify ownership if not admin
+      if (req.user!.role !== 'admin') {
+        const job = await storage.getJob(jobId);
+        if (!job || job.postedBy !== req.user!.id) {
+          res.status(403).json({ error: 'Access denied' });
+          return;
+        }
+      }
+
+      const shortlists = await storage.getClientShortlistsByJob(jobId);
+      const shortlistIds = shortlists.map((s) => s.id);
+
+      let countsByShortlistId: Record<number, number> = {};
+      if (shortlistIds.length > 0) {
+        const counts: { shortlistId: number; count: number }[] = await db
+          .select({
+            shortlistId: clientShortlistItems.shortlistId,
+            count: sql<number>`COUNT(${clientShortlistItems.id})::int`,
+          })
+          .from(clientShortlistItems)
+          .where(inArray(clientShortlistItems.shortlistId, shortlistIds))
+          .groupBy(clientShortlistItems.shortlistId);
+
+        countsByShortlistId = counts.reduce((acc: Record<number, number>, row) => {
+          acc[row.shortlistId] = row.count;
+          return acc;
+        }, {} as Record<number, number>);
+      }
+
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      const responsePayload = shortlists.map((s) => ({
+        id: s.id,
+        title: s.title,
+        message: s.message,
+        createdAt: s.createdAt,
+        expiresAt: s.expiresAt,
+        status: s.status,
+        client: s.client ? { id: s.client.id, name: s.client.name } : null,
+        candidateCount: countsByShortlistId[s.id] ?? 0,
+        publicUrl: `/client-shortlist/${s.token}`,
+        fullUrl: `${baseUrl}/client-shortlist/${s.token}`,
+      }));
+
+      res.json(responsePayload);
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Create a new job posting (recruiters/admins only)
   app.post("/api/jobs", jobPostingRateLimit, doubleCsrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -678,7 +1042,20 @@ New job application received:
           resumeUrl = `resume-${Date.now()}-${req.file.originalname}`;
         }
 
-        // Validate initial stage if provided
+        // Determine default pipeline stage for recruiter-added candidates (if stages are configured)
+        let defaultStageId: number | null = null;
+        try {
+          const stages = await storage.getPipelineStages();
+          if (stages && stages.length > 0) {
+            const explicitDefault = stages.find((s) => s.isDefault);
+            const chosen = explicitDefault ?? stages[0]!;
+            defaultStageId = chosen.id;
+          }
+        } catch (stageError) {
+          console.error("Failed to load pipeline stages for recruiter-add default assignment:", stageError);
+        }
+
+        // Validate initial stage if provided, otherwise fall back to default (if available)
         let initialStage: number | null = null;
         if (applicationData.currentStage) {
           const stageExists = await db.query.pipelineStages.findFirst({
@@ -691,6 +1068,8 @@ New job application received:
           }
 
           initialStage = applicationData.currentStage;
+        } else if (defaultStageId !== null) {
+          initialStage = defaultStageId;
         }
 
         // Create application with recruiter metadata
@@ -923,6 +1302,49 @@ New job application received:
       res.json(applications);
       return;
     } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get AI-suggested similar candidates from other jobs
+  app.get("/api/jobs/:id/ai-similar-candidates", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
+        res.status(400).json({ error: 'Invalid job ID' });
+        return;
+      }
+
+      const minFitScore = req.query.minFitScore
+        ? parseInt(String(req.query.minFitScore), 10)
+        : undefined;
+      const limit = req.query.limit
+        ? parseInt(String(req.query.limit), 10)
+        : undefined;
+
+      // Use recruiter ID for filtering (admins use their own ID for now)
+      const recruiterId = req.user!.id;
+
+      const options: { minFitScore?: number; limit?: number } = {};
+      if (typeof minFitScore === "number" && !Number.isNaN(minFitScore)) {
+        options.minFitScore = minFitScore;
+      }
+      if (typeof limit === "number" && !Number.isNaN(limit)) {
+        options.limit = limit;
+      }
+
+      const candidates = await storage.getSimilarCandidatesForJob(jobId, recruiterId, options);
+
+      res.json(candidates);
+      return;
+    } catch (error) {
+      console.error('[Similar Candidates] Error fetching similar candidates:', error);
       next(error);
     }
   });
@@ -1172,6 +1594,480 @@ New job application received:
     } catch (e) { next(e); }
   });
 
+  // Download interview calendar invite (ICS file)
+  app.get("/api/applications/:id/interview/ics", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
+
+      // Fetch application and job details
+      const application = await storage.getApplication(appId);
+      if (!application) {
+        res.status(404).json({ error: 'Application not found' });
+        return;
+      }
+
+      const job = await storage.getJob(application.jobId);
+      if (!job) {
+        res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      // Validate interview details exist
+      if (!application.interviewDate || !application.interviewTime) {
+        res.status(400).json({
+          error: 'Interview not scheduled',
+          message: 'Interview date and time must be set before generating calendar invite'
+        });
+        return;
+      }
+
+      // Get recruiter details
+      const recruiter = req.user;
+
+      // Convert interviewDate (timestamp) to YYYY-MM-DD format
+      const interviewDateString = new Date(application.interviewDate).toISOString().slice(0, 10);
+
+      // Build interview details object with optional fields only when defined
+      const interviewDetails: any = {
+        candidateName: application.name,
+        candidateEmail: application.email,
+        jobTitle: job.title,
+        interviewDate: interviewDateString,
+        interviewTime: application.interviewTime,
+        interviewLocation: application.interviewLocation || 'TBD',
+      };
+
+      if (recruiter?.firstName) {
+        interviewDetails.recruiterName = `${recruiter.firstName} ${recruiter.lastName || ''}`.trim();
+      }
+      if (recruiter?.username) {
+        interviewDetails.recruiterEmail = recruiter.username;
+      }
+      if (application.interviewNotes) {
+        interviewDetails.notes = application.interviewNotes;
+      }
+
+      // Generate ICS file
+      const icsContent = generateInterviewICS(interviewDetails);
+
+      // Generate filename
+      const filename = getICSFilename(job.title, application.name);
+
+      // Send ICS file as download
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(icsContent);
+      return;
+    } catch (error) {
+      console.error('[ICS Download] Error:', error);
+      next(error);
+    }
+  });
+
+  // Generate AI candidate summary
+  app.post("/api/applications/:id/ai-summary", aiAnalysisRateLimit, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
+
+      // Check if AI is enabled
+      if (!isAIEnabled()) {
+        res.status(503).json({
+          error: 'AI features not available',
+          message: 'AI summary generation is currently unavailable'
+        });
+        return;
+      }
+
+      // Fetch application
+      const application = await storage.getApplication(appId);
+      if (!application) {
+        res.status(404).json({ error: 'Application not found' });
+        return;
+      }
+
+      // Fetch job details
+      const job = await storage.getJob(application.jobId);
+      if (!job) {
+        res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      // Get resume text
+      let resumeText = '';
+
+      // First, try to get from candidate resume library if resumeId is set
+      if (application.resumeId) {
+        const resumeData = await db.query.candidateResumes.findFirst({
+          where: eq(candidateResumes.id, application.resumeId)
+        });
+        resumeText = resumeData?.extractedText || '';
+      }
+
+      // If still no text, return error (we need resume text to generate summary)
+      if (!resumeText) {
+        res.status(400).json({
+          error: 'Resume text not available',
+          message: 'Resume text is required to generate AI summary. Please ensure the candidate has uploaded a resume.'
+        });
+        return;
+      }
+
+      // Generate the AI summary
+      const startTime = Date.now();
+      const summaryResult = await generateCandidateSummary(
+        resumeText,
+        job.title,
+        job.description,
+        application.name
+      );
+      const durationMs = Date.now() - startTime;
+
+      // Calculate cost based on token usage
+      // Using Groq pricing for llama-3.3-70b-versatile
+      const PRICE_PER_1M_INPUT_TOKENS = 0.59;
+      const PRICE_PER_1M_OUTPUT_TOKENS = 0.79;
+      const costUsd = (
+        (summaryResult.tokensUsed.input / 1_000_000) * PRICE_PER_1M_INPUT_TOKENS +
+        (summaryResult.tokensUsed.output / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS
+      ).toFixed(8);
+
+      // Update application with AI summary
+      await db
+        .update(applications)
+        .set({
+          aiSummary: summaryResult.summary,
+          aiSummaryVersion: 1,
+          aiSuggestedAction: summaryResult.suggestedAction,
+          aiSuggestedActionReason: summaryResult.suggestedActionReason,
+          aiSummaryComputedAt: new Date(),
+        })
+        .where(eq(applications.id, appId));
+
+      // Track AI usage for billing/analytics
+      await db.insert(userAiUsage).values({
+        userId: req.user!.id,
+        kind: 'summary',
+        tokensIn: summaryResult.tokensUsed.input,
+        tokensOut: summaryResult.tokensUsed.output,
+        costUsd,
+        metadata: {
+          applicationId: appId,
+          durationMs,
+          jobTitle: job.title,
+          candidateName: application.name,
+        },
+      });
+
+      // Return the summary result
+      res.json({
+        message: 'AI summary generated successfully',
+        summary: {
+          text: summaryResult.summary,
+          suggestedAction: summaryResult.suggestedAction,
+          suggestedActionReason: summaryResult.suggestedActionReason,
+          strengths: summaryResult.strengths,
+          concerns: summaryResult.concerns,
+          keyHighlights: summaryResult.keyHighlights,
+          modelVersion: summaryResult.model_version,
+          computedAt: new Date(),
+          cost: parseFloat(costUsd),
+          durationMs,
+        }
+      });
+      return;
+    } catch (error) {
+      console.error('[AI Summary] Error:', error);
+      if (error instanceof Error) {
+        res.status(500).json({
+          error: 'AI summary generation failed',
+          message: error.message
+        });
+      } else {
+        res.status(500).json({ error: 'Internal server error' });
+      }
+      return;
+    }
+  });
+
+  // Get feedback for an application
+  app.get("/api/applications/:id/feedback", requireRole(['recruiter', 'admin', 'hiring_manager']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
+
+      // Fetch all feedback for this application
+      const feedback = await db
+        .select({
+          id: applicationFeedback.id,
+          applicationId: applicationFeedback.applicationId,
+          authorId: applicationFeedback.authorId,
+          overallScore: applicationFeedback.overallScore,
+          recommendation: applicationFeedback.recommendation,
+          notes: applicationFeedback.notes,
+          createdAt: applicationFeedback.createdAt,
+          updatedAt: applicationFeedback.updatedAt,
+        })
+        .from(applicationFeedback)
+        .where(eq(applicationFeedback.applicationId, appId))
+        .orderBy(sql`${applicationFeedback.createdAt} DESC`);
+
+      // Fetch author details for each feedback
+      const feedbackWithAuthors = await Promise.all(
+        feedback.map(async (fb: typeof feedback[0]) => {
+          const author = await storage.getUser(fb.authorId);
+          return {
+            ...fb,
+            author: author ? {
+              id: author.id,
+              firstName: author.firstName,
+              lastName: author.lastName,
+              role: author.role,
+            } : null,
+          };
+        })
+      );
+
+      res.json(feedbackWithAuthors);
+      return;
+    } catch (error) {
+      console.error('[Feedback Get] Error:', error);
+      next(error);
+    }
+  });
+
+  // Add feedback to an application
+  app.post("/api/applications/:id/feedback", doubleCsrfProtection, requireRole(['recruiter', 'admin', 'hiring_manager']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const appId = Number(idParam);
+      if (!Number.isFinite(appId) || appId <= 0 || !Number.isInteger(appId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
+
+      // Validate input
+      const validation = insertApplicationFeedbackSchema.safeParse({
+        ...req.body,
+        applicationId: appId,
+      });
+
+      if (!validation.success) {
+        res.status(400).json({
+          error: 'Validation error',
+          details: validation.error.errors,
+        });
+        return;
+      }
+
+      // Insert feedback
+      const [newFeedback] = await db
+        .insert(applicationFeedback)
+        .values({
+          applicationId: appId,
+          authorId: req.user!.id,
+          overallScore: validation.data.overallScore,
+          recommendation: validation.data.recommendation,
+          notes: validation.data.notes || null,
+        })
+        .returning();
+
+      // Fetch author details
+      const author = await storage.getUser(req.user!.id);
+
+      res.status(201).json({
+        message: 'Feedback added successfully',
+        feedback: {
+          ...newFeedback,
+          author: author ? {
+            id: author.id,
+            firstName: author.firstName,
+            lastName: author.lastName,
+            role: author.role,
+          } : null,
+        },
+      });
+      return;
+    } catch (error) {
+      console.error('[Feedback Add] Error:', error);
+      next(error);
+    }
+  });
+
+  // ===========================
+  // Analytics Endpoints
+  // ===========================
+
+  /**
+   * GET /api/analytics/hiring-metrics
+   * Get comprehensive hiring metrics: time-to-fill, time-in-stage, conversion rates
+   * Query params:
+   *   - startDate: ISO date string (e.g., 2024-01-01)
+   *   - endDate: ISO date string
+   *   - jobId: number (optional, filter by specific job)
+   */
+  app.get("/api/analytics/hiring-metrics", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { startDate, endDate, jobId } = req.query;
+
+      // Parse optional date parameters
+      let parsedStartDate: Date | undefined;
+      let parsedEndDate: Date | undefined;
+      let parsedJobId: number | undefined;
+
+      if (startDate && typeof startDate === 'string') {
+        parsedStartDate = new Date(startDate);
+        if (isNaN(parsedStartDate.getTime())) {
+          res.status(400).json({ error: 'Invalid startDate format' });
+          return;
+        }
+      }
+
+      if (endDate && typeof endDate === 'string') {
+        parsedEndDate = new Date(endDate);
+        if (isNaN(parsedEndDate.getTime())) {
+          res.status(400).json({ error: 'Invalid endDate format' });
+          return;
+        }
+      }
+
+      if (jobId) {
+        parsedJobId = Number(jobId);
+        if (!Number.isFinite(parsedJobId) || parsedJobId <= 0 || !Number.isInteger(parsedJobId)) {
+          res.status(400).json({ error: 'Invalid jobId parameter' });
+          return;
+        }
+      }
+
+      // Get metrics from analytics helper
+      const metrics = await getHiringMetrics(parsedStartDate, parsedEndDate, parsedJobId);
+
+      res.json(metrics);
+      return;
+    } catch (error) {
+      console.error('[Analytics] Error fetching hiring metrics:', error);
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/analytics/job-health
+   * GET /api/analytics/job-health
+   * Returns health summaries for all jobs for the current user.
+   */
+  app.get("/api/analytics/job-health", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const jobHealth = await storage.getJobHealthSummary(userId);
+      res.json(jobHealth);
+      return;
+    } catch (error) {
+      console.error('[Analytics] Error fetching job health:', error);
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/analytics/nudges
+   * Returns jobs needing attention and stale candidate counts for the current user.
+   */
+  app.get("/api/analytics/nudges", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const nudges = await storage.getAnalyticsNudges(userId);
+      res.json(nudges);
+      return;
+    } catch (error) {
+      console.error('[Analytics] Error fetching nudges:', error);
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/analytics/clients
+   * Returns aggregated metrics per client (roles, applications, placements)
+   */
+  app.get("/api/analytics/clients", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const metrics = await storage.getClientAnalytics(userId);
+      res.json(metrics);
+      return;
+    } catch (error) {
+      console.error('[Analytics] Error fetching client analytics:', error);
+      next(error);
+    }
+  });
+
+  // ===========================
+  // User Management Endpoints
+  // ===========================
+
+  /**
+   * GET /api/users
+   * Get list of users filtered by role
+   * Query params:
+   *   - role: string (optional, filter by specific role: 'hiring_manager', 'recruiter', etc.)
+   */
+  app.get("/api/users", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { role } = req.query;
+
+      // Fetch users from storage
+      const allUsers = await storage.getUsers();
+
+      // Filter by role if specified
+      let filteredUsers = allUsers;
+      if (role && typeof role === 'string') {
+        filteredUsers = allUsers.filter((u: typeof allUsers[0]) => u.role === role);
+      }
+
+      // Return sanitized user data (exclude password)
+      const sanitizedUsers = filteredUsers.map((user: typeof allUsers[0]) => ({
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      }));
+
+      res.json(sanitizedUsers);
+      return;
+    } catch (error) {
+      console.error('[Users] Error fetching users:', error);
+      next(error);
+    }
+  });
+
   // Schedule interview
   app.patch("/api/applications/:id/interview", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -1392,6 +2288,97 @@ New job application received:
       res.json({ success: true });
       return;
     } catch (e) { next(e); }
+  });
+
+  // Generate AI-drafted email from template
+  app.post("/api/email/draft", doubleCsrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      // Check if AI features are enabled
+      if (!isAIEnabled()) {
+        res.status(503).json({ error: 'AI features are not enabled. Please configure GROQ_API_KEY.' });
+        return;
+      }
+
+      // Validate request body
+      const parsed = emailDraftSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: 'Validation error', details: parsed.error.errors });
+        return;
+      }
+
+      const { templateId, applicationId, tone } = parsed.data;
+      const startTime = Date.now();
+
+      // 1. Fetch email template
+      const templates = await storage.getEmailTemplates();
+      const template = templates.find((t: any) => t.id === templateId);
+      if (!template) {
+        res.status(404).json({ error: 'Email template not found' });
+        return;
+      }
+
+      // 2. Fetch application
+      const application = await storage.getApplication(applicationId);
+      if (!application) {
+        res.status(404).json({ error: 'Application not found' });
+        return;
+      }
+
+      // 3. Fetch job details
+      const job = await storage.getJob(application.jobId);
+      if (!job) {
+        res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      // 4. Generate AI draft
+      const draftResult = await generateEmailDraft(
+        template.subject,
+        template.body,
+        application.name,
+        application.email,
+        job.title,
+        'VantaHire',
+        tone
+      );
+
+      const durationMs = Date.now() - startTime;
+
+      // 5. Calculate cost using Groq pricing for llama-3.3-70b-versatile
+      const PRICE_PER_1M_INPUT_TOKENS = 0.59;
+      const PRICE_PER_1M_OUTPUT_TOKENS = 0.79;
+      const costUsd = (
+        (draftResult.tokensUsed.input / 1_000_000) * PRICE_PER_1M_INPUT_TOKENS +
+        (draftResult.tokensUsed.output / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS
+      ).toFixed(8);
+
+      // 6. Track AI usage for billing/analytics
+      await db.insert(userAiUsage).values({
+        userId: req.user!.id,
+        kind: 'email_draft',
+        tokensIn: draftResult.tokensUsed.input,
+        tokensOut: draftResult.tokensUsed.output,
+        costUsd,
+        metadata: {
+          applicationId,
+          templateId,
+          jobTitle: job.title,
+          candidateName: application.name,
+          tone,
+          durationMs,
+        },
+      });
+
+      // 7. Return the drafted email
+      res.json({
+        subject: draftResult.subject,
+        body: draftResult.body,
+      });
+      return;
+    } catch (e) {
+      console.error('[Email Draft] Error generating AI draft:', e);
+      next(e);
+    }
   });
 
   // Automation settings - Get all settings
@@ -1973,6 +2960,40 @@ New job application received:
     try {
       const applications = await storage.getRecruiterApplications(req.user!.id);
       res.json(applications);
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Get global candidates view (aggregated by email)
+  app.get("/api/candidates", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { q: search, minRating, tags } = req.query;
+
+      const filters: {
+        search?: string;
+        minRating?: number;
+        hasTags?: string[];
+      } = {};
+
+      if (search && typeof search === 'string') {
+        filters.search = search;
+      }
+
+      if (minRating && typeof minRating === 'string') {
+        const rating = parseInt(minRating, 10);
+        if (!isNaN(rating) && rating >= 1 && rating <= 5) {
+          filters.minRating = rating;
+        }
+      }
+
+      if (tags && typeof tags === 'string') {
+        filters.hasTags = tags.split(',').map(tag => tag.trim()).filter(Boolean);
+      }
+
+      const candidates = await storage.getCandidatesForRecruiter(req.user!.id, filters);
+      res.json(candidates);
       return;
     } catch (error) {
       next(error);

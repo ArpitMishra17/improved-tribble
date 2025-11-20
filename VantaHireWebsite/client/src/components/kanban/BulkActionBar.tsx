@@ -48,6 +48,18 @@ export function BulkActionBar({
   const [selectedFormId, setSelectedFormId] = useState<string>("");
   const [formMessage, setFormMessage] = useState("");
 
+  // Helper to format template type labels
+  const templateTypeLabel = (type: string) => {
+    switch (type) {
+      case "application_received": return "App Received";
+      case "interview_invite": return "Interview";
+      case "status_update": return "Status Update";
+      case "offer_extended": return "Offer";
+      case "rejection": return "Rejection";
+      default: return "Custom";
+    }
+  };
+
   if (selectedCount === 0) return null;
 
   const handleMoveStage = async () => {
@@ -200,13 +212,42 @@ export function BulkActionBar({
                 <SelectValue placeholder="Select template" />
               </SelectTrigger>
               <SelectContent>
-                {emailTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.id.toString()}>
-                    {template.name}
-                  </SelectItem>
-                ))}
+                {emailTemplates
+                  .sort((a, b) => {
+                    // Sort defaults first
+                    if (a.isDefault && !b.isDefault) return -1;
+                    if (!a.isDefault && b.isDefault) return 1;
+                    return a.name.localeCompare(b.name);
+                  })
+                  .map((template) => (
+                    <SelectItem key={template.id} value={template.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <span>{template.name}</span>
+                        <span className="text-xs text-slate-500">
+                          ({templateTypeLabel(template.templateType)})
+                        </span>
+                        {template.isDefault && (
+                          <span className="text-xs font-medium text-green-600">(Default)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
+
+            {/* Template Preview */}
+            {selectedTemplateId && (() => {
+              const template = emailTemplates.find(t => t.id === parseInt(selectedTemplateId));
+              if (!template) return null;
+              const firstLine = template.body.split('\n')[0];
+              return (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-1">
+                  <p className="text-xs font-medium text-slate-700">Preview:</p>
+                  <p className="text-sm text-slate-900 font-medium">{template.subject}</p>
+                  <p className="text-xs text-slate-600 truncate">{firstLine || template.body.substring(0, 80)}...</p>
+                </div>
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button

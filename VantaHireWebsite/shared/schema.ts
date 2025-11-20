@@ -9,7 +9,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),
-  role: text("role").notNull().default("candidate"), // admin, recruiter, candidate
+  role: text("role").notNull().default("candidate"), // admin, recruiter, candidate, hiring_manager
   // AI features
   aiContentFreeUsed: boolean("ai_content_free_used").default(false),
   aiOnboardedAt: timestamp("ai_onboarded_at"),
@@ -26,6 +26,20 @@ export const contactSubmissions = pgTable("contact_submissions", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
+// Clients (for consulting/agency use-cases)
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  domain: text("domain"),
+  primaryContactName: text("primary_contact_name"),
+  primaryContactEmail: text("primary_contact_email"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+}, (table) => ({
+  nameIdx: index("clients_name_idx").on(table.name),
+}));
+
 export const jobs = pgTable("jobs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -35,6 +49,8 @@ export const jobs = pgTable("jobs", {
   skills: text("skills").array(),
   deadline: date("deadline"),
   postedBy: integer("posted_by").notNull().references(() => users.id),
+  hiringManagerId: integer("hiring_manager_id").references(() => users.id), // Optional hiring manager assigned to this job
+  clientId: integer("client_id").references(() => clients.id), // Optional client for agency use-cases
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isActive: boolean("is_active").notNull().default(false), // Only active after admin approval
   status: text("status").notNull().default('pending'), // pending, approved, declined
@@ -57,6 +73,8 @@ export const jobs = pgTable("jobs", {
   // Indexes for performance hotspots
   statusIdx: index("jobs_status_idx").on(table.status),
   postedByIdx: index("jobs_posted_by_idx").on(table.postedBy),
+  hiringManagerIdx: index("jobs_hiring_manager_idx").on(table.hiringManagerId),
+  clientIdIdx: index("jobs_client_id_idx").on(table.clientId),
   isActiveIdx: index("jobs_is_active_idx").on(table.isActive),
   slugIdx: index("jobs_slug_idx").on(table.slug),
   deactivatedAtIdx: index("jobs_deactivated_at_idx").on(table.deactivatedAt),
@@ -113,6 +131,12 @@ export const applications = pgTable("applications", {
   aiComputedAt: timestamp("ai_computed_at"),
   aiStaleReason: text("ai_stale_reason"), // 'resume_updated', 'job_updated', 'expired_ttl'
   aiDigestVersionUsed: integer("ai_digest_version_used"), // JD digest version used for this fit computation
+  // AI candidate summary
+  aiSummary: text("ai_summary"), // AI-generated summary of candidate strengths and fit
+  aiSummaryVersion: integer("ai_summary_version").default(1), // Model version for summary generation
+  aiSuggestedAction: text("ai_suggested_action"), // 'advance', 'hold', 'reject'
+  aiSuggestedActionReason: text("ai_suggested_action_reason"), // Reasoning for the suggested action
+  aiSummaryComputedAt: timestamp("ai_summary_computed_at"), // When the summary was generated
   resumeId: integer("resume_id").references(() => candidateResumes.id),
 }, (table) => ({
   // Indexes for ATS performance
@@ -172,6 +196,21 @@ export const applicationStageHistory = pgTable("application_stage_history", {
   changedAt: timestamp("changed_at").defaultNow().notNull(),
 });
 
+// ATS: Application feedback (for hiring managers)
+export const applicationFeedback = pgTable("application_feedback", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  authorId: integer("author_id").notNull().references(() => users.id), // User who provided feedback (hiring manager or recruiter)
+  overallScore: integer("overall_score").notNull(), // 1-5 rating
+  recommendation: text("recommendation").notNull(), // 'advance', 'hold', 'reject'
+  notes: text("notes"), // Detailed feedback notes
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  applicationIdIdx: index("application_feedback_application_id_idx").on(table.applicationId),
+  authorIdIdx: index("application_feedback_author_id_idx").on(table.authorId),
+}));
+
 // ATS: Email templates
 export const emailTemplates = pgTable("email_templates", {
   id: serial("id").primaryKey(),
@@ -223,6 +262,52 @@ export const consultants = pgTable("consultants", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// Client Shortlists: Agency feature to share candidate lists with clients
+export const clientShortlists = pgTable("client_shortlists", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  token: text("token").notNull().unique(), // Public access token
+  title: text("title"), // Optional custom title (defaults to job title)
+  message: text("message"), // Optional message to client
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+  status: text("status").notNull().default('active'), // 'active', 'expired', 'closed'
+}, (table) => ({
+  clientIdIdx: index("client_shortlists_client_id_idx").on(table.clientId),
+  jobIdIdx: index("client_shortlists_job_id_idx").on(table.jobId),
+  tokenIdx: index("client_shortlists_token_idx").on(table.token),
+}));
+
+export const clientShortlistItems = pgTable("client_shortlist_items", {
+  id: serial("id").primaryKey(),
+  shortlistId: integer("shortlist_id").notNull().references(() => clientShortlists.id, { onDelete: 'cascade' }),
+  applicationId: integer("application_id").notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  position: integer("position").notNull(), // Order in the list
+  notes: text("notes"), // Optional recruiter notes about this candidate
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  shortlistIdIdx: index("client_shortlist_items_shortlist_id_idx").on(table.shortlistId),
+  applicationIdIdx: index("client_shortlist_items_application_id_idx").on(table.applicationId),
+  shortlistIdPositionIdx: index("client_shortlist_items_shortlist_position_idx").on(table.shortlistId, table.position),
+}));
+
+export const clientFeedback = pgTable("client_feedback", {
+  id: serial("id").primaryKey(),
+  applicationId: integer("application_id").notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  clientId: integer("client_id").notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  shortlistId: integer("shortlist_id").references(() => clientShortlists.id, { onDelete: 'set null' }), // Track which shortlist generated this feedback
+  recommendation: text("recommendation").notNull(), // 'advance', 'reject', 'hold'
+  notes: text("notes"), // Client's feedback notes
+  rating: integer("rating"), // Optional 1-5 rating
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  applicationIdIdx: index("client_feedback_application_id_idx").on(table.applicationId),
+  clientIdIdx: index("client_feedback_client_id_idx").on(table.clientId),
+  shortlistIdIdx: index("client_feedback_shortlist_id_idx").on(table.shortlistId),
+}));
 
 // Forms Feature: Recruiter-sent candidate forms
 export const forms = pgTable("forms", {
@@ -314,7 +399,7 @@ export const candidateResumes = pgTable("candidate_resumes", {
 export const userAiUsage = pgTable("user_ai_usage", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  kind: text("kind").notNull(), // 'fit', 'content', 'role', 'feedback'
+  kind: text("kind").notNull(), // 'fit', 'content', 'role', 'feedback', 'summary'
   tokensIn: integer("tokens_in").notNull(),
   tokensOut: integer("tokens_out").notNull(),
   costUsd: decimal("cost_usd", { precision: 10, scale: 8 }).notNull(),
@@ -348,16 +433,26 @@ export const jobsRelations = relations(jobs, ({ one, many }) => ({
     fields: [jobs.postedBy],
     references: [users.id],
   }),
+  hiringManager: one(users, {
+    fields: [jobs.hiringManagerId],
+    references: [users.id],
+    relationName: "managedJobs",
+  }),
   reviewedBy: one(users, {
     fields: [jobs.reviewedBy],
     references: [users.id],
     relationName: "reviewedJobs",
+  }),
+  client: one(clients, {
+    fields: [jobs.clientId],
+    references: [clients.id],
   }),
   applications: many(applications),
   analytics: one(jobAnalytics, {
     fields: [jobs.id],
     references: [jobAnalytics.jobId],
   }),
+  shortlists: many(clientShortlists),
 }));
 
 export const applicationsRelations = relations(applications, ({ one, many }) => ({
@@ -374,6 +469,9 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
     references: [users.id],
   }),
   stageHistory: many(applicationStageHistory),
+  feedback: many(applicationFeedback),
+  clientFeedback: many(clientFeedback),
+  shortlistItems: many(clientShortlistItems),
 }));
 
 export const pipelineStagesRelations = relations(pipelineStages, ({ one, many }) => ({
@@ -399,6 +497,17 @@ export const applicationStageHistoryRelations = relations(applicationStageHistor
   }),
   changedByUser: one(users, {
     fields: [applicationStageHistory.changedBy],
+    references: [users.id],
+  }),
+}));
+
+export const applicationFeedbackRelations = relations(applicationFeedback, ({ one }) => ({
+  application: one(applications, {
+    fields: [applicationFeedback.applicationId],
+    references: [applications.id],
+  }),
+  author: one(users, {
+    fields: [applicationFeedback.authorId],
     references: [users.id],
   }),
 }));
@@ -448,6 +557,58 @@ export const jobAuditLogRelations = relations(jobAuditLog, ({ one }) => ({
   performedBy: one(users, {
     fields: [jobAuditLog.performedBy],
     references: [users.id],
+  }),
+}));
+
+export const clientsRelations = relations(clients, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [clients.createdBy],
+    references: [users.id],
+  }),
+  jobs: many(jobs),
+  shortlists: many(clientShortlists),
+  feedback: many(clientFeedback),
+}));
+
+export const clientShortlistsRelations = relations(clientShortlists, ({ one, many }) => ({
+  client: one(clients, {
+    fields: [clientShortlists.clientId],
+    references: [clients.id],
+  }),
+  job: one(jobs, {
+    fields: [clientShortlists.jobId],
+    references: [jobs.id],
+  }),
+  createdBy: one(users, {
+    fields: [clientShortlists.createdBy],
+    references: [users.id],
+  }),
+  items: many(clientShortlistItems),
+}));
+
+export const clientShortlistItemsRelations = relations(clientShortlistItems, ({ one }) => ({
+  shortlist: one(clientShortlists, {
+    fields: [clientShortlistItems.shortlistId],
+    references: [clientShortlists.id],
+  }),
+  application: one(applications, {
+    fields: [clientShortlistItems.applicationId],
+    references: [applications.id],
+  }),
+}));
+
+export const clientFeedbackRelations = relations(clientFeedback, ({ one }) => ({
+  application: one(applications, {
+    fields: [clientFeedback.applicationId],
+    references: [applications.id],
+  }),
+  client: one(clients, {
+    fields: [clientFeedback.clientId],
+    references: [clients.id],
+  }),
+  shortlist: one(clientShortlists, {
+    fields: [clientFeedback.shortlistId],
+    references: [clientShortlists.id],
   }),
 }));
 
@@ -540,6 +701,18 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick
   isDefault: true,
 });
 
+export const insertApplicationFeedbackSchema = createInsertSchema(applicationFeedback).pick({
+  applicationId: true,
+  overallScore: true,
+  recommendation: true,
+  notes: true,
+}).extend({
+  applicationId: z.number().int().positive(),
+  overallScore: z.number().int().min(1).max(5),
+  recommendation: z.enum(['advance', 'hold', 'reject']),
+  notes: z.string().max(2000).optional(),
+});
+
 export const insertConsultantSchema = createInsertSchema(consultants).pick({
   name: true,
   email: true,
@@ -558,6 +731,20 @@ export const insertConsultantSchema = createInsertSchema(consultants).pick({
   description: z.string().max(2000).optional(),
   photoUrl: z.string().url().optional(),
   isActive: z.boolean().optional(),
+});
+
+export const insertClientSchema = createInsertSchema(clients).pick({
+  name: true,
+  domain: true,
+  primaryContactName: true,
+  primaryContactEmail: true,
+  notes: true,
+}).extend({
+  name: z.string().min(1).max(200),
+  domain: z.string().max(200).optional(),
+  primaryContactName: z.string().max(200).optional(),
+  primaryContactEmail: z.string().email().optional(),
+  notes: z.string().max(2000).optional(),
 });
 
 // Insert schemas
@@ -585,6 +772,7 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   description: true,
   skills: true,
   deadline: true,
+  clientId: true,
 }).extend({
   title: z.string().min(1).max(100),
   location: z.string().min(1).max(100),
@@ -592,6 +780,7 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   description: z.string().min(10).max(5000),
   skills: z.array(z.string().min(1).max(50)).max(20).optional(),
   deadline: z.string().transform(str => new Date(str)).optional(),
+  clientId: z.number().int().positive().optional(),
 });
 
 export const insertApplicationSchema = createInsertSchema(applications).pick({
@@ -666,6 +855,9 @@ export type Application = typeof applications.$inferSelect;
 export type InsertUserProfile = z.infer<typeof insertUserProfileSchema>;
 export type UserProfile = typeof userProfiles.$inferSelect;
 
+export type Client = typeof clients.$inferSelect;
+export type InsertClient = z.infer<typeof insertClientSchema>;
+
 export type InsertJobAnalytics = z.infer<typeof insertJobAnalyticsSchema>;
 export type JobAnalytics = typeof jobAnalytics.$inferSelect;
 
@@ -679,12 +871,40 @@ export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 
 export type ApplicationStageHistory = typeof applicationStageHistory.$inferSelect;
 
+export type ApplicationFeedback = typeof applicationFeedback.$inferSelect;
+export type InsertApplicationFeedback = z.infer<typeof insertApplicationFeedbackSchema>;
+
 export type EmailAuditLog = typeof emailAuditLog.$inferSelect;
 
 export type AutomationSetting = typeof automationSettings.$inferSelect;
 
 export type Consultant = typeof consultants.$inferSelect;
 export type InsertConsultant = z.infer<typeof insertConsultantSchema>;
+
+// Client Shortlists: Insert schemas and types
+export const insertClientShortlistSchema = z.object({
+  clientId: z.number().int().positive(),
+  jobId: z.number().int().positive(),
+  title: z.string().max(200).optional(),
+  message: z.string().max(2000).optional(),
+  applicationIds: z.array(z.number().int().positive()).min(1).max(50), // 1-50 candidates
+  expiresAt: z.string().datetime().optional(),
+});
+
+export const insertClientFeedbackSchema = z.object({
+  applicationId: z.number().int().positive(),
+  recommendation: z.enum(['advance', 'reject', 'hold']),
+  notes: z.string().max(2000).optional(),
+  rating: z.number().int().min(1).max(5).optional(),
+});
+
+export type ClientShortlist = typeof clientShortlists.$inferSelect;
+export type InsertClientShortlist = z.infer<typeof insertClientShortlistSchema>;
+
+export type ClientShortlistItem = typeof clientShortlistItems.$inferSelect;
+
+export type ClientFeedback = typeof clientFeedback.$inferSelect;
+export type InsertClientFeedback = z.infer<typeof insertClientFeedbackSchema>;
 
 // Forms Feature: Insert schemas and types
 export const insertFormSchema = createInsertSchema(forms).pick({
@@ -757,7 +977,7 @@ export const insertUserAiUsageSchema = createInsertSchema(userAiUsage).pick({
   costUsd: true,
   metadata: true,
 }).extend({
-  kind: z.enum(['fit', 'content', 'role', 'feedback']),
+  kind: z.enum(['fit', 'content', 'role', 'feedback', 'summary']),
   tokensIn: z.number().int().min(0),
   tokensOut: z.number().int().min(0),
   costUsd: z.string(), // Decimal as string

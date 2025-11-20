@@ -9,6 +9,7 @@ import { KpiCard } from "@/components/dashboards/KpiCard";
 import { TimeSeriesChart } from "@/components/dashboards/TimeSeriesChart";
 import { FunnelChart } from "@/components/dashboards/FunnelChart";
 import { RecentApplicationsList } from "@/components/dashboards/RecentApplicationsList";
+import { HiringMetricsPanel } from "@/components/HiringMetricsPanel";
 
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
@@ -199,6 +200,9 @@ export default function RecruiterDashboard() {
             isLoading={applicationsLoading}
             onApplicationClick={(id) => setLocation("/applications")}
           />
+
+          {/* Hiring Metrics */}
+          <HiringMetricsPanel />
 
           {/* Quick Links */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

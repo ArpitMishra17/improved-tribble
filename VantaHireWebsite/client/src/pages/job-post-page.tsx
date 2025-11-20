@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { insertJobSchema } from "@shared/schema";
+import { insertJobSchema, type Client } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Plus, X, Briefcase, MapPin, Calendar, FileText, Tag } from "lucide-react";
 import { z } from "zod";
@@ -31,6 +31,8 @@ export default function JobPostPage() {
   });
   const [skills, setSkills] = useState<string[]>([]);
   const [newSkill, setNewSkill] = useState("");
+  const [hiringManagerId, setHiringManagerId] = useState<string>("");
+  const [clientId, setClientId] = useState<string>("");
 
   // Redirect if not authenticated or not a recruiter/admin
   if (!user) {
@@ -51,6 +53,26 @@ export default function JobPostPage() {
       </Layout>
     );
   }
+
+  // Fetch hiring managers for selection
+  const { data: hiringManagers = [] } = useQuery<Array<{ id: number; username: string; firstName: string | null; lastName: string | null; role: string }>>({
+    queryKey: ["/api/users", { role: "hiring_manager" }],
+    queryFn: async () => {
+      const response = await fetch("/api/users?role=hiring_manager", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch hiring managers");
+      return response.json();
+    },
+  });
+
+  // Fetch clients for selection (optional, for agencies)
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+    queryFn: async () => {
+      const response = await fetch("/api/clients", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch clients");
+      return response.json();
+    },
+  });
 
   const jobMutation = useMutation({
     mutationFn: async (data: typeof formData & { skills: string[] }) => {
@@ -93,6 +115,8 @@ export default function JobPostPage() {
         ...formData,
         skills,
         deadline: formData.deadline || undefined,
+        hiringManagerId: hiringManagerId ? Number(hiringManagerId) : undefined,
+        clientId: clientId ? Number(clientId) : undefined,
       };
 
       insertJobSchema.parse(jobData);
@@ -251,6 +275,55 @@ export default function JobPostPage() {
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* Hiring Manager */}
+                  <div>
+                    <Label htmlFor="hiringManager" className="mb-2 block">
+                      Hiring Manager (Optional)
+                    </Label>
+                    <Select value={hiringManagerId} onValueChange={setHiringManagerId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a hiring manager..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {hiringManagers.map((hm) => (
+                          <SelectItem key={hm.id} value={hm.id.toString()}>
+                            {hm.firstName && hm.lastName
+                              ? `${hm.firstName} ${hm.lastName} (${hm.username})`
+                              : hm.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Assign a hiring manager to review candidates for this role
+                    </p>
+                  </div>
+
+                  {/* Client (for agencies) */}
+                  <div>
+                    <Label htmlFor="client" className="mb-2 block">
+                      Client (Optional)
+                    </Label>
+                    <Select value={clientId} onValueChange={setClientId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Internal role / no client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Internal / No client</SelectItem>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id.toString()}>
+                            {client.name}
+                            {client.domain ? ` (${client.domain})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Associate this job with a specific client for reporting.
+                    </p>
                   </div>
 
                   {/* Job Description */}

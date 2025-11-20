@@ -24,9 +24,13 @@ import ApplicationManagementPage from "@/pages/application-management-page";
 import CandidateDashboard from "@/pages/candidate-dashboard";
 import JobAnalyticsDashboard from "@/pages/job-analytics-dashboard";
 import RecruiterDashboard from "@/pages/recruiter-dashboard";
+import HiringManagerDashboard from "@/pages/hiring-manager-dashboard";
 import ApplicationsPage from "@/pages/applications-page";
 import MyJobsPage from "@/pages/my-jobs-page";
+import CandidatesPage from "@/pages/candidates-page";
 import ConsultantsPage from "@/pages/consultants-page";
+import ClientsPage from "@/pages/clients-page";
+import ClientShortlistPage from "@/pages/client-shortlist-page";
 import PublicFormPage from "@/pages/public-form-page";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
 import TermsOfServicePage from "@/pages/terms-of-service-page";
@@ -42,6 +46,7 @@ function Router() {
       <Route path="/candidate-auth" component={CandidateAuth} />
       <Route path="/consultants" component={ConsultantsPage} />
       <Route path="/form/:token" component={PublicFormPage} />
+      <Route path="/client-shortlist/:token" component={ClientShortlistPage} />
       <Route path="/privacy-policy" component={PrivacyPolicyPage} />
       <Route path="/terms-of-service" component={TermsOfServicePage} />
       <Route path="/cookie-policy" component={CookiePolicyPage} />
@@ -51,8 +56,11 @@ function Router() {
       <Route path="/jobs/:id" component={JobDetailsPage} />
       <ProtectedRoute path="/my-dashboard" component={CandidateDashboard} requiredRole={['candidate']} />
       <ProtectedRoute path="/recruiter-dashboard" component={RecruiterDashboard} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/hiring-manager" component={HiringManagerDashboard} requiredRole={['hiring_manager']} />
       <ProtectedRoute path="/applications" component={ApplicationsPage} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/candidates" component={CandidatesPage} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/my-jobs" component={MyJobsPage} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/clients" component={ClientsPage} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/admin" component={UnifiedAdminDashboard} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/super" component={AdminSuperDashboard} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/testing" component={AdminTestingPage} requiredRole={['admin']} />

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Layout from "@/components/Layout";
-import { Eye, MousePointer, TrendingUp, Briefcase, Calendar, MapPin, Search, Filter } from "lucide-react";
+import { Eye, MousePointer, TrendingUp, Briefcase, Calendar, MapPin, Search, Filter, Sparkles, Users, Activity } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { format } from "date-fns";
+
+type JobHealthStatus = 'green' | 'amber' | 'red';
+
+interface JobHealthSummary {
+  jobId: number;
+  jobTitle: string;
+  status: JobHealthStatus;
+  reason: string;
+  totalApplications: number;
+  daysSincePosted: number;
+  daysSinceLastApplication: number | null;
+  conversionRate: number;
+}
 
 interface JobWithAnalytics {
   id: number;
@@ -24,6 +37,8 @@ interface JobWithAnalytics {
   createdAt: string;
   isActive: boolean;
   status: string;
+  clientId: number | null;
+  clientName: string | null;
   postedBy: number;
   postedByUser: {
     id: number;
@@ -38,11 +53,121 @@ interface JobWithAnalytics {
   };
 }
 
+interface SimilarCandidate {
+  applicationId: number;
+  candidateName: string;
+  candidateEmail: string;
+  sourceJobId: number;
+  sourceJobTitle: string;
+  aiFitScore: number | null;
+  aiFitLabel: string | null;
+  currentStage: number | null;
+}
+
+function SimilarCandidatesSection({ jobId }: { jobId: number }) {
+  const [, setLocation] = useLocation();
+  const [showCandidates, setShowCandidates] = useState(false);
+
+  const { data: similarCandidates = [], isLoading: similarLoading } = useQuery<SimilarCandidate[]>({
+    queryKey: ["/api/jobs", jobId, "ai-similar-candidates"],
+    queryFn: async () => {
+      const res = await fetch(`/api/jobs/${jobId}/ai-similar-candidates?minFitScore=70`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error("Failed to fetch similar candidates");
+      return res.json();
+    },
+    enabled: showCandidates,
+  });
+
+  if (!showCandidates) {
+    return (
+      <div className="mt-4 pt-4 border-t border-slate-200">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCandidates(true)}
+          className="w-full border-primary/30 text-primary hover:bg-primary/10"
+        >
+          <Sparkles className="h-4 w-4 mr-2" />
+          Load AI-Suggested Candidates from Other Roles
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-200">
+      <div className="flex items-center justify-between mb-3">
+        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          Suggested Candidates from Other Roles
+        </h4>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowCandidates(false)}
+          className="text-xs"
+        >
+          Hide
+        </Button>
+      </div>
+      <p className="text-xs text-slate-500 mb-3">
+        High-fit candidates from your other jobs (AI-based)
+      </p>
+      {similarLoading ? (
+        <div className="text-sm text-slate-500 py-4">Loading suggestions...</div>
+      ) : similarCandidates.length === 0 ? (
+        <div className="text-sm text-slate-500 py-4 bg-slate-50 rounded-md p-3">
+          No high-fit candidates found yet from other roles.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {similarCandidates.map((c) => (
+            <div
+              key={c.applicationId}
+              className="flex items-center justify-between p-3 border border-slate-200 rounded-md bg-slate-50 hover:bg-slate-100 transition-colors"
+            >
+              <div className="flex-1">
+                <div className="font-medium text-slate-900 text-sm">
+                  {c.candidateName}{" "}
+                  <span className="text-slate-500 text-xs font-normal">({c.candidateEmail})</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                  <span>From: {c.sourceJobTitle}</span>
+                  {c.aiFitScore !== null && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="h-3 w-3 text-primary" />
+                        Fit: {c.aiFitScore}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLocation(`/jobs/${c.sourceJobId}/applications`)}
+                className="ml-3"
+              >
+                View
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function JobAnalyticsDashboard() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedTab, setSelectedTab] = useState("overview");
+   const [clientFilter, setClientFilter] = useState("all");
 
   // Redirect if not authorized
   if (!user || (user.role !== 'admin' && user.role !== 'recruiter')) {
@@ -52,6 +177,24 @@ export default function JobAnalyticsDashboard() {
   const { data: jobsWithAnalytics, isLoading } = useQuery<JobWithAnalytics[]>({
     queryKey: ['/api/analytics/jobs'],
   });
+
+  // Fetch job health summaries
+  const { data: jobHealthData = [] } = useQuery<JobHealthSummary[]>({
+    queryKey: ['/api/analytics/job-health'],
+    queryFn: async () => {
+      const res = await fetch('/api/analytics/job-health', {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to fetch job health');
+      return res.json();
+    },
+    enabled: !!user && ['admin', 'recruiter'].includes(user.role),
+  });
+
+  // Helper to get health data for a job
+  const getJobHealth = (jobId: number): JobHealthSummary | undefined => {
+    return jobHealthData.find(h => h.jobId === jobId);
+  };
 
   // Filter jobs based on search and status
   const filteredJobs = jobsWithAnalytics?.filter(job => {
@@ -64,7 +207,12 @@ export default function JobAnalyticsDashboard() {
       (statusFilter === "inactive" && !job.isActive) ||
       job.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    const matchesClient =
+      clientFilter === "all" ||
+      (clientFilter === "no-client" && !job.clientId) ||
+      (clientFilter === String(job.clientId));
+
+    return matchesSearch && matchesStatus && matchesClient;
   }) || [];
 
   // Calculate aggregate statistics
@@ -98,6 +246,32 @@ export default function JobAnalyticsDashboard() {
     if (job.status === 'pending') return <Badge className="bg-yellow-50 text-yellow-700">Pending</Badge>;
     if (job.status === 'approved') return <Badge className="bg-green-50 text-green-700">Active</Badge>;
     return <Badge className="bg-gray-50 text-gray-700">Unknown</Badge>;
+  };
+
+  const getHealthBadge = (status: JobHealthStatus) => {
+    switch (status) {
+      case 'green':
+        return (
+          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+            <Activity className="h-3 w-3 mr-1" />
+            Healthy
+          </Badge>
+        );
+      case 'amber':
+        return (
+          <Badge className="bg-amber-50 text-amber-700 border-amber-200">
+            <Activity className="h-3 w-3 mr-1" />
+            Watch
+          </Badge>
+        );
+      case 'red':
+        return (
+          <Badge className="bg-rose-50 text-rose-700 border-rose-200">
+            <Activity className="h-3 w-3 mr-1" />
+            Attention
+          </Badge>
+        );
+    }
   };
 
   const getPerformanceColor = (conversionRate: number) => {
@@ -193,18 +367,40 @@ export default function JobAnalyticsDashboard() {
                     />
                   </div>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-48 bg-white border-slate-300">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-slate-200">
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col md:flex-row gap-4 md:gap-3">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full md:w-40 bg-white border-slate-300">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-slate-200">
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="approved">Approved</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={clientFilter} onValueChange={setClientFilter}>
+                    <SelectTrigger className="w-full md:w-48 bg-white border-slate-300">
+                      <SelectValue placeholder="Filter by client" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-slate-200">
+                      <SelectItem value="all">All Clients</SelectItem>
+                      <SelectItem value="no-client">Internal / No client</SelectItem>
+                      {Array.from(
+                        new Map(
+                          (jobsWithAnalytics || [])
+                            .filter(job => job.clientId && job.clientName)
+                            .map(job => [job.clientId, job.clientName as string]),
+                        ).entries(),
+                      ).map(([id, name]) => (
+                        <SelectItem key={id} value={String(id)}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -353,6 +549,26 @@ export default function JobAnalyticsDashboard() {
                           </div>
                           <div className="flex items-center gap-2 mb-3">
                             {getStatusBadge(job)}
+                            {(() => {
+                              const health = getJobHealth(job.id);
+                              if (health) {
+                                return (
+                                  <div className="group relative">
+                                    {getHealthBadge(health.status)}
+                                    {/* Tooltip on hover */}
+                                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-lg">
+                                      <p className="font-semibold mb-1">Health: {health.reason}</p>
+                                      <p className="mb-1">Applications: {health.totalApplications}</p>
+                                      <p className="mb-1">Posted {health.daysSincePosted} days ago</p>
+                                      {health.daysSinceLastApplication !== null && (
+                                        <p>Last application: {health.daysSinceLastApplication} days ago</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                             <span className="text-sm text-slate-400">
                               Posted by: {job.postedByUser.firstName} {job.postedByUser.lastName}
                             </span>
@@ -400,6 +616,9 @@ export default function JobAnalyticsDashboard() {
                           </div>
                         </div>
                       )}
+
+                      {/* AI Similar Candidates Section */}
+                      <SimilarCandidatesSection jobId={job.id} />
                     </CardContent>
                   </Card>
                 ))}

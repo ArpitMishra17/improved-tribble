@@ -484,6 +484,88 @@ export async function ensureAtsSchema(): Promise<void> {
     END $$;
   `);
 
+  // Consulting/Agency Feature: Clients
+  console.log('  Creating clients table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS clients (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      domain TEXT,
+      primary_contact_name TEXT,
+      primary_contact_email TEXT,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      created_by INTEGER NOT NULL REFERENCES users(id)
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS clients_created_by_idx ON clients(created_by);
+  `);
+
+  // Consulting/Agency Feature: Client Shortlists
+  console.log('  Creating client_shortlists table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS client_shortlists (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+      job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      expires_at TIMESTAMP,
+      status TEXT NOT NULL DEFAULT 'active'
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_shortlists_client_id_idx ON client_shortlists(client_id);
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_shortlists_job_id_idx ON client_shortlists(job_id);
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_shortlists_token_idx ON client_shortlists(token);
+  `);
+
+  // Consulting/Agency Feature: Client Shortlist Items
+  console.log('  Creating client_shortlist_items table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS client_shortlist_items (
+      id SERIAL PRIMARY KEY,
+      shortlist_id INTEGER NOT NULL REFERENCES client_shortlists(id) ON DELETE CASCADE,
+      application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+      position INTEGER NOT NULL,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_shortlist_items_shortlist_id_idx ON client_shortlist_items(shortlist_id);
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS client_shortlist_items_application_id_idx ON client_shortlist_items(application_id);
+  `);
+
+  // Consulting/Agency Feature: Add clientId column to jobs table
+  console.log('  Adding client_id column to jobs table...');
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'jobs' AND column_name = 'client_id'
+      ) THEN
+        ALTER TABLE jobs ADD COLUMN client_id INTEGER REFERENCES clients(id);
+        CREATE INDEX IF NOT EXISTS jobs_client_id_idx ON jobs(client_id);
+      END IF;
+    END $$;
+  `);
+
   console.log('✅ ATS schema ready');
 }
 

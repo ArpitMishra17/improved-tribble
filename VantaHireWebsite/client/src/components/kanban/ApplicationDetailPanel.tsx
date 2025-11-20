@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Mail, Phone, Calendar, Clock, MapPin, Download, Star, FileText, History as HistoryIcon, MessageSquare, Target } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Mail, Phone, Calendar, Clock, MapPin, Download, Star, FileText, History as HistoryIcon, MessageSquare, Target, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Application, EmailTemplate, PipelineStage } from "@shared/schema";
 import { FormTemplateDTO } from "@/lib/formsApi";
+import { AISummaryPanel } from "@/components/AISummaryPanel";
+import { FeedbackPanel } from "@/components/FeedbackPanel";
+import { ClientFeedbackList } from "@/components/ClientFeedbackList";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface ApplicationDetailPanelProps {
   application: Application;
+  jobId: number;
   pipelineStages: PipelineStage[];
   emailTemplates: EmailTemplate[];
   formTemplates: FormTemplateDTO[];
@@ -25,10 +32,12 @@ interface ApplicationDetailPanelProps {
   onAddNote: (note: string) => void;
   onSetRating: (rating: number) => void;
   onDownloadResume: () => void;
+  onUpdateStatus?: (status: string, notes?: string) => void;
 }
 
 export function ApplicationDetailPanel({
   application,
+  jobId,
   pipelineStages,
   emailTemplates,
   formTemplates,
@@ -41,7 +50,9 @@ export function ApplicationDetailPanel({
   onAddNote,
   onSetRating,
   onDownloadResume,
+  onUpdateStatus,
 }: ApplicationDetailPanelProps) {
+  const { toast } = useToast();
   const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [stageNotes, setStageNotes] = useState("");
   const [interviewDate, setInterviewDate] = useState("");
@@ -53,6 +64,73 @@ export function ApplicationDetailPanel({
   const [formMessage, setFormMessage] = useState("");
   const [newNote, setNewNote] = useState("");
   const [rating, setRating] = useState<string>(application.rating?.toString() || "");
+
+  // AI Email Draft state
+  const [emailTone, setEmailTone] = useState<'friendly' | 'formal'>('friendly');
+  const [aiDraftSubject, setAiDraftSubject] = useState<string>("");
+  const [aiDraftBody, setAiDraftBody] = useState<string>("");
+  const [showAiDraft, setShowAiDraft] = useState(false);
+
+  // Smart default template selection based on context
+  useEffect(() => {
+    if (!selectedTemplateId && emailTemplates.length > 0) {
+      // Check current stage to determine appropriate template
+      const currentStage = pipelineStages.find(s => s.id === application.currentStage);
+      const stageName = currentStage?.name.toLowerCase() || '';
+
+      // Determine template type based on stage and status
+      // Check rejection first (status takes priority)
+      let targetType: string | null = null;
+      if (application.status === 'rejected' || stageName.includes('reject')) {
+        targetType = 'rejection';
+      } else if (stageName.includes('interview') || stageName.includes('screening')) {
+        targetType = 'interview_invite';
+      } else if (stageName.includes('offer')) {
+        targetType = 'offer_extended';
+      }
+
+      // Find default template of target type
+      if (targetType) {
+        const defaultTemplate = emailTemplates.find(
+          t => t.templateType === targetType && t.isDefault
+        );
+        if (defaultTemplate) {
+          setSelectedTemplateId(defaultTemplate.id.toString());
+        }
+      }
+    }
+  }, [emailTemplates, application.currentStage, application.status, pipelineStages, selectedTemplateId]);
+
+  // AI Email Draft mutation
+  const generateEmailDraftMutation = useMutation({
+    mutationFn: async ({ templateId, tone }: { templateId: number; tone: 'friendly' | 'formal' }) => {
+      const res = await apiRequest("POST", "/api/email/draft", {
+        templateId,
+        applicationId: application.id,
+        tone,
+      });
+      return await res.json();
+    },
+    onSuccess: (data: { subject: string; body: string }) => {
+      setAiDraftSubject(data.subject);
+      setAiDraftBody(data.body);
+      setShowAiDraft(true);
+      toast({
+        title: "AI Draft Generated",
+        description: "Email has been personalized with AI. Review before sending.",
+      });
+    },
+    onError: (error: Error) => {
+      const is429 = error.message.includes("429");
+      toast({
+        title: is429 ? "AI limit reached" : "AI draft failed",
+        description: is429
+          ? "You've reached today's AI email limit. Please try again tomorrow."
+          : error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleMoveStage = () => {
     if (!selectedStageId) return;
@@ -75,10 +153,40 @@ export function ApplicationDetailPanel({
     setInterviewNotes("");
   };
 
+  const handleGenerateAIDraft = () => {
+    if (!selectedTemplateId) {
+      toast({
+        title: "No template selected",
+        description: "Please select an email template first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    generateEmailDraftMutation.mutate({
+      templateId: parseInt(selectedTemplateId),
+      tone: emailTone,
+    });
+  };
+
   const handleSendEmail = () => {
     if (!selectedTemplateId) return;
     onSendEmail(parseInt(selectedTemplateId));
     setSelectedTemplateId("");
+    setShowAiDraft(false);
+    setAiDraftSubject("");
+    setAiDraftBody("");
+  };
+
+  // Helper to format template type labels
+  const templateTypeLabel = (type: string) => {
+    switch (type) {
+      case "application_received": return "App Received";
+      case "interview_invite": return "Interview";
+      case "status_update": return "Status Update";
+      case "offer_extended": return "Offer";
+      case "rejection": return "Rejection";
+      default: return "Custom";
+    }
   };
 
   const handleSendForm = () => {
@@ -121,8 +229,10 @@ export function ApplicationDetailPanel({
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="ai">AI</TabsTrigger>
+            <TabsTrigger value="feedback">Feedback</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="notes">Notes</TabsTrigger>
             <TabsTrigger value="interview">Interview</TabsTrigger>
@@ -211,20 +321,127 @@ export function ApplicationDetailPanel({
 
                 {/* Send Email */}
                 {emailTemplates.length > 0 && (
-                  <div className="space-y-2 pt-4 border-t border-slate-200">
+                  <div className="space-y-3 pt-4 border-t border-slate-200">
                     <Label className="text-slate-900">Send Email</Label>
-                    <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+
+                    {/* Template Selector */}
+                    <Select value={selectedTemplateId} onValueChange={(value) => {
+                      setSelectedTemplateId(value);
+                      setShowAiDraft(false);
+                    }}>
                       <SelectTrigger className="bg-white border-slate-300">
                         <SelectValue placeholder="Select template" />
                       </SelectTrigger>
                       <SelectContent>
-                        {emailTemplates.map((template) => (
-                          <SelectItem key={template.id} value={template.id.toString()}>
-                            {template.name}
-                          </SelectItem>
-                        ))}
+                        {emailTemplates
+                          .sort((a, b) => {
+                            // Sort defaults first
+                            if (a.isDefault && !b.isDefault) return -1;
+                            if (!a.isDefault && b.isDefault) return 1;
+                            return a.name.localeCompare(b.name);
+                          })
+                          .map((template) => (
+                            <SelectItem key={template.id} value={template.id.toString()}>
+                              <div className="flex items-center gap-2">
+                                <span>{template.name}</span>
+                                <span className="text-xs text-slate-500">
+                                  ({templateTypeLabel(template.templateType)})
+                                </span>
+                                {template.isDefault && (
+                                  <span className="text-xs font-medium text-green-600">(Default)</span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
+
+                    {/* Template Preview */}
+                    {selectedTemplateId && (() => {
+                      const template = emailTemplates.find(t => t.id === parseInt(selectedTemplateId));
+                      if (!template) return null;
+                      const firstLine = template.body.split('\n')[0];
+                      return (
+                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-1">
+                          <p className="text-xs font-medium text-slate-700">Preview:</p>
+                          <p className="text-sm text-slate-900 font-medium">{template.subject}</p>
+                          <p className="text-xs text-slate-600 truncate">{firstLine || template.body.substring(0, 80)}...</p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Tone Selector */}
+                    {selectedTemplateId && (
+                      <div className="space-y-2">
+                        <Label className="text-slate-900 text-sm">Tone</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={emailTone === 'friendly' ? 'default' : 'outline'}
+                            onClick={() => setEmailTone('friendly')}
+                            className="flex-1"
+                          >
+                            Friendly
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={emailTone === 'formal' ? 'default' : 'outline'}
+                            onClick={() => setEmailTone('formal')}
+                            className="flex-1"
+                          >
+                            Formal
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Generate with AI Button */}
+                    {selectedTemplateId && (
+                      <Button
+                        onClick={handleGenerateAIDraft}
+                        disabled={generateEmailDraftMutation.isPending}
+                        variant="outline"
+                        className="w-full border-primary/30 text-primary hover:bg-primary/10"
+                      >
+                        {generateEmailDraftMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Generate with AI
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {/* AI Draft Preview */}
+                    {showAiDraft && aiDraftSubject && aiDraftBody && (
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <Label className="text-primary font-medium text-sm">AI-Generated Preview</Label>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <Label className="text-xs text-slate-600">Subject:</Label>
+                            <p className="text-sm text-slate-900 font-medium">{aiDraftSubject}</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs text-slate-600">Body:</Label>
+                            <p className="text-sm text-slate-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                              {aiDraftBody}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Send Email Button */}
                     <Button
                       onClick={handleSendEmail}
                       disabled={!selectedTemplateId}
@@ -272,6 +489,29 @@ export function ApplicationDetailPanel({
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* AI Summary Tab */}
+          <TabsContent value="ai" className="space-y-4">
+            <AISummaryPanel
+              applicationId={application.id}
+              jobId={jobId}
+              aiSummary={application.aiSummary}
+              aiSuggestedAction={application.aiSuggestedAction}
+              aiSuggestedActionReason={application.aiSuggestedActionReason}
+              aiSummaryComputedAt={application.aiSummaryComputedAt}
+              pipelineStages={pipelineStages}
+              currentStageId={application.currentStage}
+              onMoveStage={onMoveStage}
+              onAddNote={onAddNote}
+              onUpdateStatus={onUpdateStatus}
+            />
+          </TabsContent>
+
+          {/* Feedback Tab */}
+          <TabsContent value="feedback" className="space-y-4">
+            <FeedbackPanel applicationId={application.id} jobId={jobId} canAdd={true} />
+            <ClientFeedbackList applicationId={application.id} />
           </TabsContent>
 
           {/* History Tab */}

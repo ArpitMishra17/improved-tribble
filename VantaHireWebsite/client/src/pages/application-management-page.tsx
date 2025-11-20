@@ -24,7 +24,10 @@ import {
   History,
   ArrowLeft,
   FileDown,
-  Plus
+  Plus,
+  ArrowUpDown,
+  Sparkles,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,6 +70,8 @@ export default function ApplicationManagementPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
+  const [sortBy, setSortBy] = useState<'date' | 'ai_fit'>('date'); // AI Fit Sorting
+  const [fitLabelFilter, setFitLabelFilter] = useState<string[]>([]); // AI Fit Label Filter
   const [isVisible, setIsVisible] = useState(false);
 
   // ATS features state
@@ -96,6 +101,24 @@ export default function ApplicationManagementPage() {
   const [batchLocation, setBatchLocation] = useState("");
   const [batchNotes, setBatchNotes] = useState("");
   const [batchStageId, setBatchStageId] = useState<string>("");
+  const [showShareShortlistDialog, setShowShareShortlistDialog] = useState(false);
+  const [shortlistTitle, setShortlistTitle] = useState("");
+  const [shortlistMessage, setShortlistMessage] = useState("");
+  const [shortlistExpiresAt, setShortlistExpiresAt] = useState("");
+  const [shortlistUrl, setShortlistUrl] = useState<string | null>(null);
+
+  type JobShortlistSummary = {
+    id: number;
+    title: string | null;
+    message: string | null;
+    createdAt: string;
+    expiresAt: string | null;
+    status: string;
+    client: { id: number; name: string } | null;
+    candidateCount: number;
+    publicUrl: string;
+    fullUrl: string;
+  };
 
   const jobId = params?.id ? parseInt(params.id) : null;
 
@@ -118,6 +141,19 @@ export default function ApplicationManagementPage() {
       return response.json();
     },
     enabled: !!jobId,
+  });
+
+  const { data: shortlists = [] } = useQuery<JobShortlistSummary[]>({
+    queryKey: ["/api/jobs", jobId, "client-shortlists"],
+    queryFn: async () => {
+      if (!jobId) return [];
+      const response = await fetch(`/api/jobs/${jobId}/client-shortlists`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch client shortlists");
+      return response.json();
+    },
+    enabled: !!jobId && !!job?.clientId,
   });
 
   const { data: applications, isLoading: applicationsLoading } = useQuery<Application[]>({
@@ -308,6 +344,47 @@ export default function ApplicationManagementPage() {
       toast({
         title: "Interview scheduled",
         description: "Interview has been scheduled successfully.",
+      });
+    },
+  });
+
+  const createShortlistMutation = useMutation({
+    mutationFn: async () => {
+      if (!jobId || !job?.clientId || selectedApplications.length === 0) {
+        throw new Error("Missing job, client, or applications");
+      }
+      const payload: {
+        clientId: number;
+        jobId: number;
+        title?: string;
+        message?: string;
+        applicationIds: number[];
+        expiresAt?: string;
+      } = {
+        clientId: job.clientId,
+        jobId,
+        applicationIds: selectedApplications,
+      };
+      if (shortlistTitle.trim()) payload.title = shortlistTitle.trim();
+      if (shortlistMessage.trim()) payload.message = shortlistMessage.trim();
+      if (shortlistExpiresAt) payload.expiresAt = new Date(shortlistExpiresAt).toISOString();
+
+      const res = await apiRequest("POST", "/api/client-shortlists", payload);
+      return await res.json();
+    },
+    onSuccess: (data: { publicUrl?: string; fullUrl?: string }) => {
+      const url = data.fullUrl || data.publicUrl || "";
+      setShortlistUrl(url || null);
+      toast({
+        title: "Shortlist Created",
+        description: "Share this link with your client to review candidates.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Create Shortlist",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -760,7 +837,19 @@ export default function ApplicationManagementPage() {
     const matchesSearch = searchQuery === '' ||
       app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesStage && matchesSearch;
+    // AI Fit Label Filter
+    const matchesFitLabel = fitLabelFilter.length === 0 ||
+      (app.aiFitLabel && fitLabelFilter.includes(app.aiFitLabel));
+    return matchesStage && matchesSearch && matchesFitLabel;
+  }).sort((a, b) => {
+    // AI Fit Sorting
+    if (sortBy === 'ai_fit') {
+      const scoreA = a.aiFitScore || 0;
+      const scoreB = b.aiFitScore || 0;
+      return scoreB - scoreA; // Higher scores first
+    }
+    // Default: Sort by date (newest first)
+    return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
   }) || [];
 
   // Visible apps for current tab (used by Select All)
@@ -893,6 +982,32 @@ export default function ApplicationManagementPage() {
                     });
                     return;
                   }
+                  if (!job?.clientId) {
+                    toast({
+                      title: "No client linked",
+                      description: "Set a client for this job before sharing a shortlist.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setShowShareShortlistDialog(true);
+                }}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Share with Client
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (selectedApplications.length === 0) {
+                    toast({
+                      title: "No candidates selected",
+                      description: "Select candidates using the checkboxes first.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
                   setShowBatchInterviewDialog(true);
                 }}
               >
@@ -915,7 +1030,7 @@ export default function ApplicationManagementPage() {
           </div>
 
           {/* Header */}
-          <div className="mb-8">
+          <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <Users className="h-7 w-7 text-primary" />
               <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
@@ -928,7 +1043,7 @@ export default function ApplicationManagementPage() {
           </div>
 
           {/* Job Header */}
-          <Card className="mb-6 shadow-sm">
+          <Card className="mb-4 shadow-sm">
             <CardHeader>
               <CardTitle className="text-slate-900 text-xl">{job.title}</CardTitle>
               <CardDescription>
@@ -948,6 +1063,162 @@ export default function ApplicationManagementPage() {
                 </div>
               </CardDescription>
             </CardHeader>
+          </Card>
+
+          {/* Client Shortlists Summary */}
+          {job.clientId && (
+            <Card className="mb-6 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-slate-900 text-base flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  Client Shortlists
+                </CardTitle>
+                <CardDescription className="text-slate-500 text-sm">
+                  Links shared with your client for this role.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {shortlists.length === 0 ? (
+                  <p className="text-sm text-slate-600">
+                    No shortlists created yet. Select candidates and use{" "}
+                    <span className="font-medium">Share with Client</span> to
+                    generate a shortlist.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {shortlists.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-200 rounded-md p-3 bg-slate-50"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-slate-900 truncate">
+                              {s.title || job.title}
+                            </span>
+                            <Badge className="text-xs bg-slate-100 text-slate-700 border-slate-200">
+                              {s.candidateCount} candidate
+                              {s.candidateCount === 1 ? "" : "s"}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Created{" "}
+                            {new Date(s.createdAt).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                            {s.expiresAt && (
+                              <>
+                                {" "}
+                                · Expires{" "}
+                                {new Date(s.expiresAt).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  },
+                                )}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className="text-xs capitalize"
+                          >
+                            {s.status}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(s.fullUrl, "_blank")}
+                          >
+                            Open Link
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Sort & Filter Controls */}
+          <Card className="mb-6 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                {/* Sort Dropdown */}
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4 text-slate-600" />
+                  <Label htmlFor="sort-select" className="text-sm font-medium text-slate-700">
+                    Sort by:
+                  </Label>
+                  <Select value={sortBy} onValueChange={(value: 'date' | 'ai_fit') => setSortBy(value)}>
+                    <SelectTrigger id="sort-select" className="w-40">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="date">Newest First</SelectItem>
+                      <SelectItem value="ai_fit">
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          AI Fit Score
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* AI Fit Label Filter Chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Label className="text-sm font-medium text-slate-700">Filter by AI Fit:</Label>
+                  {['Exceptional', 'Strong', 'Good'].map((label) => {
+                    const isActive = fitLabelFilter.includes(label);
+                    return (
+                      <Badge
+                        key={label}
+                        variant={isActive ? "default" : "outline"}
+                        className={`cursor-pointer transition-all ${
+                          isActive
+                            ? 'bg-primary text-white hover:bg-primary/90'
+                            : 'hover:bg-slate-100'
+                        }`}
+                        onClick={() => {
+                          setFitLabelFilter((prev) =>
+                            isActive
+                              ? prev.filter((l) => l !== label)
+                              : [...prev, label]
+                          );
+                        }}
+                      >
+                        {isActive && <Sparkles className="h-3 w-3 mr-1" />}
+                        {label}
+                      </Badge>
+                    );
+                  })}
+                  {fitLabelFilter.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setFitLabelFilter([])}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+
+                {/* Results Count */}
+                <div className="ml-auto text-sm text-slate-600">
+                  {filteredApplications.length} of {applications?.length || 0} applications
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
           {/* Bulk Actions */}
@@ -1020,6 +1291,7 @@ export default function ApplicationManagementPage() {
                 <ResizablePanel defaultSize={30} minSize={25} maxSize={50}>
                   <ApplicationDetailPanel
                     application={selectedApp}
+                    jobId={jobId!}
                     pipelineStages={pipelineStages}
                     emailTemplates={emailTemplates}
                     formTemplates={formTemplates}
@@ -1032,6 +1304,10 @@ export default function ApplicationManagementPage() {
                     onAddNote={handleAddNoteFromPanel}
                     onSetRating={handleSetRatingFromPanel}
                     onDownloadResume={handleDownloadResumeFromPanel}
+                    onUpdateStatus={(status: string, notes?: string) => {
+                      if (!selectedApp) return;
+                      handleStatusUpdate(selectedApp.id, status, notes);
+                    }}
                   />
                 </ResizablePanel>
               </>
@@ -1101,6 +1377,29 @@ export default function ApplicationManagementPage() {
               >
                 {scheduleInterviewMutation.isPending ? "Scheduling..." : "Schedule Interview"}
               </Button>
+
+              {/* Download Calendar Invite - show if interview is already scheduled */}
+              {selectedApp?.interviewDate && selectedApp?.interviewTime && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm text-slate-600 mb-2">
+                    Interview scheduled for {new Date(selectedApp.interviewDate).toLocaleDateString()} at {selectedApp.interviewTime}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open(`/api/applications/${selectedApp.id}/interview/ics`, '_blank');
+                    }}
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Download Calendar Invite (.ics)
+                  </Button>
+                  <p className="text-xs text-slate-500 mt-2">
+                    Share this file with the interview panel and candidate to add the interview to their calendars
+                  </p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -1156,6 +1455,116 @@ export default function ApplicationManagementPage() {
                 {sendEmailMutation.isPending ? "Sending..." : "Send Email"}
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Share Shortlist Dialog */}
+        <Dialog open={showShareShortlistDialog} onOpenChange={setShowShareShortlistDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Share Shortlist with Client</DialogTitle>
+              <DialogDescription>
+                Create a client-ready shortlist link for the selected candidates.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <Label>Client</Label>
+                <p className="text-sm text-slate-700 font-medium">
+                  {job?.clientId ? job?.title : "No client linked to this job"}
+                </p>
+                {!job?.clientId && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Link a client to this job on the job posting to enable sharing.
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label>Shortlist Title (Optional)</Label>
+                <Input
+                  value={shortlistTitle}
+                  onChange={(e) => setShortlistTitle(e.target.value)}
+                  placeholder={job?.title || "e.g., Frontend Engineer Shortlist"}
+                />
+              </div>
+              <div>
+                <Label>Message to Client (Optional)</Label>
+                <Textarea
+                  value={shortlistMessage}
+                  onChange={(e) => setShortlistMessage(e.target.value)}
+                  placeholder="Context for this shortlist, expectations, or notes for the client..."
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label>Expires At (Optional)</Label>
+                <Input
+                  type="date"
+                  value={shortlistExpiresAt}
+                  onChange={(e) => setShortlistExpiresAt(e.target.value)}
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Leave blank to keep the shortlist active indefinitely.
+                </p>
+              </div>
+
+              {shortlistUrl && (
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-2">
+                  <Label className="text-xs text-slate-600">Shareable Link</Label>
+                  <div className="flex items-center gap-2">
+                    <Input value={shortlistUrl} readOnly className="text-xs" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard
+                          .writeText(shortlistUrl)
+                          .then(() =>
+                            toast({
+                              title: "Link Copied",
+                              description: "Shortlist link copied to clipboard.",
+                            })
+                          )
+                          .catch(() =>
+                            toast({
+                              title: "Copy Failed",
+                              description: "Could not copy the link. Please copy it manually.",
+                              variant: "destructive",
+                            })
+                          );
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowShareShortlistDialog(false);
+                  setShortlistUrl(null);
+                  setShortlistTitle("");
+                  setShortlistMessage("");
+                  setShortlistExpiresAt("");
+                }}
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => createShortlistMutation.mutate()}
+                disabled={
+                  !job?.clientId ||
+                  selectedApplications.length === 0 ||
+                  createShortlistMutation.isPending
+                }
+              >
+                {createShortlistMutation.isPending ? "Creating..." : "Create Shortlist"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

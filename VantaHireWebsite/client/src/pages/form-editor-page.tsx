@@ -9,12 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { ArrowLeft, Save, Eye, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Save, Eye, Loader2, Sparkles, X } from "lucide-react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { formsApi, formsQueryKeys, type FormTemplateDTO, type CreateTemplateRequest } from "@/lib/formsApi";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { FieldPalette } from "@/components/forms/FieldPalette";
 import { FormCanvas } from "@/components/forms/FormCanvas";
 import { FieldPropertiesPanel } from "@/components/forms/FieldPropertiesPanel";
@@ -47,6 +57,19 @@ export default function FormEditorPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // AI generation state
+  const [showAIDialog, setShowAIDialog] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+
+  const availableGoals = [
+    { value: "communication", label: "Communication" },
+    { value: "technical_depth", label: "Technical Depth" },
+    { value: "culture_fit", label: "Culture Fit" },
+    { value: "problem_solving", label: "Problem Solving" },
+    { value: "leadership", label: "Leadership" },
+  ];
+
   // Redirect if not admin or recruiter
   if (user && !['admin', 'recruiter'].includes(user.role)) {
     return <Redirect to="/jobs" />;
@@ -57,6 +80,56 @@ export default function FormEditorPage() {
     queryKey: formsQueryKeys.templateDetail(templateId!),
     queryFn: () => formsApi.getTemplate(templateId!),
     enabled: isEditMode && !!user,
+  });
+
+  // Fetch user's jobs for AI generation
+  const { data: jobs = [] } = useQuery<Array<{ id: number; title: string }>>({
+    queryKey: ["/api/my-jobs"],
+    enabled: !!user && showAIDialog,
+  });
+
+  // AI generation mutation
+  const aiGenerateMutation = useMutation({
+    mutationFn: async ({ jobId, goals }: { jobId?: number; goals: string[] }) => {
+      const res = await apiRequest("POST", "/api/forms/ai-suggest", {
+        jobId,
+        goals,
+      });
+      return await res.json();
+    },
+    onSuccess: (data: { fields: Array<{ label: string; description?: string; fieldType: string; required: boolean; options?: string[] }> }) => {
+      // Convert AI suggestions to FieldData format and append to existing fields
+      const newFields: FieldData[] = data.fields.map((field, index) => ({
+        id: `ai-field-${Date.now()}-${index}`,
+        type: field.fieldType,
+        label: field.label,
+        required: field.required,
+        options: field.options && field.fieldType === 'select'
+          ? field.options.join(', ')
+          : undefined,
+        order: fields.length + index,
+      }));
+
+      setFields([...fields, ...newFields]);
+      setShowAIDialog(false);
+      setSelectedJobId("");
+      setSelectedGoals([]);
+
+      toast({
+        title: "AI Questions Generated",
+        description: `Added ${newFields.length} AI-suggested questions to your form.`,
+      });
+    },
+    onError: (error: Error) => {
+      const is429 = error.message.includes("429");
+      toast({
+        title: is429 ? "AI limit reached" : "AI generation failed",
+        description: is429
+          ? "You've reached today's AI form generation limit. Please try again tomorrow."
+          : error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Initialize form when template loads
@@ -230,6 +303,35 @@ export default function FormEditorPage() {
     setFields(newFields.map((f, index) => ({ ...f, order: index })));
   };
 
+  // AI generation handlers
+  const toggleGoal = (goal: string) => {
+    setSelectedGoals(prev =>
+      prev.includes(goal)
+        ? prev.filter(g => g !== goal)
+        : [...prev, goal]
+    );
+  };
+
+  const handleGenerateWithAI = () => {
+    if (!selectedJobId && selectedGoals.length === 0) {
+      toast({
+        title: "Selection Required",
+        description: "Please select a job or at least one assessment goal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const payload: { jobId?: number; goals: string[] } = {
+      goals: selectedGoals,
+    };
+    if (selectedJobId) {
+      payload.jobId = parseInt(selectedJobId);
+    }
+
+    aiGenerateMutation.mutate(payload);
+  };
+
   // Drag-drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -348,6 +450,15 @@ export default function FormEditorPage() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => setShowAIDialog(true)}
+                className="border-primary/30 text-primary hover:bg-primary/10"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Generate with AI
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowPreview(true)}
               >
                 <Eye className="w-4 h-4 mr-2" />
@@ -412,6 +523,94 @@ export default function FormEditorPage() {
             </ResizablePanelGroup>
           </DndContext>
         </div>
+
+        {/* AI Generation Dialog */}
+        <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Generate Questions with AI</DialogTitle>
+              <DialogDescription>
+                AI will create screening questions based on a job description and your assessment goals.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Job Selection (Optional) */}
+              <div className="space-y-2">
+                <Label htmlFor="job-select">Link to Job (Optional)</Label>
+                <Select value={selectedJobId} onValueChange={setSelectedJobId}>
+                  <SelectTrigger id="job-select">
+                    <SelectValue placeholder="Select a job..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {jobs.map((job) => (
+                      <SelectItem key={job.id} value={job.id.toString()}>
+                        {job.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500">
+                  AI will use the job description and skills to create relevant questions
+                </p>
+              </div>
+
+              {/* Assessment Goals */}
+              <div className="space-y-2">
+                <Label>Assessment Goals</Label>
+                <div className="flex flex-wrap gap-2">
+                  {availableGoals.map((goal) => (
+                    <Badge
+                      key={goal.value}
+                      variant={selectedGoals.includes(goal.value) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => toggleGoal(goal.value)}
+                    >
+                      {selectedGoals.includes(goal.value) && (
+                        <X className="w-3 h-3 mr-1" />
+                      )}
+                      {goal.label}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">
+                  Select focus areas for question generation
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAIDialog(false);
+                  setSelectedJobId("");
+                  setSelectedGoals([]);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerateWithAI}
+                disabled={aiGenerateMutation.isPending}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {aiGenerateMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Preview Dialog */}
         <FormPreviewDialog

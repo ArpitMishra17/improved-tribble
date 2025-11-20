@@ -1,13 +1,15 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { loadEnv } from 'vite'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./test/setup.ts'],
+    env: loadEnv(mode, process.cwd(), ''),
     css: true,
     coverage: {
       provider: 'v8',
@@ -37,4 +39,4 @@ export default defineConfig({
       '@assets': path.resolve(__dirname, './attached_assets'),
     },
   },
-})
+}))
