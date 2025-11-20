@@ -603,6 +603,21 @@ export async function ensureAtsSchema(): Promise<void> {
     CREATE INDEX IF NOT EXISTS client_feedback_shortlist_id_idx ON client_feedback(shortlist_id);
   `);
 
+  // ATS: Add hiring_manager_id column to jobs table
+  console.log('  Adding hiring_manager_id column to jobs table...');
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'jobs' AND column_name = 'hiring_manager_id'
+      ) THEN
+        ALTER TABLE jobs ADD COLUMN hiring_manager_id INTEGER REFERENCES users(id);
+        CREATE INDEX IF NOT EXISTS jobs_hiring_manager_idx ON jobs(hiring_manager_id);
+      END IF;
+    END $$;
+  `);
+
   // Consulting/Agency Feature: Add clientId column to jobs table
   console.log('  Adding client_id column to jobs table...');
   await db.execute(sql`

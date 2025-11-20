@@ -1527,13 +1527,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(jobs.createdAt));
 
     return rows.map((row: any): JobHealthSummary => {
-      const createdAt: Date = row.createdAt;
+      const createdAt: Date = new Date(row.createdAt);
       const daysSincePosted = Math.max(
         0,
         Math.round((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)),
       );
 
-      const lastApplicationAt: Date | null = row.lastApplicationAt;
+      const lastApplicationAt: Date | null = row.lastApplicationAt ? new Date(row.lastApplicationAt) : null;
       const daysSinceLastApplication = lastApplicationAt
         ? Math.max(
             0,
