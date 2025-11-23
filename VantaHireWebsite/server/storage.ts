@@ -920,6 +920,9 @@ export class DatabaseStorage implements IStorage {
         resumeId: applications.resumeId,
         coverLetter: applications.coverLetter,
         status: applications.status,
+        currentStage: applications.currentStage,
+        stageName: pipelineStages.name,
+        stageOrder: pipelineStages.order,
         notes: applications.notes,
         lastViewedAt: applications.lastViewedAt,
         downloadedAt: applications.downloadedAt,
@@ -945,6 +948,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(applications)
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .leftJoin(pipelineStages, eq(applications.currentStage, pipelineStages.id))
       .where(eq(applications.userId, userId))
       .orderBy(desc(applications.appliedAt));
 
@@ -1195,6 +1199,9 @@ export class DatabaseStorage implements IStorage {
         phone: applications.phone,
         coverLetter: applications.coverLetter,
         status: applications.status,
+        currentStage: applications.currentStage,
+        stageName: pipelineStages.name,
+        stageOrder: pipelineStages.order,
         notes: applications.notes,
         appliedAt: applications.appliedAt,
         viewedAt: applications.lastViewedAt,
@@ -1206,6 +1213,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(applications)
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
+      .leftJoin(pipelineStages, eq(applications.currentStage, pipelineStages.id))
       .orderBy(desc(applications.appliedAt));
 
     return applicationsWithDetails.map((app: any) => ({

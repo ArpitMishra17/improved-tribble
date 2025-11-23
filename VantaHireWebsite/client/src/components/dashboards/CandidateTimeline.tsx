@@ -11,6 +11,7 @@ interface TimelineApplication {
   appliedAt: Date | string;
   status?: string;
   currentStage?: string;
+  stageName?: string | null;
 }
 
 interface CandidateTimelineProps {
@@ -151,9 +152,9 @@ export function CandidateTimeline({
                                   {app.status}
                                 </Badge>
                               )}
-                              {app.currentStage && (
+                              {(app.stageName || app.currentStage) && (
                                 <Badge variant="outline" className="text-xs border-green-400/50 text-green-300">
-                                  {app.currentStage}
+                                  {app.stageName || app.currentStage}
                                 </Badge>
                               )}
                             </div>

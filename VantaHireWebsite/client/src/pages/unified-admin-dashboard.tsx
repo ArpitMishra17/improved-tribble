@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Redirect, Link } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { HiringMetricsPanel } from "@/components/HiringMetricsPanel";
+import type { PipelineStage } from "@shared/schema";
 
 interface AdminStats {
   totalJobs: number;
@@ -73,6 +74,7 @@ export default function UnifiedAdminDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [jobFilter, setJobFilter] = useState("all");
   const [applicationFilter, setApplicationFilter] = useState("all");
+  const [applicationStageFilter, setApplicationStageFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [isRunningAllTests, setIsRunningAllTests] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
@@ -192,6 +194,11 @@ export default function UnifiedAdminDashboard() {
 
   const { data: applications } = useQuery({
     queryKey: ["/api/admin/applications/all"],
+    enabled: !!user && user.role === 'admin',
+  });
+
+  const { data: pipelineStages = [] } = useQuery<PipelineStage[]>({
+    queryKey: ["/api/pipeline/stages"],
     enabled: !!user && user.role === 'admin',
   });
 
@@ -323,11 +330,14 @@ export default function UnifiedAdminDashboard() {
 
   const filteredApplications = Array.isArray(applications) ? applications.filter((app: any) => {
     const matchesFilter = applicationFilter === "all" || app.status === applicationFilter;
+    const matchesStage = applicationStageFilter === "all" ||
+      (applicationStageFilter === "unassigned" && (app.currentStage == null)) ||
+      (applicationStageFilter !== "unassigned" && app.currentStage === parseInt(applicationStageFilter));
     const matchesSearch = !searchTerm || 
       app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.email.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesStage && matchesSearch;
   }) : [];
 
   const filteredUsers = Array.isArray(users) ? users.filter((user: any) => {
@@ -775,6 +785,24 @@ export default function UnifiedAdminDashboard() {
                           <SelectItem value="rejected">Rejected</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Select value={applicationStageFilter} onValueChange={setApplicationStageFilter}>
+                        <SelectTrigger className="bg-white border-slate-300">
+                          <Filter className="h-4 w-4 mr-2" />
+                          <SelectValue placeholder="Stage" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-slate-200">
+                          <SelectItem value="all">All Stages</SelectItem>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {pipelineStages
+                            .slice()
+                            .sort((a, b) => a.order - b.order)
+                            .map((stage) => (
+                              <SelectItem key={stage.id} value={stage.id.toString()}>
+                                {stage.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </CardHeader>
@@ -786,7 +814,9 @@ export default function UnifiedAdminDashboard() {
                           <div className="flex-1">
                             <h3 className="text-slate-900 font-semibold">{application.name}</h3>
                             <p className="text-slate-500 text-sm">{application.email}</p>
-                            <p className="text-slate-400 text-xs mt-1">Applied: {new Date(application.submittedAt).toLocaleDateString()}</p>
+                            <p className="text-slate-400 text-xs mt-1">
+                              Applied: {new Date(application.appliedAt || application.submittedAt).toLocaleDateString()}
+                            </p>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge className={
                                 application.status === 'shortlisted' ? 'bg-green-50 text-green-700 border-green-200' :
@@ -795,6 +825,11 @@ export default function UnifiedAdminDashboard() {
                               }>
                                 {application.status}
                               </Badge>
+                              {application.stageName && (
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                  {application.stageName}
+                                </Badge>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">

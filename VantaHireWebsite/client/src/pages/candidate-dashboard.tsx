@@ -46,7 +46,11 @@ import Layout from "@/components/Layout";
 import { KpiCard } from "@/components/dashboards/KpiCard";
 import { CandidateTimeline } from "@/components/dashboards/CandidateTimeline";
 
-type ApplicationWithJob = Application & { job: Job };
+type ApplicationWithJob = Application & {
+  job: Job;
+  stageName?: string | null;
+  stageOrder?: number | null;
+};
 
 export default function CandidateDashboard() {
   const { user } = useAuth();
@@ -331,6 +335,7 @@ export default function CandidateDashboard() {
       jobLocation: app.job.location,
       appliedAt: app.appliedAt,
       status: app.status,
+      stageName: app.stageName ?? null,
     }));
   }, [applications]);
 

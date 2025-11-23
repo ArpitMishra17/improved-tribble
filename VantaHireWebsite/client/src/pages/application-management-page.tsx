@@ -67,7 +67,7 @@ export default function ApplicationManagementPage() {
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
   const [bulkStatus, setBulkStatus] = useState("");
   const [bulkNotes, setBulkNotes] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
   const [sortBy, setSortBy] = useState<'date' | 'ai_fit'>('date'); // AI Fit Sorting
@@ -832,9 +832,9 @@ export default function ApplicationManagementPage() {
   };
 
   const filteredApplications = applications?.filter(app => {
-    const matchesStage = statusFilter === 'all' ||
-                         (statusFilter === 'unassigned' && app.currentStage == null) ||
-                         (statusFilter !== 'unassigned' && app.currentStage === parseInt(statusFilter));
+    const matchesStage = stageFilter === 'all' ||
+                         (stageFilter === 'unassigned' && app.currentStage == null) ||
+                         (stageFilter !== 'unassigned' && app.currentStage === parseInt(stageFilter));
     const matchesSearch = searchQuery === '' ||
       app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1170,6 +1170,31 @@ export default function ApplicationManagementPage() {
                           AI Fit Score
                         </span>
                       </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Stage Filter */}
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-slate-600" />
+                  <Label htmlFor="stage-filter" className="text-sm font-medium text-slate-700">
+                    Stage:
+                  </Label>
+                  <Select value={stageFilter} onValueChange={setStageFilter}>
+                    <SelectTrigger id="stage-filter" className="w-48">
+                      <SelectValue placeholder="All stages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Stages</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {pipelineStages
+                        .slice()
+                        .sort((a, b) => a.order - b.order)
+                        .map((stage) => (
+                          <SelectItem key={stage.id} value={stage.id.toString()}>
+                            {stage.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>

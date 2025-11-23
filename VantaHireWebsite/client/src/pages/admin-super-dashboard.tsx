@@ -36,6 +36,7 @@ import {
   BarChart3
 } from "lucide-react";
 import { format } from "date-fns";
+import type { PipelineStage } from "@shared/schema";
 
 interface AdminStats {
   totalJobs: number;
@@ -71,6 +72,9 @@ interface ApplicationWithDetails {
   phone: string;
   coverLetter: string;
   status: string;
+  currentStage?: number | null;
+  stageName?: string | null;
+  stageOrder?: number | null;
   appliedAt: string;
   viewedAt?: string;
   downloadedAt?: string;
@@ -106,6 +110,7 @@ export default function AdminSuperDashboard() {
   const [selectedApplication, setSelectedApplication] = useState<ApplicationWithDetails | null>(null);
   const [jobFilter, setJobFilter] = useState("all");
   const [applicationFilter, setApplicationFilter] = useState("all");
+  const [applicationStageFilter, setApplicationStageFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -122,6 +127,11 @@ export default function AdminSuperDashboard() {
   // Fetch all applications with details
   const { data: applications, isLoading: applicationsLoading } = useQuery<ApplicationWithDetails[]>({
     queryKey: ["/api/admin/applications/all"],
+  });
+
+  // Fetch pipeline stages for filtering and labels
+  const { data: pipelineStages = [] } = useQuery<PipelineStage[]>({
+    queryKey: ["/api/pipeline/stages"],
   });
 
   // Fetch all users
@@ -246,13 +256,16 @@ export default function AdminSuperDashboard() {
 
   const filteredApplications = applications?.filter(app => {
     const matchesFilter = applicationFilter === "all" || app.status === applicationFilter;
+    const matchesStage = applicationStageFilter === "all" ||
+      (applicationStageFilter === "unassigned" && app.currentStage == null) ||
+      (applicationStageFilter !== "unassigned" && app.currentStage === parseInt(applicationStageFilter));
     const matchesSearch = !searchTerm || 
       app.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.job.company.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesStage && matchesSearch;
   });
 
   const filteredUsers = users?.filter(user => {
@@ -554,32 +567,50 @@ export default function AdminSuperDashboard() {
                       Review and manage all job applications
                     </CardDescription>
                   </div>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <Search className="h-4 w-4 text-slate-900/50" />
-                      <Input
-                        placeholder="Search applications..."
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <Search className="h-4 w-4 text-slate-900/50" />
+                        <Input
+                          placeholder="Search applications..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="bg-white border-slate-300"
                       />
                     </div>
-                    <Select value={applicationFilter} onValueChange={setApplicationFilter}>
-                      <SelectTrigger className="bg-white border-slate-300">
-                        <Filter className="h-4 w-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-slate-200">
-                        <SelectItem value="all">All Applications</SelectItem>
-                        <SelectItem value="submitted">Submitted</SelectItem>
-                        <SelectItem value="reviewed">Under Review</SelectItem>
-                        <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <Select value={applicationFilter} onValueChange={setApplicationFilter}>
+                        <SelectTrigger className="bg-white border-slate-300">
+                          <Filter className="h-4 w-4 mr-2" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-slate-200">
+                          <SelectItem value="all">All Applications</SelectItem>
+                          <SelectItem value="submitted">Submitted</SelectItem>
+                          <SelectItem value="reviewed">Under Review</SelectItem>
+                          <SelectItem value="shortlisted">Shortlisted</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={applicationStageFilter} onValueChange={setApplicationStageFilter}>
+                        <SelectTrigger className="bg-white border-slate-300">
+                          <Filter className="h-4 w-4 mr-2" />
+                          <SelectValue placeholder="Stage" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-slate-200">
+                          <SelectItem value="all">All Stages</SelectItem>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {pipelineStages
+                            .slice()
+                            .sort((a, b) => a.order - b.order)
+                            .map((stage) => (
+                              <SelectItem key={stage.id} value={stage.id.toString()}>
+                                {stage.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
+                </CardHeader>
               <CardContent>
                 {applicationsLoading ? (
                   <div className="text-center py-8 text-slate-900/70">Loading applications...</div>
@@ -588,13 +619,18 @@ export default function AdminSuperDashboard() {
                     {filteredApplications?.map((application) => (
                       <div key={application.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
-                          <div className="space-y-2 flex-1">
-                            <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-slate-900">{application.fullName}</h3>
-                              <Badge className={getStatusConfig(application.status).color}>
-                                {getStatusConfig(application.status).label}
+                        <div className="space-y-2 flex-1">
+                          <div className="flex items-center space-x-3">
+                            <h3 className="text-lg font-semibold text-slate-900">{application.fullName}</h3>
+                            <Badge className={getStatusConfig(application.status).color}>
+                              {getStatusConfig(application.status).label}
+                            </Badge>
+                            {application.stageName && (
+                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                {application.stageName}
                               </Badge>
-                            </div>
+                            )}
+                          </div>
                             <div className="flex items-center space-x-4 text-sm text-slate-900/70">
                               <span>{application.email}</span>
                               <span>{application.phone}</span>
