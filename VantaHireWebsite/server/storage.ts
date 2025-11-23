@@ -791,6 +791,7 @@ export class DatabaseStorage implements IStorage {
     jobId: number;
     resumeUrl: string;
     resumeFilename?: string | null;
+    resumeId?: number | null;
     userId?: number | null;
     submittedByRecruiter?: boolean;
     createdByUserId?: number;

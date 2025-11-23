@@ -7,7 +7,7 @@ import { insertContactSchema, insertJobSchema, insertApplicationSchema, recruite
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
 import { setupAuth, requireAuth, requireRole } from "./auth";
-import { upload, uploadToGCS, getSignedDownloadUrl } from "./gcs-storage";
+import { upload, uploadToGCS, getSignedDownloadUrl, downloadFromGCS } from "./gcs-storage";
 import rateLimit from "express-rate-limit";
 import { analyzeJobDescription, generateJobScore, calculateOptimizationSuggestions, isAIEnabled, generateCandidateSummary, generateEmailDraft } from "./aiJobAnalyzer";
 import { sendTemplatedEmail, sendStatusUpdateEmail, sendInterviewInvitation, sendApplicationReceivedEmail, sendOfferEmail, sendRejectionEmail } from "./emailTemplateService";
@@ -19,6 +19,7 @@ import { registerFormsRoutes } from "./forms.routes";
 import { registerTestRunnerRoutes } from "./testRunner.routes";
 import { registerAIRoutes } from "./ai.routes";
 import { aiAnalysisRateLimit } from "./rateLimit";
+import { extractResumeText, validateResumeText } from "./lib/resumeExtractor";
 // Import csrf-csrf with compatibility for CJS/ESM builds
 import { createRequire } from "module";
 import { randomBytes } from "crypto";
@@ -867,12 +868,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Upload resume to Google Cloud Storage or use placeholder if not configured
       let resumeUrl = 'placeholder-resume.pdf';
+      let resumeRecordId: number | null = null;
       if (req.file) {
         try {
           resumeUrl = await uploadToGCS(req.file.buffer, req.file.originalname);
         } catch (error) {
           console.log('Google Cloud Storage not configured, using placeholder resume URL');
           resumeUrl = `resume-${Date.now()}-${req.file.originalname}`;
+        }
+      }
+
+      // If candidate is authenticated, persist resume + extracted text for AI
+      if (req.user?.id && req.file?.buffer) {
+        try {
+          // Enforce soft limit of 3 resumes like resume upload endpoint
+          const existingResumes = await db.query.candidateResumes.findMany({
+            where: eq(candidateResumes.userId, req.user.id),
+            columns: { id: true, isDefault: true },
+          });
+
+          if (existingResumes.length < 3) {
+            const extraction = await extractResumeText(req.file.buffer);
+            if (extraction.success && validateResumeText(extraction.text)) {
+              const shouldBeDefault = !existingResumes.some((r: { isDefault: boolean }) => r.isDefault);
+              const [resume] = await db
+                .insert(candidateResumes)
+                .values({
+                  userId: req.user.id,
+                  label: req.file.originalname || 'Uploaded Resume',
+                  gcsPath: resumeUrl,
+                  extractedText: extraction.text,
+                  isDefault: shouldBeDefault,
+                })
+                .returning();
+              resumeRecordId = resume.id;
+            }
+          }
+        } catch (resumeErr) {
+          console.error('Resume save/extraction failed (non-blocking):', resumeErr);
         }
       }
 
@@ -897,6 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         jobId,
         resumeUrl,
         resumeFilename: req.file?.originalname ?? null, // Save original filename for proper downloads
+        ...(resumeRecordId !== null && { resumeId: resumeRecordId }),
         // Bind to user account if authenticated (for candidate access control)
         ...(req.user?.id !== undefined && { userId: req.user.id }),
         ...(initialStageId !== null && {
@@ -1713,12 +1747,25 @@ New job application received:
       // Get resume or candidate text
       let resumeText = '';
 
-      // First, try to get from candidate resume library if resumeId is set
+      // Prefer resume library entry if present
       if (application.resumeId) {
         const resumeData = await db.query.candidateResumes.findFirst({
           where: eq(candidateResumes.id, application.resumeId)
         });
         resumeText = resumeData?.extractedText || '';
+      }
+
+      // If still empty, try to download and extract from stored resume file
+      if (!resumeText && application.resumeUrl && application.resumeUrl.startsWith('gs://')) {
+        try {
+          const buffer = await downloadFromGCS(application.resumeUrl);
+          const extraction = await extractResumeText(buffer);
+          if (extraction.success && validateResumeText(extraction.text)) {
+            resumeText = extraction.text;
+          }
+        } catch (err) {
+          console.error('[AI Summary] Resume download/extract failed:', err);
+        }
       }
 
       // Fallback: if no extracted resume text, use cover letter or job description

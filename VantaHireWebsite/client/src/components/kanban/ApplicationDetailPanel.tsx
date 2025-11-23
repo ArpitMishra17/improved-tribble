@@ -229,14 +229,14 @@ export function ApplicationDetailPanel({
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
         <Tabs defaultValue="summary" className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="ai">AI</TabsTrigger>
-            <TabsTrigger value="feedback">Feedback</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="notes">Notes</TabsTrigger>
-            <TabsTrigger value="interview">Interview</TabsTrigger>
-            <TabsTrigger value="rating">Rating</TabsTrigger>
+          <TabsList className="flex w-full overflow-x-auto gap-2 whitespace-nowrap">
+            <TabsTrigger className="min-w-[88px]" value="summary">Summary</TabsTrigger>
+            <TabsTrigger className="min-w-[64px]" value="ai">AI</TabsTrigger>
+            <TabsTrigger className="min-w-[96px]" value="feedback">Feedback</TabsTrigger>
+            <TabsTrigger className="min-w-[88px]" value="history">History</TabsTrigger>
+            <TabsTrigger className="min-w-[72px]" value="notes">Notes</TabsTrigger>
+            <TabsTrigger className="min-w-[104px]" value="interview">Interview</TabsTrigger>
+            <TabsTrigger className="min-w-[80px]" value="rating">Rating</TabsTrigger>
           </TabsList>
 
           {/* Summary Tab */}
