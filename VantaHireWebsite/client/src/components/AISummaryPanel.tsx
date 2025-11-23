@@ -145,6 +145,15 @@ export function AISummaryPanel({
         return;
       }
 
+      if (currentStageId == null) {
+        toast({
+          title: "No current stage set",
+          description: "Assign a stage to this candidate before applying the AI advance suggestion.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Find the next stage
       const sortedStages = [...pipelineStages].sort((a, b) => a.order - b.order);
       const currentIndex = sortedStages.findIndex(s => s.id === currentStageId);
