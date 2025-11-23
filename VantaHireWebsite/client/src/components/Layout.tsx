@@ -43,6 +43,7 @@ const Layout = ({ children }: LayoutProps) => {
       '/jobs/post',
       '/admin',
       '/analytics',
+      '/clients',
     ];
 
     // Check exact matches first
