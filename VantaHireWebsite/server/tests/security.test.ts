@@ -17,6 +17,14 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 const BASE_URL = process.env.TEST_URL || 'http://localhost:5001';
 
+// Gate E2E security tests - require TEST_URL to be explicitly set
+const HAS_SERVER = !!process.env.TEST_URL;
+const maybeDescribe = HAS_SERVER ? describe : describe.skip;
+
+if (!HAS_SERVER) {
+  console.warn('[TEST] Skipping Security E2E tests: TEST_URL not set. These tests require a running server.');
+}
+
 // Test utilities
 interface TestResult {
   category: string;
@@ -136,7 +144,7 @@ async function createAdminSession(): Promise<{
   };
 }
 
-describe('1. SQL Injection Protection Tests', () => {
+maybeDescribe('1. SQL Injection Protection Tests', () => {
   const sqlInjectionPayloads = [
     "' OR '1'='1",
     "1' OR '1' = '1",
@@ -210,7 +218,7 @@ describe('1. SQL Injection Protection Tests', () => {
   });
 });
 
-describe('2. XSS (Cross-Site Scripting) Protection Tests', () => {
+maybeDescribe('2. XSS (Cross-Site Scripting) Protection Tests', () => {
   const xssPayloads = [
     '<script>alert("XSS")</script>',
     '<img src=x onerror=alert("XSS")>',
@@ -288,7 +296,7 @@ describe('2. XSS (Cross-Site Scripting) Protection Tests', () => {
   });
 });
 
-describe('3. CSRF (Cross-Site Request Forgery) Protection Tests', () => {
+maybeDescribe('3. CSRF (Cross-Site Request Forgery) Protection Tests', () => {
   it('should require CSRF token for POST requests', async () => {
     const session = await createTestSession();
 
@@ -399,7 +407,7 @@ describe('3. CSRF (Cross-Site Request Forgery) Protection Tests', () => {
   });
 });
 
-describe('4. Authentication Bypass Tests', () => {
+maybeDescribe('4. Authentication Bypass Tests', () => {
   it('should block access to protected endpoints without auth', async () => {
     const protectedEndpoints = [
       '/api/my-jobs',
@@ -451,7 +459,7 @@ describe('4. Authentication Bypass Tests', () => {
   });
 });
 
-describe('5. Authorization (Role-Based Access Control) Tests', () => {
+maybeDescribe('5. Authorization (Role-Based Access Control) Tests', () => {
   it('should prevent candidates from accessing admin endpoints', async () => {
     const session = await createTestSession(); // Creates candidate user
 
@@ -508,7 +516,7 @@ describe('5. Authorization (Role-Based Access Control) Tests', () => {
   });
 });
 
-describe('6. Rate Limiting Tests', () => {
+maybeDescribe('6. Rate Limiting Tests', () => {
   it('should enforce rate limits on application submissions', async () => {
     const session = await createTestSession();
 
@@ -575,7 +583,7 @@ describe('6. Rate Limiting Tests', () => {
   });
 });
 
-describe('7. Password Security Tests', () => {
+maybeDescribe('7. Password Security Tests', () => {
   it('should reject weak passwords', async () => {
     const weakPasswords = [
       '123',
@@ -643,7 +651,7 @@ describe('7. Password Security Tests', () => {
   });
 });
 
-describe('8. Session Security Tests', () => {
+maybeDescribe('8. Session Security Tests', () => {
   it('should set httpOnly flag on session cookies', async () => {
     const response = await makeRequest('/api/register', {
       method: 'POST',
@@ -735,7 +743,7 @@ describe('8. Session Security Tests', () => {
   });
 });
 
-describe('9. File Upload Security Tests', () => {
+maybeDescribe('9. File Upload Security Tests', () => {
   it('should validate file types for resume uploads', async () => {
     const session = await createTestSession();
 
@@ -812,7 +820,7 @@ describe('9. File Upload Security Tests', () => {
   });
 });
 
-describe('10. Security Headers (Helmet.js) Tests', () => {
+maybeDescribe('10. Security Headers (Helmet.js) Tests', () => {
   it('should have Content-Security-Policy header', async () => {
     const response = await makeRequest('/api/health');
 
@@ -940,7 +948,7 @@ describe('10. Security Headers (Helmet.js) Tests', () => {
 });
 
 // Generate final report
-describe('Security Test Summary', () => {
+maybeDescribe('Security Test Summary', () => {
   it('should generate comprehensive security report', () => {
     console.log('\n' + '='.repeat(80));
     console.log('VANTAHIRE SECURITY TEST REPORT');
