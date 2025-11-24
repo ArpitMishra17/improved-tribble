@@ -6,7 +6,7 @@ import express from 'express';
 import { registerRoutes } from '../../server/routes';
 import { db } from '../../server/db';
 import { users, jobs, applications, forms, formFields, formInvitations, formResponses, formResponseAnswers } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, inArray, or } from 'drizzle-orm';
 import { createMockUser, createMockJob, createMockApplication, createMockFormTemplate, createMockFormInvitation, createMockFormAnswers } from '../factories';
 import { randomBytes } from 'crypto';
 
@@ -25,31 +25,51 @@ beforeAll(async () => {
   app = express();
   server = await registerRoutes(app);
 
+  // Clean up any existing test data from previous runs (in correct order due to foreign keys)
+  const testUsernames = ['recruiter-test@example.com', 'admin-test@example.com', 'other-recruiter@example.com'];
+  const existingUsers = await db.select().from(users).where(inArray(users.username, testUsernames));
+  const userIds = existingUsers.map(u => u.id);
+
+  if (userIds.length > 0) {
+    // Delete dependent data first
+    const existingJobs = await db.select().from(jobs).where(inArray(jobs.postedBy, userIds));
+    const jobIds = existingJobs.map(j => j.id);
+
+    if (jobIds.length > 0) {
+      // Delete applications for these jobs
+      await db.delete(applications).where(inArray(applications.jobId, jobIds));
+      // Delete the jobs
+      await db.delete(jobs).where(inArray(jobs.id, jobIds));
+    }
+
+    // Now delete users
+    await db.delete(users).where(inArray(users.id, userIds));
+  }
+
   // Create test users
   const [recruiter] = await db.insert(users).values({
-    email: 'recruiter-test@example.com',
+    username: 'recruiter-test@example.com',
     password: '$scrypt$N=32768,r=8,p=1$hash', // Mock hashed password
     role: 'recruiter',
-    fullName: 'Test Recruiter',
+    firstName: 'Test',
+    lastName: 'Recruiter',
   }).returning();
   testRecruiter = recruiter;
 
   const [admin] = await db.insert(users).values({
-    email: 'admin-test@example.com',
+    username: 'admin-test@example.com',
     password: '$scrypt$N=32768,r=8,p=1$hash',
     role: 'admin',
-    fullName: 'Test Admin',
+    firstName: 'Test',
+    lastName: 'Admin',
   }).returning();
   testAdmin = admin;
 
   // Create test job
   const [job] = await db.insert(jobs).values({
     title: 'Test Job',
-    company: 'Test Company',
     location: 'Remote',
-    description: 'Test description',
-    requirements: 'Test requirements',
-    salary: '100k',
+    description: 'Test description for forms testing. This job requires various skills and experience.',
     type: 'full-time',
     postedBy: testRecruiter.id,
     status: 'approved',
@@ -63,7 +83,7 @@ beforeAll(async () => {
     name: 'Test Candidate',
     email: 'candidate@example.com',
     phone: '+1234567890',
-    resume: 'https://example.com/resume.pdf',
+    resumeUrl: 'https://example.com/resume.pdf',
     coverLetter: 'Test cover letter',
     status: 'submitted',
   }).returning();
@@ -250,10 +270,11 @@ maybeDescribe('Forms Feature Integration Tests', () => {
     it('should enforce template access guard (recruiters: own or published only)', async () => {
       // Create unpublished template from different recruiter
       const [otherRecruiter] = await db.insert(users).values({
-        email: 'other-recruiter@example.com',
+        username: 'other-recruiter@example.com',
         password: '$scrypt$N=32768,r=8,p=1$hash',
         role: 'recruiter',
-        fullName: 'Other Recruiter',
+        firstName: 'Other',
+        lastName: 'Recruiter',
       }).returning();
 
       const [unpublishedForm] = await db.insert(forms).values({
@@ -284,11 +305,8 @@ maybeDescribe('Forms Feature Integration Tests', () => {
       // Create job posted by different recruiter
       const [otherJob] = await db.insert(jobs).values({
         title: 'Other Job',
-        company: 'Other Company',
         location: 'Remote',
-        description: 'Test',
-        requirements: 'Test',
-        salary: '100k',
+        description: 'Test job description for ownership verification test.',
         type: 'full-time',
         postedBy: testAdmin.id, // Different user
         status: 'approved',
@@ -300,7 +318,7 @@ maybeDescribe('Forms Feature Integration Tests', () => {
         name: 'Test Candidate',
         email: 'other@example.com',
         phone: '+1234567890',
-        resume: 'https://example.com/resume.pdf',
+        resumeUrl: 'https://example.com/resume.pdf',
         status: 'submitted',
       }).returning();
 

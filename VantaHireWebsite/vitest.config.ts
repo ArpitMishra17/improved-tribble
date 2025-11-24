@@ -11,6 +11,13 @@ export default defineConfig(({ mode }) => ({
     setupFiles: ['./test/setup.ts'],
     env: loadEnv(mode, process.cwd(), ''),
     css: true,
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      'test/e2e/**',           // Exclude Playwright E2E tests
+      '**/*.spec.ts',          // Exclude .spec.ts files (Playwright)
+      '**/*.spec.tsx',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
