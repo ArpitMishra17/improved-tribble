@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
@@ -53,6 +53,10 @@ const emailDraftSchema = z.object({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup security middleware with environment-aware CSP
   const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Ensure body parsing is available even when registerRoutes is used directly in tests
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
 
   app.use(helmet({
     contentSecurityPolicy: {

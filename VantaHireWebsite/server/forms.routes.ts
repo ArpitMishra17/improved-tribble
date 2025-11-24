@@ -15,8 +15,12 @@ import { generateFormQuestions, isAIEnabled } from "./aiJobAnalyzer";
 import { aiAnalysisRateLimit } from "./rateLimit";
 
 // Environment configuration
+const isTestEnv = process.env.NODE_ENV === 'test';
 const FORM_INVITE_EXPIRY_DAYS = parseInt(process.env.FORM_INVITE_EXPIRY_DAYS || '14', 10);
-const FORM_PUBLIC_RATE_LIMIT = parseInt(process.env.FORM_PUBLIC_RATE_LIMIT || '10', 10);
+const FORM_PUBLIC_RATE_LIMIT = parseInt(
+  process.env.FORM_PUBLIC_RATE_LIMIT || (isTestEnv ? '1000' : '10'),
+  10
+);
 const FORM_INVITE_DAILY_LIMIT = parseInt(process.env.FORM_INVITE_DAILY_LIMIT || '50', 10);
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
 
@@ -51,6 +55,7 @@ const publicFormRateLimit = rateLimit({
   message: FORM_ERRORS.RATE_LIMITED,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => isTestEnv, // Skip rate limiting in test environment
   handler: (req, res) => {
     res.status(429).json(FORM_ERRORS.RATE_LIMITED);
   }
@@ -59,6 +64,7 @@ const publicFormRateLimit = rateLimit({
 const invitationRateLimit = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: FORM_INVITE_DAILY_LIMIT,
+  skip: () => isTestEnv, // Skip rate limiting in test environment
   message: { error: 'Daily invitation limit reached. Please try again tomorrow.' },
   standardHeaders: true,
   legacyHeaders: false,
