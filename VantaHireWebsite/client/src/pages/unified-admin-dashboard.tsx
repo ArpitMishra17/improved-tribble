@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  BarChart3, 
-  Users, 
-  Briefcase, 
-  Shield, 
-  Activity, 
+import {
+  BarChart3,
+  Users,
+  Briefcase,
+  Shield,
+  Activity,
   FileText,
   Settings,
   Search,
@@ -28,8 +28,13 @@ import {
   Eye,
   Download,
   Edit,
-  Trash2
+  Trash2,
+  Mail,
+  Bell,
+  CalendarClock,
+  Send
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +70,13 @@ interface TestSuite {
   passedTests: number;
   failedTests: number;
   coverage: number;
+}
+
+interface AutomationSetting {
+  key: string;
+  value: boolean;
+  updatedAt: string;
+  updatedBy: number | null;
 }
 
 export default function UnifiedAdminDashboard() {
@@ -207,6 +219,17 @@ export default function UnifiedAdminDashboard() {
     enabled: !!user && user.role === 'admin',
   });
 
+  // Automation settings query
+  const { data: automationSettings = [] } = useQuery<AutomationSetting[]>({
+    queryKey: ["/api/admin/automation-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/automation-settings", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch automation settings");
+      return response.json();
+    },
+    enabled: !!user && user.role === 'admin',
+  });
+
   // Mutations
   const updateJobStatusMutation = useMutation({
     mutationFn: async ({ jobId, status, comments }: { jobId: number; status: string; comments: string }) => {
@@ -239,6 +262,111 @@ export default function UnifiedAdminDashboard() {
       toast({ title: "User role updated successfully" });
     },
   });
+
+  // Automation settings mutation with optimistic updates
+  const updateAutomationSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
+      const response = await fetch(`/api/admin/automation-settings/${key}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ value }),
+      });
+      if (!response.ok) throw new Error('Failed to update setting');
+      return response.json();
+    },
+    onMutate: async ({ key, value }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/automation-settings"] });
+
+      // Snapshot the previous value
+      const previousSettings = queryClient.getQueryData<AutomationSetting[]>(["/api/admin/automation-settings"]);
+
+      // Optimistically update the cache
+      queryClient.setQueryData<AutomationSetting[]>(
+        ["/api/admin/automation-settings"],
+        (old = []) => old.map(s => s.key === key ? { ...s, value } : s)
+      );
+
+      return { previousSettings };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousSettings) {
+        queryClient.setQueryData(["/api/admin/automation-settings"], context.previousSettings);
+      }
+      toast({
+        title: "Failed to update setting",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/automation-settings"] });
+    },
+    onSuccess: (_, { key }) => {
+      const settingName = AUTOMATION_SETTING_LABELS[key]?.label || key;
+      toast({ title: `${settingName} updated` });
+    },
+  });
+
+  // Setting labels and descriptions
+  const AUTOMATION_SETTING_LABELS: Record<string, { label: string; description: string; icon: any; category: string }> = {
+    email_on_application_received: {
+      label: "Application Received Email",
+      description: "Send confirmation email when a candidate submits an application",
+      icon: Mail,
+      category: "candidate",
+    },
+    email_on_status_change: {
+      label: "Status Change Email",
+      description: "Notify candidates when their application status changes",
+      icon: Send,
+      category: "candidate",
+    },
+    email_on_interview_scheduled: {
+      label: "Interview Scheduled Email",
+      description: "Send email when an interview is scheduled for a candidate",
+      icon: CalendarClock,
+      category: "candidate",
+    },
+    email_on_offer_sent: {
+      label: "Offer Sent Email",
+      description: "Notify candidates when an offer is extended",
+      icon: Send,
+      category: "candidate",
+    },
+    email_on_rejection: {
+      label: "Rejection Email",
+      description: "Send email when a candidate is rejected",
+      icon: Mail,
+      category: "candidate",
+    },
+    auto_acknowledge_applications: {
+      label: "Auto-Acknowledge Applications",
+      description: "Automatically send acknowledgment when applications are received",
+      icon: CheckCircle,
+      category: "workflow",
+    },
+    notify_recruiter_new_application: {
+      label: "New Application Notification",
+      description: "Notify recruiters when new applications are received",
+      icon: Bell,
+      category: "recruiter",
+    },
+    reminder_interview_upcoming: {
+      label: "Interview Reminders",
+      description: "Send reminder emails before scheduled interviews",
+      icon: CalendarClock,
+      category: "recruiter",
+    },
+  };
+
+  // Helper to get setting value
+  const getSettingValue = (key: string): boolean => {
+    const setting = automationSettings.find(s => s.key === key);
+    return setting?.value ?? false;
+  };
 
   // Test functions
   const runTestSuite = async (suiteId: string) => {
@@ -431,7 +559,7 @@ export default function UnifiedAdminDashboard() {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-7 w-full">
             <TabsTrigger value="overview">
               <BarChart3 className="h-4 w-4 mr-2" />
               Overview
@@ -455,6 +583,10 @@ export default function UnifiedAdminDashboard() {
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Users
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -917,6 +1049,156 @@ export default function UnifiedAdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings">
+              <div className="space-y-6">
+                <Card className="shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-primary" />
+                      Automation Settings
+                    </CardTitle>
+                    <CardDescription className="text-slate-500">
+                      Configure automated email notifications and workflow triggers
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Candidate Notifications */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Candidate Notifications
+                      </h3>
+                      <div className="space-y-4">
+                        {Object.entries(AUTOMATION_SETTING_LABELS)
+                          .filter(([_, config]) => config.category === "candidate")
+                          .map(([key, config]) => {
+                            const IconComponent = config.icon;
+                            return (
+                              <div
+                                key={key}
+                                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-white rounded-lg border border-slate-200">
+                                    <IconComponent className="h-4 w-4 text-slate-600" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-900">{config.label}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{config.description}</p>
+                                  </div>
+                                </div>
+                                <Switch
+                                  checked={getSettingValue(key)}
+                                  onCheckedChange={(checked) =>
+                                    updateAutomationSettingMutation.mutate({ key, value: checked })
+                                  }
+                                  disabled={updateAutomationSettingMutation.isPending}
+                                />
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Recruiter Notifications */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                        <Bell className="h-4 w-4" />
+                        Recruiter Notifications
+                      </h3>
+                      <div className="space-y-4">
+                        {Object.entries(AUTOMATION_SETTING_LABELS)
+                          .filter(([_, config]) => config.category === "recruiter")
+                          .map(([key, config]) => {
+                            const IconComponent = config.icon;
+                            return (
+                              <div
+                                key={key}
+                                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-white rounded-lg border border-slate-200">
+                                    <IconComponent className="h-4 w-4 text-slate-600" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-900">{config.label}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{config.description}</p>
+                                  </div>
+                                </div>
+                                <Switch
+                                  checked={getSettingValue(key)}
+                                  onCheckedChange={(checked) =>
+                                    updateAutomationSettingMutation.mutate({ key, value: checked })
+                                  }
+                                  disabled={updateAutomationSettingMutation.isPending}
+                                />
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Workflow Automation */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                        <Zap className="h-4 w-4" />
+                        Workflow Automation
+                      </h3>
+                      <div className="space-y-4">
+                        {Object.entries(AUTOMATION_SETTING_LABELS)
+                          .filter(([_, config]) => config.category === "workflow")
+                          .map(([key, config]) => {
+                            const IconComponent = config.icon;
+                            return (
+                              <div
+                                key={key}
+                                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-white rounded-lg border border-slate-200">
+                                    <IconComponent className="h-4 w-4 text-slate-600" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-900">{config.label}</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">{config.description}</p>
+                                  </div>
+                                </div>
+                                <Switch
+                                  checked={getSettingValue(key)}
+                                  onCheckedChange={(checked) =>
+                                    updateAutomationSettingMutation.mutate({ key, value: checked })
+                                  }
+                                  disabled={updateAutomationSettingMutation.isPending}
+                                />
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Additional Settings Info */}
+                <Card className="shadow-sm border-blue-200 bg-blue-50/50">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Globe className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-blue-900">About Automation Settings</p>
+                        <p className="text-xs text-blue-700 mt-1">
+                          These settings apply organization-wide. Email notifications require a configured
+                          email service. Changes take effect immediately for new events.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

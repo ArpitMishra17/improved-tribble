@@ -43,7 +43,7 @@ import { Job, Application, PipelineStage, EmailTemplate } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formsApi, type FormTemplateDTO } from "@/lib/formsApi";
 import Layout from "@/components/Layout";
-import { AddCandidateModal } from "@/components/AddCandidateModal";
+import { CandidateIntakeForm } from "@/components/candidate-intake";
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,8 @@ import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { BulkActionBar } from "@/components/kanban/BulkActionBar";
 import { ApplicationDetailPanel } from "@/components/kanban/ApplicationDetailPanel";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { PageHeaderSkeleton, FilterBarSkeleton, KanbanBoardSkeleton } from "@/components/skeletons";
+import { JobSubNav } from "@/components/JobSubNav";
 
 export default function ApplicationManagementPage() {
   const [match, params] = useRoute("/jobs/:id/applications");
@@ -65,8 +67,6 @@ export default function ApplicationManagementPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
-  const [bulkStatus, setBulkStatus] = useState("");
-  const [bulkNotes, setBulkNotes] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
@@ -260,8 +260,6 @@ export default function ApplicationManagementPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/jobs", jobId, "applications"] });
       setSelectedApplications([]);
-      setBulkStatus("");
-      setBulkNotes("");
       toast({
         title: "Bulk update successful",
         description: `${data.updatedCount} applications updated successfully.`,
@@ -590,22 +588,6 @@ export default function ApplicationManagementPage() {
     });
   };
 
-  const handleBulkUpdate = () => {
-    if (selectedApplications.length === 0 || !bulkStatus) {
-      toast({
-        title: "Invalid selection",
-        description: "Please select applications and a status.",
-        variant: "destructive",
-      });
-      return;
-    }
-    bulkUpdateMutation.mutate({ 
-      applicationIds: selectedApplications, 
-      status: bulkStatus, 
-      notes: bulkNotes 
-    });
-  };
-
   const handleResumeDownload = (application: Application) => {
     // Use secure, permission-gated endpoint
     window.open(`/api/applications/${application.id}/resume`, '_blank');
@@ -727,6 +709,25 @@ export default function ApplicationManagementPage() {
 
   const handleClearSelection = () => {
     setSelectedApplications([]);
+  };
+
+  const handleSelectAll = (selected: boolean) => {
+    if (selected) {
+      // Select all filtered applications
+      setSelectedApplications(filteredApplications.map(app => app.id));
+    } else {
+      setSelectedApplications([]);
+    }
+  };
+
+  // Archive (uses bulk status update to mark as rejected with archive note)
+  const handleArchiveSelected = async () => {
+    if (selectedApplications.length === 0) return;
+    await bulkUpdateMutation.mutateAsync({
+      applicationIds: selectedApplications,
+      status: 'rejected',
+      notes: '[Archived via bulk action]'
+    });
   };
 
   const handleMoveStageFromPanel = (stageId: number, notes?: string) => {
@@ -879,9 +880,18 @@ export default function ApplicationManagementPage() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="text-slate-600 mt-4">Loading applications...</p>
+          <div className="max-w-7xl mx-auto space-y-6 pt-8">
+            <PageHeaderSkeleton />
+            <Card className="shadow-sm">
+              <CardHeader>
+                <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
+                <div className="h-4 w-64 bg-slate-200 rounded animate-pulse mt-2" />
+              </CardHeader>
+            </Card>
+            <FilterBarSkeleton />
+            <div className="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+              <KanbanBoardSkeleton columns={5} />
+            </div>
           </div>
         </div>
       </Layout>
@@ -907,20 +917,25 @@ export default function ApplicationManagementPage() {
     <Layout>
       <div className={`container mx-auto px-4 py-8 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="max-w-7xl mx-auto">
+          {/* Back Button */}
+          <div className="flex items-center gap-3 pt-8 mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/my-jobs")}
+              className="text-slate-600 hover:bg-slate-100"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Back to My Jobs</span>
+              <span className="sm:hidden">Back</span>
+            </Button>
+          </div>
+
+          {/* Job-Level Sub Navigation */}
+          <JobSubNav jobId={jobId!} jobTitle={job.title} className="mb-6" />
+
           {/* Quick Actions Toolbar */}
-          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6 pt-8">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation("/my-jobs")}
-                className="text-slate-600 hover:bg-slate-100"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Back to My Jobs</span>
-                <span className="sm:hidden">Back</span>
-              </Button>
-            </div>
+          <div className="flex flex-col md:flex-row justify-end gap-4 mb-6">
 
             <div className="flex flex-wrap justify-end gap-2">
               <Button
@@ -1247,52 +1262,20 @@ export default function ApplicationManagementPage() {
             </CardContent>
           </Card>
 
-          {/* Bulk Actions */}
-          {selectedApplications.length > 0 && (
-            <Card className="mb-6 bg-primary/5 border-primary/20">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4 flex-wrap">
-                  <span className="text-slate-900 font-medium">
-                    {selectedApplications.length} application(s) selected
-                  </span>
-                  <Select value={bulkStatus} onValueChange={setBulkStatus}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Set Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="reviewed">Reviewed</SelectItem>
-                      <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    placeholder="Add notes (optional)"
-                    value={bulkNotes}
-                    onChange={(e) => setBulkNotes(e.target.value)}
-                    className="flex-1 min-w-[200px]"
-                  />
-                  <Button
-                    onClick={handleBulkUpdate}
-                    disabled={bulkUpdateMutation.isPending}
-                  >
-                    Update Selected
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Kanban Board Section */}
           <BulkActionBar
             selectedCount={selectedApplications.length}
+            totalCount={filteredApplications.length}
             pipelineStages={pipelineStages}
             emailTemplates={emailTemplates}
             formTemplates={formTemplates}
             onMoveStage={handleBulkMoveStage}
             onSendEmails={handleBulkSendEmails}
             onSendForms={handleBulkSendForms}
+            onSelectAll={handleSelectAll}
             onClearSelection={handleClearSelection}
-            isBulkProcessing={sendBulkEmailsMutation.isPending || sendBulkFormsMutation.isPending}
+            onArchiveSelected={handleArchiveSelected}
+            isBulkProcessing={sendBulkEmailsMutation.isPending || sendBulkFormsMutation.isPending || bulkUpdateMutation.isPending}
             bulkProgress={bulkProgress}
           />
 
@@ -1307,6 +1290,25 @@ export default function ApplicationManagementPage() {
                   onOpenDetails={handleOpenDetails}
                   onDragEnd={handleDragEnd}
                   onDragCancel={handleDragCancel}
+                  onQuickMoveStage={(appId, stageId) => {
+                    updateStageMutation.mutate({ applicationId: appId, stageId });
+                  }}
+                  onQuickEmail={(appId) => {
+                    const app = applications?.find(a => a.id === appId);
+                    if (app) {
+                      handleOpenDetails(app);
+                      // Switch to email tab would require more state; opening details is sufficient
+                    }
+                  }}
+                  onQuickInterview={(appId) => {
+                    const app = applications?.find(a => a.id === appId);
+                    if (app) {
+                      handleOpenDetails(app);
+                    }
+                  }}
+                  onQuickDownload={(appId) => {
+                    window.open(`/api/applications/${appId}/resume`, '_blank');
+                  }}
                 />
               </div>
             </ResizablePanel>
@@ -1971,9 +1973,9 @@ export default function ApplicationManagementPage() {
           />
         )}
 
-        {/* Add Candidate Modal */}
+        {/* Add Candidate Intake Form */}
         {jobId && (
-          <AddCandidateModal
+          <CandidateIntakeForm
             jobId={jobId}
             open={addCandidateModalOpen}
             onOpenChange={setAddCandidateModalOpen}

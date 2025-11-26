@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { X, Mail, FileText, MoveRight } from "lucide-react";
+import { X, Mail, FileText, MoveRight, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PipelineStage, EmailTemplate } from "@shared/schema";
 import type { FormTemplateDTO } from "@/lib/formsApi";
@@ -13,36 +14,54 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface BulkActionBarProps {
   selectedCount: number;
+  totalCount: number;
   pipelineStages: PipelineStage[];
   emailTemplates: EmailTemplate[];
   formTemplates: FormTemplateDTO[];
   onMoveStage: (stageId: number) => Promise<void>;
   onSendEmails: (templateId: number) => Promise<void>;
   onSendForms: (formId: number, message: string) => Promise<void>;
+  onSelectAll: (selected: boolean) => void;
   onClearSelection: () => void;
+  onArchiveSelected: () => Promise<void>;
   isBulkProcessing: boolean;
   bulkProgress?: { sent: number; total: number };
 }
 
 export function BulkActionBar({
   selectedCount,
+  totalCount,
   pipelineStages,
   emailTemplates,
   formTemplates,
   onMoveStage,
   onSendEmails,
   onSendForms,
+  onSelectAll,
   onClearSelection,
+  onArchiveSelected,
   isBulkProcessing,
   bulkProgress,
 }: BulkActionBarProps) {
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [showFormsDialog, setShowFormsDialog] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [selectedFormId, setSelectedFormId] = useState<string>("");
@@ -60,7 +79,9 @@ export function BulkActionBar({
     }
   };
 
-  if (selectedCount === 0) return null;
+  const hasSelection = selectedCount > 0;
+  const allSelected = hasSelection && selectedCount === totalCount;
+  const someSelected = hasSelection && selectedCount < totalCount;
 
   const handleMoveStage = async () => {
     if (!selectedStageId) return;
@@ -92,24 +113,39 @@ export function BulkActionBar({
   return (
     <>
       <div
-        className="sticky top-0 z-20 bg-white border-b border-slate-200 p-4 shadow-sm"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
+        className="sticky top-0 z-20 bg-white border-b border-slate-200 p-3 shadow-sm"
+        role="toolbar"
+        aria-label="Bulk actions"
       >
         <div className="container mx-auto flex items-center gap-4">
-          <Badge
-            variant="secondary"
-            className="bg-primary/10 text-primary border-primary/20"
+          {/* Select All Checkbox */}
+          <div
+            className="flex items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
           >
-            {selectedCount} selected
-          </Badge>
+            <Checkbox
+              checked={someSelected ? "indeterminate" : allSelected}
+              onCheckedChange={(checked) => onSelectAll(!!checked)}
+              aria-label="Select all applications"
+              disabled={isBulkProcessing || totalCount === 0}
+            />
+            <span className={cn(
+              "text-sm",
+              hasSelection ? "text-slate-900 font-medium" : "text-slate-500"
+            )}>
+              {hasSelection ? `${selectedCount} selected` : "Select all"}
+            </span>
+          </div>
 
+          <div className="h-4 w-px bg-slate-200" />
+
+          {/* Action Buttons */}
           <div className="flex items-center gap-2 flex-1">
             <Button
               size="sm"
+              variant={hasSelection ? "default" : "ghost"}
               onClick={() => setShowMoveDialog(true)}
-              disabled={isBulkProcessing}
+              disabled={isBulkProcessing || !hasSelection}
             >
               <MoveRight className="h-4 w-4 mr-2" />
               Move Stage
@@ -117,49 +153,63 @@ export function BulkActionBar({
 
             <Button
               size="sm"
+              variant="ghost"
               onClick={() => setShowEmailDialog(true)}
-              disabled={isBulkProcessing || emailTemplates.length === 0}
+              disabled={isBulkProcessing || !hasSelection || emailTemplates.length === 0}
             >
               <Mail className="h-4 w-4 mr-2" />
-              Send Email
+              Email
             </Button>
 
             <Button
               size="sm"
+              variant="ghost"
               onClick={() => setShowFormsDialog(true)}
-              disabled={isBulkProcessing || formTemplates.length === 0}
+              disabled={isBulkProcessing || !hasSelection || formTemplates.length === 0}
             >
               <FileText className="h-4 w-4 mr-2" />
-              Invite to Form
+              Form
+            </Button>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowArchiveDialog(true)}
+              disabled={isBulkProcessing || !hasSelection}
+              className="text-slate-600 hover:text-red-600 hover:bg-red-50"
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archive
             </Button>
           </div>
 
+          {/* Progress indicator */}
           {isBulkProcessing && bulkProgress && bulkProgress.total > 0 && (
             <div
-              className="flex items-center gap-2 min-w-[220px]"
+              className="flex items-center gap-2 min-w-[180px]"
               role="status"
               aria-live="polite"
-              aria-atomic="true"
             >
               <Progress value={progressPercentage} className="h-2" />
               <span className="text-sm text-slate-600 whitespace-nowrap">
                 {bulkProgress.sent}/{bulkProgress.total}
               </span>
-              <span className="sr-only">Bulk operation in progress</span>
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearSelection}
-            disabled={isBulkProcessing}
-            className="text-slate-600 hover:bg-slate-100"
-            aria-label="Clear selection"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Clear selection</span>
-          </Button>
+          {/* Clear Selection */}
+          {hasSelection && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearSelection}
+              disabled={isBulkProcessing}
+              className="text-slate-500 hover:text-slate-700"
+              aria-label="Clear selection"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -317,6 +367,31 @@ export function BulkActionBar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Archive Confirmation Dialog */}
+      <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive {selectedCount} Applications?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will archive the selected applications. They will be hidden from the
+              active pipeline but can be restored later from the archive view.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await onArchiveSelected();
+                setShowArchiveDialog(false);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

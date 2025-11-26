@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Eye, Download, Users, Search, Sparkles, Brain, AlertCircle, MessageCircle } from "lucide-react";
 import Layout from "@/components/Layout";
+import { PageHeaderSkeleton, FilterBarSkeleton, ApplicationListSkeleton } from "@/components/skeletons";
 import type { Application, PipelineStage } from "@shared/schema";
 
 // Extended types for API responses with relations
@@ -148,9 +149,20 @@ export default function ApplicationsPage() {
   if (applicationsLoading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-16">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-slate-600">Loading...</div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="space-y-6 pt-8">
+            <PageHeaderSkeleton />
+            <FilterBarSkeleton />
+            <Card className="shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-slate-900 text-lg">
+                  <div className="h-6 w-40 bg-slate-200 rounded animate-pulse" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ApplicationListSkeleton count={5} />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </Layout>

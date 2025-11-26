@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -11,11 +11,9 @@ import {
   closestCorners,
 } from "@dnd-kit/core";
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Application, PipelineStage, EmailTemplate } from "@shared/schema";
-import { FormTemplateDTO } from "@/lib/formsApi";
+import { Application, PipelineStage } from "@shared/schema";
 import { StageColumn } from "./StageColumn";
 import { ApplicationCard } from "./ApplicationCard";
-import { useState } from "react";
 
 interface KanbanBoardProps {
   applications: Application[];
@@ -25,6 +23,10 @@ interface KanbanBoardProps {
   onOpenDetails: (application: Application) => void;
   onDragEnd: (applicationId: number, targetStageId: number) => Promise<void>;
   onDragCancel?: () => void;
+  onQuickMoveStage?: (applicationId: number, stageId: number) => void;
+  onQuickEmail?: (applicationId: number) => void;
+  onQuickInterview?: (applicationId: number) => void;
+  onQuickDownload?: (applicationId: number) => void;
 }
 
 export function KanbanBoard({
@@ -35,6 +37,10 @@ export function KanbanBoard({
   onOpenDetails,
   onDragEnd,
   onDragCancel,
+  onQuickMoveStage,
+  onQuickEmail,
+  onQuickInterview,
+  onQuickDownload,
 }: KanbanBoardProps) {
   const [activeApp, setActiveApp] = useState<Application | null>(null);
 
@@ -163,6 +169,11 @@ export function KanbanBoard({
               selectedIds={selectedIds}
               onToggleSelect={onToggleSelect}
               onOpenDetails={onOpenDetails}
+              pipelineStages={pipelineStages}
+              onQuickMoveStage={onQuickMoveStage}
+              onQuickEmail={onQuickEmail}
+              onQuickInterview={onQuickInterview}
+              onQuickDownload={onQuickDownload}
             />
           );
         })}

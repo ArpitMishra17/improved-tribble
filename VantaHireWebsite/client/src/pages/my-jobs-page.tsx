@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Eye, Briefcase, Plus, Play, Search, Edit } from "lucide-react";
+import { Eye, Briefcase, Plus, Play, Search, Edit, LayoutGrid, CheckCircle, Clock, Archive } from "lucide-react";
 import Layout from "@/components/Layout";
+import { PageHeaderSkeleton, FilterBarSkeleton, JobListSkeleton } from "@/components/skeletons";
+import { SubNav, type SubNavItem } from "@/components/SubNav";
 import type { Job } from "@shared/schema";
 
 type JobWithCounts = Job & {
@@ -28,12 +30,24 @@ export default function MyJobsPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("all");
 
   // Fetch recruiter's jobs
   const { data: jobs = [], isLoading: jobsLoading } = useQuery<JobWithCounts[]>({
     queryKey: ["/api/my-jobs"],
   });
+
+  // Compute counts for SubNav
+  const activeCount = jobs.filter(j => j.isActive).length;
+  const inactiveCount = jobs.filter(j => !j.isActive).length;
+  const pendingCount = jobs.filter(j => j.status === 'pending').length;
+
+  const subNavItems: SubNavItem[] = [
+    { id: "all", label: "All Jobs", count: jobs.length, icon: <LayoutGrid className="h-4 w-4" /> },
+    { id: "active", label: "Active", count: activeCount, icon: <CheckCircle className="h-4 w-4" /> },
+    { id: "inactive", label: "Inactive", count: inactiveCount, icon: <Archive className="h-4 w-4" /> },
+    { id: "pending", label: "Pending Review", count: pendingCount, icon: <Clock className="h-4 w-4" /> },
+  ];
 
   // Publish job mutation
   const publishJobMutation = useMutation({
@@ -66,7 +80,7 @@ export default function MyJobsPage() {
     }
   };
 
-  // Filter jobs
+  // Filter jobs based on active tab and search
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch = !searchQuery ||
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,21 +88,24 @@ export default function MyJobsPage() {
       job.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.location.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && job.isActive) ||
-      (statusFilter === "inactive" && !job.isActive) ||
-      job.status === statusFilter;
+    // Tab filter takes priority
+    const matchesTab =
+      activeTab === "all" ||
+      (activeTab === "active" && job.isActive) ||
+      (activeTab === "inactive" && !job.isActive) ||
+      (activeTab === "pending" && job.status === "pending");
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesTab;
   });
 
   if (jobsLoading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-16">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-slate-600">Loading...</div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="space-y-6 pt-8">
+            <PageHeaderSkeleton />
+            <FilterBarSkeleton />
+            <JobListSkeleton count={4} />
           </div>
         </div>
       </Layout>
@@ -111,34 +128,24 @@ export default function MyJobsPage() {
             </Button>
           </div>
 
-          {/* Filters */}
-          <Card className="shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search by title, company, or location..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full md:w-48">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Sub Navigation */}
+          <SubNav
+            items={subNavItems}
+            activeId={activeTab}
+            onChange={setActiveTab}
+            className="rounded-lg"
+          />
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+            <Input
+              placeholder="Search by title, company, or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
           {/* Jobs List */}
           <Card className="shadow-sm">
@@ -156,11 +163,11 @@ export default function MyJobsPage() {
                   <div className="text-center py-8">
                     <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500 mb-2">
-                      {searchQuery || statusFilter !== "all"
+                      {searchQuery || activeTab !== "all"
                         ? "No jobs match your filters"
                         : "No job postings yet"}
                     </p>
-                    {!searchQuery && statusFilter === "all" && (
+                    {!searchQuery && activeTab === "all" && (
                       <Button className="mt-4" onClick={() => setLocation("/jobs/post")}>
                         <Plus className="h-4 w-4 mr-2" />
                         Post Your First Job

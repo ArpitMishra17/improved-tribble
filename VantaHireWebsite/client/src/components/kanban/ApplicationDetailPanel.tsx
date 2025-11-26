@@ -658,6 +658,22 @@ export function ApplicationDetailPanel({
                   {application.interviewNotes && (
                     <p className="text-slate-600 text-sm mt-3">{application.interviewNotes}</p>
                   )}
+                  <div className="pt-3 border-t border-slate-200 mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        window.open(`/api/applications/${application.id}/interview/ics`, '_blank');
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Add to Calendar (.ics)
+                    </Button>
+                    <p className="text-xs text-slate-500 mt-2 text-center">
+                      Share with interviewers and candidate
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}

@@ -21,6 +21,9 @@ import AdminEmailTemplatesPage from "@/pages/admin-email-templates-page";
 import FormEditorPage from "@/pages/form-editor-page";
 import UnifiedAdminDashboard from "@/pages/unified-admin-dashboard";
 import ApplicationManagementPage from "@/pages/application-management-page";
+import JobEditPage from "@/pages/job-edit-page";
+import JobPipelinePage from "@/pages/job-pipeline-page";
+import JobAnalyticsPage from "@/pages/job-analytics-page";
 import CandidateDashboard from "@/pages/candidate-dashboard";
 import JobAnalyticsDashboard from "@/pages/job-analytics-dashboard";
 import RecruiterDashboard from "@/pages/recruiter-dashboard";
@@ -53,6 +56,9 @@ function Router() {
       <Route path="/jobs" component={JobsPage} />
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'admin']} />
       <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/jobs/:id/edit" component={JobEditPage} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/jobs/:id/pipeline" component={JobPipelinePage} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/jobs/:id/analytics" component={JobAnalyticsPage} requiredRole={['recruiter', 'admin']} />
       <Route path="/jobs/:id" component={JobDetailsPage} />
       <ProtectedRoute path="/my-dashboard" component={CandidateDashboard} requiredRole={['candidate']} />
       <ProtectedRoute path="/recruiter-dashboard" component={RecruiterDashboard} requiredRole={['recruiter', 'admin']} />
