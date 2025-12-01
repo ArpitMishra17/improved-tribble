@@ -17,16 +17,16 @@ import {
 import { Application, PipelineStage } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
-interface ApplicationCardProps {
+export interface ApplicationCardProps {
   application: Application;
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
   onOpenDetails: (application: Application) => void;
-  pipelineStages?: PipelineStage[];
-  onQuickMoveStage?: (applicationId: number, stageId: number) => void;
-  onQuickEmail?: (applicationId: number) => void;
-  onQuickInterview?: (applicationId: number) => void;
-  onQuickDownload?: (applicationId: number) => void;
+  pipelineStages?: PipelineStage[] | undefined;
+  onQuickMoveStage?: ((applicationId: number, stageId: number) => void) | undefined;
+  onQuickEmail?: ((applicationId: number) => void) | undefined;
+  onQuickInterview?: ((applicationId: number) => void) | undefined;
+  onQuickDownload?: ((applicationId: number) => void) | undefined;
 }
 
 export function ApplicationCard({

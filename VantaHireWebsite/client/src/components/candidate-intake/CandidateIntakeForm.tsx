@@ -249,9 +249,11 @@ export function CandidateIntakeForm({
           <nav className="w-48 border-r border-slate-200 bg-slate-50 p-4 space-y-1 shrink-0">
             {SECTIONS.map((section) => {
               const Icon = SECTION_ICONS[section.id];
-              const status = sectionStatuses[section.id];
+              const status = sectionStatuses[section.id] ?? "incomplete";
               const isActive = activeSection === section.id;
               const isLocked = status === "locked";
+
+              if (!Icon) return null;
 
               return (
                 <button

@@ -7,17 +7,17 @@ import { ApplicationCard } from "./ApplicationCard";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-interface StageColumnProps {
+export interface StageColumnProps {
   stage: PipelineStage;
   applications: Application[];
   selectedIds: number[];
   onToggleSelect: (id: number) => void;
   onOpenDetails: (application: Application) => void;
-  pipelineStages?: PipelineStage[];
-  onQuickMoveStage?: (applicationId: number, stageId: number) => void;
-  onQuickEmail?: (applicationId: number) => void;
-  onQuickInterview?: (applicationId: number) => void;
-  onQuickDownload?: (applicationId: number) => void;
+  pipelineStages?: PipelineStage[] | undefined;
+  onQuickMoveStage?: ((applicationId: number, stageId: number) => void) | undefined;
+  onQuickEmail?: ((applicationId: number) => void) | undefined;
+  onQuickInterview?: ((applicationId: number) => void) | undefined;
+  onQuickDownload?: ((applicationId: number) => void) | undefined;
 }
 
 // Categorize applications into sub-sections
@@ -64,11 +64,11 @@ function SubSection({
   selectedIds: number[];
   onToggleSelect: (id: number) => void;
   onOpenDetails: (application: Application) => void;
-  pipelineStages: PipelineStage[];
-  onQuickMoveStage?: (applicationId: number, stageId: number) => void;
-  onQuickEmail?: (applicationId: number) => void;
-  onQuickInterview?: (applicationId: number) => void;
-  onQuickDownload?: (applicationId: number) => void;
+  pipelineStages?: PipelineStage[] | undefined;
+  onQuickMoveStage?: ((applicationId: number, stageId: number) => void) | undefined;
+  onQuickEmail?: ((applicationId: number) => void) | undefined;
+  onQuickInterview?: ((applicationId: number) => void) | undefined;
+  onQuickDownload?: ((applicationId: number) => void) | undefined;
   colorClass: string;
   defaultExpanded?: boolean;
 }) {

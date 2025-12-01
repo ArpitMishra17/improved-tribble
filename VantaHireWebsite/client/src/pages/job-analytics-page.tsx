@@ -448,7 +448,10 @@ export default function JobAnalyticsPage() {
                             border: "1px solid #e2e8f0",
                             borderRadius: "8px",
                           }}
-                          formatter={(value: number, name: string, props: { payload: { fullName: string } }) => [value, props.payload.fullName]}
+                          formatter={(value: number, name: string, props) => {
+                            const payload = props?.payload as { fullName?: string } | undefined;
+                            return [value, payload?.fullName ?? name];
+                          }}
                         />
                         <Bar dataKey="count" fill={COLORS.primary} radius={[0, 4, 4, 0]} />
                       </BarChart>

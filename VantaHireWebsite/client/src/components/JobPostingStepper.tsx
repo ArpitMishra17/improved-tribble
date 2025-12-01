@@ -88,10 +88,16 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
   const [errors, setErrors] = useState<FieldError[]>([]);
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    location: string;
+    type: "full-time" | "part-time" | "contract" | "remote";
+    description: string;
+    deadline: string;
+  }>({
     title: "",
     location: "",
-    type: "full-time" as const,
+    type: "full-time",
     description: "",
     deadline: "",
   });
@@ -221,12 +227,11 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
         // Stages exist but user defined custom ones - add the new custom stages
         try {
           const maxOrder = Math.max(...pipelineStages.map(s => s.order), 0);
-          for (let i = 0; i < customStages.length; i++) {
-            const stage = customStages[i];
+          for (const stage of customStages) {
             await apiRequest("POST", "/api/pipeline/stages", {
               name: stage.name,
               color: stage.color,
-              order: maxOrder + i + 1,
+              order: maxOrder + customStages.indexOf(stage) + 1,
             });
           }
         } catch (e) {
@@ -444,9 +449,9 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="text-slate-900 text-lg">
-            {STEPS[currentStep - 1].title}
+            {STEPS[currentStep - 1]?.title}
           </CardTitle>
-          <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
+          <CardDescription>{STEPS[currentStep - 1]?.description}</CardDescription>
         </CardHeader>
         <CardContent>
           {/* Step 1: Basics */}
@@ -603,12 +608,15 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                     <Users className="h-4 w-4 text-slate-500" />
                     Hiring Manager (Optional)
                   </Label>
-                  <Select value={hiringManagerId} onValueChange={setHiringManagerId}>
+                  <Select
+                    value={hiringManagerId || "__none__"}
+                    onValueChange={(val) => setHiringManagerId(val === "__none__" ? "" : val)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a hiring manager..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="__none__">None</SelectItem>
                       {hiringManagers.map((hm) => (
                         <SelectItem key={hm.id} value={hm.id.toString()}>
                           {hm.firstName && hm.lastName
@@ -625,12 +633,15 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                     <Briefcase className="h-4 w-4 text-slate-500" />
                     Client (Optional)
                   </Label>
-                  <Select value={clientId} onValueChange={setClientId}>
+                  <Select
+                    value={clientId || "__none__"}
+                    onValueChange={(val) => setClientId(val === "__none__" ? "" : val)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Internal role / no client" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Internal / No client</SelectItem>
+                      <SelectItem value="__none__">Internal / No client</SelectItem>
                       {clients.map((client) => (
                         <SelectItem key={client.id} value={client.id.toString()}>
                           {client.name}
@@ -654,12 +665,15 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                     <Copy className="h-4 w-4 text-slate-500" />
                     Clone Settings From (Optional)
                   </Label>
-                  <Select value={cloneFromJobId} onValueChange={setCloneFromJobId}>
+                  <Select
+                    value={cloneFromJobId || "__none__"}
+                    onValueChange={(val) => setCloneFromJobId(val === "__none__" ? "" : val)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Start fresh" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Start fresh</SelectItem>
+                      <SelectItem value="__none__">Start fresh</SelectItem>
                       {existingJobs.map((job) => (
                         <SelectItem key={job.id} value={job.id.toString()}>
                           {job.title}

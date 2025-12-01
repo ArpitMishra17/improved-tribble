@@ -6,7 +6,18 @@ import Layout from "@/components/Layout";
 import { JobPostingStepper } from "@/components/JobPostingStepper";
 
 export default function JobPostPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-16 flex justify-center">
+          <div className="animate-pulse text-slate-500">Loading...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   // Redirect if not authenticated
   if (!user) {
