@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star, Share2, Bookmark, Sparkles, DollarSign } from "lucide-react";
+import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star, Share2, Bookmark, Sparkles, DollarSign, AlertTriangle, RotateCcw, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,13 +14,27 @@ import { Job, insertApplicationSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getCsrfToken } from "@/lib/csrf";
 import { z } from "zod";
+import { differenceInDays, format } from "date-fns";
 import Layout from "@/components/Layout";
+import { useAuth } from "@/hooks/use-auth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateJobPostingJsonLd, generateJobMetaDescription, getJobCanonicalUrl } from "@/lib/seoHelpers";
+
+// Types for audit log
+interface AuditLogEntry {
+  id: number;
+  action: string;
+  changes: Record<string, unknown> | null;
+  performedBy: { firstName: string; lastName: string; username: string } | null;
+  createdAt: string;
+}
 
 export default function JobDetailsPage() {
   const [match, params] = useRoute("/jobs/:id");
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [activeTab, setActiveTab] = useState("details");
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -58,6 +72,41 @@ export default function JobDetailsPage() {
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+
+  // Check if current user is recruiter/admin (for showing admin features)
+  const isRecruiterOrAdmin = user?.role === 'recruiter' || user?.role === 'admin';
+
+  // Fetch audit log for job (recruiters/admins only)
+  const { data: auditLog = [] } = useQuery<AuditLogEntry[]>({
+    queryKey: ["/api/jobs", jobId, "audit-log"],
+    queryFn: async () => {
+      const response = await fetch(`/api/jobs/${jobId}/audit-log`, { credentials: 'include' });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!jobId && isRecruiterOrAdmin,
+  });
+
+  // Job reactivation mutation (for expired jobs)
+  const reactivateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", `/api/jobs/${jobId}/status`, { isActive: true, reason: "Reactivated from job details page" });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", jobId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", jobId, "audit-log"] });
+      toast({ title: "Job reactivated", description: "The job posting is now active again." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to reactivate job", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Helper functions for expiry status
+  const isExpired = job?.expiresAt ? new Date(job.expiresAt) < new Date() : false;
+  const daysUntilExpiry = job?.expiresAt ? differenceInDays(new Date(job.expiresAt), new Date()) : null;
+  const showExpiryWarning = daysUntilExpiry !== null && daysUntilExpiry >= 0 && daysUntilExpiry <= 7;
 
   const applicationMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -136,8 +185,10 @@ export default function JobDetailsPage() {
     }
   };
 
-  const formatDate = (dateString: string | Date) => {
+  const formatDate = (dateString: string | Date | null | undefined) => {
+    if (!dateString) return 'Not set';
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+    if (isNaN(date.getTime())) return 'Invalid date';
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -274,8 +325,44 @@ export default function JobDetailsPage() {
                     <span>Application Deadline: {formatDate(job.deadline)}</span>
                   </div>
                 )}
+
+                {/* Expired State Badge */}
+                {isExpired && (
+                  <div className="flex items-center gap-3 mt-4">
+                    <Badge className="bg-red-500/20 text-red-300 border-red-500/30">
+                      Expired
+                    </Badge>
+                    {isRecruiterOrAdmin && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => reactivateMutation.mutate()}
+                        disabled={reactivateMutation.isPending}
+                        className="border-green-500/50 text-green-300 hover:bg-green-500/20"
+                      >
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        {reactivateMutation.isPending ? "Reactivating..." : "Reactivate Job"}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardHeader>
             </Card>
+
+            {/* Expiry Warning Banner */}
+            {showExpiryWarning && !isExpired && (
+              <div className="mb-4 p-4 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0" />
+                <div>
+                  <p className="text-amber-200 font-medium">
+                    This job posting expires {daysUntilExpiry === 0 ? 'today' : daysUntilExpiry === 1 ? 'tomorrow' : `in ${daysUntilExpiry} days`}
+                  </p>
+                  <p className="text-amber-300/70 text-sm">
+                    {job.expiresAt && `Expiry date: ${format(new Date(job.expiresAt), "MMMM d, yyyy 'at' h:mm a")}`}
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Job Description */}
@@ -388,6 +475,7 @@ export default function JobDetailsPage() {
                             onClick={() => setShowApplicationForm(true)}
                             className="w-full bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 hover:scale-105"
                             size="lg"
+                            data-testid="apply-button"
                           >
                             Apply Now
                           </Button>
@@ -522,6 +610,63 @@ export default function JobDetailsPage() {
                 )}
               </div>
             </div>
+
+            {/* Activity Log (Recruiters/Admins only) */}
+            {isRecruiterOrAdmin && auditLog.length > 0 && (
+              <Card className="mt-8 bg-white/10 backdrop-blur-sm border-white/20 premium-card">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <History className="h-5 w-5 text-[#7B38FB]" />
+                    Activity Log
+                  </CardTitle>
+                  <CardDescription className="text-white/70">
+                    Recent changes and actions on this job posting
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative">
+                    {/* Timeline line */}
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-white/20" />
+
+                    <div className="space-y-4">
+                      {auditLog.slice(0, 10).map((entry, index) => (
+                        <div key={entry.id} className="relative pl-10">
+                          {/* Timeline dot */}
+                          <div className="absolute left-2.5 w-3 h-3 rounded-full bg-[#7B38FB] border-2 border-white/20" />
+
+                          <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-white capitalize">
+                                {entry.action.replace(/_/g, ' ')}
+                              </span>
+                              <span className="text-xs text-white/50">
+                                {entry.createdAt && !isNaN(new Date(entry.createdAt).getTime())
+                                  ? format(new Date(entry.createdAt), "MMM d, yyyy 'at' h:mm a")
+                                  : 'Unknown date'}
+                              </span>
+                            </div>
+                            {entry.performedBy && (
+                              <p className="text-xs text-white/60">
+                                by {entry.performedBy.firstName} {entry.performedBy.lastName}
+                              </p>
+                            )}
+                            {entry.changes && Object.keys(entry.changes).length > 0 && (
+                              <div className="mt-2 text-xs text-white/50">
+                                {Object.entries(entry.changes).map(([key, value]) => (
+                                  <span key={key} className="inline-block mr-2">
+                                    {key}: {String(value)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

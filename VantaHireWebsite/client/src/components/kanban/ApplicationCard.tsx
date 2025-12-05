@@ -64,6 +64,8 @@ export function ApplicationCard({
     <div
       ref={setNodeRef}
       style={style}
+      data-testid="candidate-card"
+      data-application-id={application.id}
       className={cn(
         "mb-3",
         isDragging && "opacity-50"

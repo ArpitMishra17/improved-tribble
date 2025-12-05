@@ -374,6 +374,7 @@ export default function JobsPage() {
               {sortedJobs.map((job) => (
                 <Card
                   key={job.id}
+                  data-testid="job-card"
                   className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300"
                   onMouseEnter={() => handleJobCardHover(job.id)}
                 >

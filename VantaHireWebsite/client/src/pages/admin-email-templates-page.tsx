@@ -232,6 +232,7 @@ export default function AdminEmailTemplatesPage() {
                     .map((tpl) => (
                     <TableRow
                       key={tpl.id}
+                      data-template-id={tpl.id}
                       className={`border-slate-200 hover:bg-slate-50 ${tpl.isDefault ? 'bg-green-50/30' : ''}`}
                     >
                       <TableCell className="text-slate-900 font-medium">

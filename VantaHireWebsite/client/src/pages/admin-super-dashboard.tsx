@@ -56,7 +56,16 @@ interface JobWithDetails {
   status: string;
   isActive: boolean;
   createdAt: string;
+  expiresAt?: string | null;
   applicationCount: number;
+  reviewComments?: string | null;
+  reviewedAt?: string | null;
+  reviewedBy?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    username: string;
+  } | null;
   postedBy: {
     id: number;
     firstName: string;
@@ -385,11 +394,20 @@ export default function AdminSuperDashboard() {
         </div>
 
         {/* Main Tabs */}
-        <Tabs defaultValue="jobs" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="pending" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="pending" className="relative">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Pending Approval
+              {stats?.pendingJobs && stats.pendingJobs > 0 && (
+                <Badge className="ml-2 bg-orange-500 text-white text-xs px-1.5 py-0.5">
+                  {stats.pendingJobs}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="jobs">
               <Briefcase className="h-4 w-4 mr-2" />
-              Jobs Management
+              Jobs
             </TabsTrigger>
             <TabsTrigger value="applications">
               <FileText className="h-4 w-4 mr-2" />
@@ -404,6 +422,107 @@ export default function AdminSuperDashboard() {
               System Logs
             </TabsTrigger>
           </TabsList>
+
+          {/* Pending Approval Tab */}
+          <TabsContent value="pending" className="space-y-6">
+            <Card className="shadow-sm border-orange-200">
+              <CardHeader className="bg-orange-50">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-orange-600" />
+                      Jobs Pending Approval
+                    </CardTitle>
+                    <CardDescription className="text-slate-900/70">
+                      Review and approve or decline job postings before they go live
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                    {jobs?.filter(j => j.status === 'pending').length || 0} pending
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {jobsLoading ? (
+                  <div className="text-center py-8 text-slate-900/70">Loading jobs...</div>
+                ) : (
+                  <div className="space-y-4">
+                    {jobs?.filter(j => j.status === 'pending').length === 0 ? (
+                      <div className="text-center py-12 text-slate-500">
+                        <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                        <p className="text-lg font-medium">All caught up!</p>
+                        <p className="text-sm">No jobs pending approval</p>
+                      </div>
+                    ) : (
+                      jobs?.filter(j => j.status === 'pending').map((job) => (
+                        <div key={job.id} data-testid="job-row" data-job-id={job.id} className="border border-orange-200 rounded-lg p-4 bg-white hover:bg-orange-50/50 transition-colors">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-2 flex-1">
+                              <div className="flex items-center space-x-3">
+                                <h3 className="text-lg font-semibold text-slate-900">{job.title}</h3>
+                                <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                                  Pending Review
+                                </Badge>
+                              </div>
+                              <div className="flex items-center space-x-4 text-sm text-slate-900/70">
+                                <span className="flex items-center space-x-1">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{job.company} • {job.location}</span>
+                                </span>
+                                <span className="flex items-center space-x-1">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>{format(new Date(job.createdAt), "MMM d, yyyy")}</span>
+                                </span>
+                                <span className="flex items-center space-x-1">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{job.type}</span>
+                                </span>
+                              </div>
+                              <p className="text-slate-900/60 text-sm">
+                                Posted by: {job.postedBy.firstName} {job.postedBy.lastName} ({job.postedBy.username})
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedJob(job)}
+                                className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                Review
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'approved' })}
+                                disabled={reviewJobMutation.isPending}
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                data-testid="approve-job"
+                              >
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'declined' })}
+                                disabled={reviewJobMutation.isPending}
+                                className="border-red-300 text-red-700 hover:bg-red-50"
+                                data-testid="decline-job"
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Decline
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Jobs Management Tab */}
           <TabsContent value="jobs" className="space-y-6">
@@ -448,7 +567,7 @@ export default function AdminSuperDashboard() {
                 ) : (
                   <div className="space-y-4">
                     {filteredJobs?.map((job) => (
-                      <div key={job.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div key={job.id} data-testid="job-row" data-job-id={job.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-3">
@@ -477,6 +596,21 @@ export default function AdminSuperDashboard() {
                             <p className="text-slate-900/60 text-sm">
                               Posted by: {job.postedBy.firstName} {job.postedBy.lastName} ({job.postedBy.username})
                             </p>
+                            {/* Show review info for reviewed jobs */}
+                            {(job.status === 'approved' || job.status === 'declined') && job.reviewedAt && (
+                              <div className="mt-2 p-2 rounded bg-slate-50 border border-slate-200" data-testid="reviewed-by">
+                                <p className="text-xs text-slate-600">
+                                  <span className="font-medium">{job.status === 'approved' ? 'Approved' : 'Declined'}</span>
+                                  {job.reviewedBy && (
+                                    <span> by {job.reviewedBy.firstName} {job.reviewedBy.lastName}</span>
+                                  )}
+                                  <span> on {format(new Date(job.reviewedAt), "MMM d, yyyy 'at' h:mm a")}</span>
+                                </p>
+                                {job.reviewComments && (
+                                  <p className="text-xs text-slate-500 mt-1 italic">"{job.reviewComments}"</p>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center space-x-2">
                             {job.status === 'pending' && (
@@ -486,6 +620,7 @@ export default function AdminSuperDashboard() {
                                   size="sm"
                                   onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'approved' })}
                                   className="border-green-600 text-green-700 hover:bg-green-50 bg-white"
+                                  data-testid="approve-job"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Approve
@@ -495,6 +630,7 @@ export default function AdminSuperDashboard() {
                                   size="sm"
                                   onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'declined' })}
                                   className="border-red-600 text-red-700 hover:bg-red-50 bg-white"
+                                  data-testid="decline-job"
                                 >
                                   <XCircle className="h-4 w-4 mr-1" />
                                   Decline
