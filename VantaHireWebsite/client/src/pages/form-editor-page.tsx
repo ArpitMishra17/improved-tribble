@@ -23,7 +23,7 @@ import { ArrowLeft, Save, Eye, Loader2, Sparkles, X } from "lucide-react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { formsApi, formsQueryKeys, type FormTemplateDTO, type CreateTemplateRequest } from "@/lib/formsApi";
+import { formsApi, formsQueryKeys, type FormTemplateDTO, type CreateTemplateRequest, type InvitationQuotaResponse } from "@/lib/formsApi";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { FieldPalette } from "@/components/forms/FieldPalette";
 import { FormCanvas } from "@/components/forms/FormCanvas";
@@ -86,6 +86,14 @@ export default function FormEditorPage() {
   const { data: jobs = [] } = useQuery<Array<{ id: number; title: string }>>({
     queryKey: ["/api/my-jobs"],
     enabled: !!user && showAIDialog,
+  });
+
+  // Fetch invitation quota (daily limit info)
+  const { data: invitationQuota } = useQuery<InvitationQuotaResponse>({
+    queryKey: formsQueryKeys.invitationQuota(),
+    queryFn: () => formsApi.getInvitationQuota(),
+    enabled: !!user,
+    staleTime: 60_000, // Cache for 1 minute
   });
 
   // AI generation mutation
@@ -261,7 +269,17 @@ export default function FormEditorPage() {
     }
   };
 
+  const MAX_FIELDS = 50;
+
   const addField = (type: string) => {
+    if (fields.length >= MAX_FIELDS) {
+      toast({
+        title: "Field limit reached",
+        description: `Forms can have a maximum of ${MAX_FIELDS} fields. Remove existing fields to add more.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const newField: FieldData = {
       id: `field-${Date.now()}-${Math.random()}`,
       type,
@@ -275,6 +293,14 @@ export default function FormEditorPage() {
   };
 
   const duplicateField = (fieldId: string) => {
+    if (fields.length >= MAX_FIELDS) {
+      toast({
+        title: "Field limit reached",
+        description: `Forms can have a maximum of ${MAX_FIELDS} fields. Remove existing fields to add more.`,
+        variant: "destructive",
+      });
+      return;
+    }
     const fieldToDuplicate = fields.find(f => f.id === fieldId);
     if (!fieldToDuplicate) return;
 
@@ -437,6 +463,34 @@ export default function FormEditorPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* Field counter - shows current/max with color coding */}
+              <Badge
+                variant="outline"
+                className={`text-xs ${
+                  fields.length >= 50
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : fields.length >= 40
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-slate-50 text-slate-600 border-slate-200'
+                }`}
+              >
+                {fields.length}/50 fields
+              </Badge>
+              {/* Invite quota hint - shows remaining daily invites */}
+              {invitationQuota && (
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    invitationQuota.remaining === 0
+                      ? 'bg-red-50 text-red-700 border-red-200'
+                      : invitationQuota.remaining <= 10
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                  }`}
+                >
+                  {invitationQuota.remaining}/{invitationQuota.limit} invites today
+                </Badge>
+              )}
               <div className="flex items-center gap-2">
                 <Switch
                   id="isPublished"

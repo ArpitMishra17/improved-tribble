@@ -41,7 +41,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Job, Application, PipelineStage, EmailTemplate } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { formsApi, type FormTemplateDTO } from "@/lib/formsApi";
+import { formsApi, formsQueryKeys, type FormTemplateDTO, type InvitationQuotaResponse } from "@/lib/formsApi";
 import Layout from "@/components/Layout";
 import { CandidateIntakeForm } from "@/components/candidate-intake";
 import {
@@ -194,6 +194,14 @@ export default function ApplicationManagementPage() {
       const result = await formsApi.listTemplates();
       return result.templates;
     },
+  });
+
+  // ATS: Fetch form invitation quota (remaining daily invites)
+  const { data: invitationQuota } = useQuery<InvitationQuotaResponse>({
+    queryKey: formsQueryKeys.invitationQuota(),
+    queryFn: () => formsApi.getInvitationQuota(),
+    enabled: showBulkFormsDialog || showFormsDialog,
+    staleTime: 30_000, // Cache for 30 seconds
   });
 
   // ATS: Fetch stage history for selected application
@@ -486,6 +494,8 @@ export default function ApplicationManagementPage() {
       setBulkFormMessage("");
       setSelectedApplications([]);
       setBulkFormsProgress({ sent: 0, total: 0 });
+      // Invalidate invitation quota to refresh remaining count
+      queryClient.invalidateQueries({ queryKey: formsQueryKeys.invitationQuota() });
       toast({
         title: "Bulk forms sent",
         description: `Created: ${summary.created}, Duplicates: ${summary.duplicate}, Failed: ${summary.failed}`,
@@ -1685,6 +1695,25 @@ export default function ApplicationManagementPage() {
                 Choose a form template to send to all selected candidates
               </DialogDescription>
             </DialogHeader>
+            {/* Invitation Quota Display */}
+            {invitationQuota && (
+              <div className={`flex items-center justify-between p-2 rounded-md text-sm ${
+                invitationQuota.remaining === 0
+                  ? 'bg-red-50 border border-red-200 text-red-700'
+                  : invitationQuota.remaining <= 10
+                  ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                  : 'bg-blue-50 border border-blue-200 text-blue-700'
+              }`}>
+                <span>
+                  {invitationQuota.remaining === 0
+                    ? 'Daily invite limit reached'
+                    : `${invitationQuota.remaining} invites remaining today`}
+                </span>
+                <span className="text-xs opacity-75">
+                  ({invitationQuota.used}/{invitationQuota.limit} used)
+                </span>
+              </div>
+            )}
             <div className="space-y-4 mt-4">
               <div className="flex items-center gap-3 p-2 bg-slate-50 rounded border border-slate-200">
                 <Checkbox
@@ -1767,10 +1796,14 @@ export default function ApplicationManagementPage() {
                     ...(bulkFormMessage && { customMessage: bulkFormMessage }),
                   })
                 }
-                disabled={!bulkFormId || sendBulkFormsMutation.isPending}
+                disabled={!bulkFormId || sendBulkFormsMutation.isPending || (invitationQuota?.remaining === 0)}
                 className="w-full"
               >
-                {sendBulkFormsMutation.isPending ? "Sending..." : "Send to Selected"}
+                {sendBulkFormsMutation.isPending
+                  ? "Sending..."
+                  : invitationQuota?.remaining === 0
+                  ? "Daily limit reached"
+                  : "Send to Selected"}
               </Button>
               {sendBulkFormsMutation.isPending && (
                 <p className="text-xs text-slate-500 text-center">
