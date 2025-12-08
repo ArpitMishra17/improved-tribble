@@ -12,7 +12,7 @@ import type { Express, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { storage } from './storage';
 import { requireAuth, requireRole } from './auth';
-import { insertJobSchema, applications, applicationStageHistory, jobs, pipelineStages } from '@shared/schema';
+import { insertJobSchema, applications, applicationStageHistory, jobs, pipelineStages, users } from '@shared/schema';
 import { getHiringMetrics } from './lib/analyticsHelper';
 import {
   analyzeJobDescription,
@@ -23,7 +23,7 @@ import {
 import { aiAnalysisRateLimit, jobPostingRateLimit } from './rateLimit';
 import type { CsrfMiddleware } from './types/routes';
 import { db } from './db';
-import { and, eq, gte, lte } from 'drizzle-orm';
+import { and, eq, gte, lte, inArray } from 'drizzle-orm';
 
 /**
  * Register all job-related routes
@@ -704,6 +704,259 @@ export function registerJobsRoutes(
       return;
     } catch (error) {
       console.error('[Analytics] HM feedback error:', error);
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/analytics/performance
+   * Recruiter & hiring manager performance metrics.
+   */
+  app.get("/api/analytics/performance", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { startDate, endDate, jobId } = req.query;
+      let parsedStart: Date | undefined;
+      let parsedEnd: Date | undefined;
+      let parsedJobId: number | undefined;
+      if (typeof startDate === 'string') {
+        const d = new Date(startDate);
+        if (!isNaN(d.getTime())) parsedStart = d;
+      }
+      if (typeof endDate === 'string') {
+        const d = new Date(endDate);
+        if (!isNaN(d.getTime())) parsedEnd = d;
+      }
+      if (jobId) {
+        const idNum = Number(jobId);
+        if (!Number.isNaN(idNum) && idNum > 0) parsedJobId = idNum;
+      }
+
+      // Scoped jobs for current user (recruiter sees own jobs only)
+      const jobFilters: any[] = [];
+      if (parsedJobId) jobFilters.push(eq(jobs.id, parsedJobId));
+      if (req.user!.role !== 'admin') jobFilters.push(eq(jobs.postedBy, req.user!.id));
+
+      let jobsQuery = db
+        .select({
+          id: jobs.id,
+          postedBy: jobs.postedBy,
+          hiringManagerId: jobs.hiringManagerId,
+        })
+        .from(jobs);
+      if (jobFilters.length > 0) jobsQuery = jobsQuery.where(and(...jobFilters));
+      const jobRows = await jobsQuery as Array<{ id: number; postedBy: number; hiringManagerId: number | null }>;
+
+      const jobIds = jobRows.map((j) => j.id);
+      const recruiterIds: number[] = Array.from(new Set(jobRows.map((j) => j.postedBy))) as number[];
+      const hmIds: number[] = Array.from(
+        new Set(
+          jobRows
+            .map((j) => j.hiringManagerId)
+            .filter((v): v is number => typeof v === 'number')
+        )
+      ) as number[];
+
+      // Early exit if no data
+      if (jobIds.length === 0) {
+        res.json({ recruiters: [], hiringManagers: [] });
+        return;
+      }
+
+      // Load applications within range for these jobs
+      const appFilters: any[] = [];
+      if (jobIds.length) appFilters.push(inArray(applications.jobId, jobIds));
+      if (parsedStart) appFilters.push(gte(applications.appliedAt, parsedStart));
+      if (parsedEnd) appFilters.push(lte(applications.appliedAt, parsedEnd));
+
+      let appsQuery = db
+        .select({
+          id: applications.id,
+          jobId: applications.jobId,
+          appliedAt: applications.appliedAt,
+          stageChangedAt: applications.stageChangedAt,
+          stageChangedBy: applications.stageChangedBy,
+        })
+        .from(applications);
+      if (appFilters.length > 0) appsQuery = appsQuery.where(and(...appFilters));
+      const appRows = await appsQuery as Array<{
+        id: number;
+        jobId: number;
+        appliedAt: Date;
+        stageChangedAt: Date | null;
+        stageChangedBy: number | null;
+      }>;
+
+      const appIds = appRows.map((a) => a.id);
+
+      // Stage history for latency calculations
+      let histQuery = db
+        .select({
+          applicationId: applicationStageHistory.applicationId,
+          fromStage: applicationStageHistory.fromStage,
+          toStage: applicationStageHistory.toStage,
+          changedAt: applicationStageHistory.changedAt,
+          changedBy: applicationStageHistory.changedBy,
+        })
+        .from(applicationStageHistory);
+      if (appIds.length > 0) {
+        histQuery = histQuery.where(inArray(applicationStageHistory.applicationId, appIds));
+      }
+      const histRows = (appIds.length ? await histQuery : []) as Array<{
+        applicationId: number;
+        fromStage: number | null;
+        toStage: number;
+        changedAt: Date;
+        changedBy: number;
+      }>;
+
+      // Recruiter performance
+      const recruiterPerf = (recruiterIds as number[]).map((rid: number) => {
+        const jobsFor = jobRows.filter((j) => j.postedBy === rid).map((j) => j.id);
+        const appsFor = appRows.filter((a) => jobsFor.includes(a.jobId));
+        const jobsHandled = jobsFor.length;
+        const candidatesScreened = appsFor.length;
+
+        // Time to first action (applied -> first stage change)
+        const firstActionDurations: number[] = [];
+        appsFor.forEach((app) => {
+          const appHist = histRows
+            .filter((h) => h.applicationId === app.id)
+            .sort((a, b) => new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime());
+          const first = appHist[0];
+          const applied = new Date(app.appliedAt).getTime();
+          if (first) {
+            const delta = (new Date(first.changedAt).getTime() - applied) / (1000 * 60 * 60 * 24);
+            if (delta >= 0) firstActionDurations.push(delta);
+          } else if (app.stageChangedAt) {
+            const delta = (new Date(app.stageChangedAt).getTime() - applied) / (1000 * 60 * 60 * 24);
+            if (delta >= 0) firstActionDurations.push(delta);
+          }
+        });
+        const avgFirstAction =
+          firstActionDurations.length > 0
+            ? Math.round((firstActionDurations.reduce((a, b) => a + b, 0) / firstActionDurations.length) * 10) / 10
+            : null;
+
+        // Stage move latency (average gap between consecutive stage changes)
+        const moveDurations: number[] = [];
+        const byApp = new Map<number, Array<typeof histRows[number]>>();
+        histRows.forEach((h: typeof histRows[number]) => {
+          if (!byApp.has(h.applicationId)) byApp.set(h.applicationId, []);
+          byApp.get(h.applicationId)!.push(h);
+        });
+        byApp.forEach((entries: Array<typeof histRows[number]>) => {
+          const sorted = entries.sort((a, b) => new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime());
+          if (sorted.length > 1) {
+            for (let i = 1; i < sorted.length; i++) {
+              const current = sorted[i];
+              const prev = sorted[i - 1];
+              if (!current || !prev) continue;
+              const delta = (new Date(current.changedAt).getTime() - new Date(prev.changedAt).getTime()) / (1000 * 60 * 60 * 24);
+              if (delta >= 0) moveDurations.push(delta);
+            }
+          }
+        });
+        const avgStageMove =
+          moveDurations.length > 0 ? Math.round((moveDurations.reduce((a, b) => a + b, 0) / moveDurations.length) * 10) / 10 : null;
+
+        return {
+          id: rid,
+          jobsHandled,
+          candidatesScreened,
+          avgFirstActionDays: avgFirstAction,
+          avgStageMoveDays: avgStageMove,
+        };
+      });
+
+      // HM performance
+      const stagesList = await db.select().from(pipelineStages);
+      const reviewStageIdsResolved = stagesList
+        .filter((s: typeof stagesList[number]) => s.name.toLowerCase().includes('review'))
+        .map((s: typeof stagesList[number]) => s.id);
+
+      const appJobMap = new Map<number, number>();
+      appRows.forEach((a) => appJobMap.set(a.id, a.jobId));
+
+      const hmPerf = (hmIds as number[]).map((hid: number) => {
+        const hmJobIds = jobRows.filter((j) => j.hiringManagerId === hid).map((j) => j.id);
+        const appsForHm = appRows.filter((a) => hmJobIds.includes(a.jobId));
+        const jobsOwned = hmJobIds.length;
+
+        // Feedback timing: first review entry to next change
+        const durations: number[] = [];
+        let waitingCount = 0;
+        const appHist = new Map<number, Array<typeof histRows[number]>>();
+        histRows
+          .filter((h: typeof histRows[number]) => {
+            const jobForApp = appJobMap.get(h.applicationId);
+            return jobForApp ? hmJobIds.includes(jobForApp) : false;
+          })
+          .forEach((h: typeof histRows[number]) => {
+            if (!appHist.has(h.applicationId)) appHist.set(h.applicationId, []);
+            appHist.get(h.applicationId)!.push(h);
+          });
+
+        appHist.forEach((entries) => {
+          const sorted = entries.sort((a, b) => new Date(a.changedAt).getTime() - new Date(b.changedAt).getTime());
+          const reviewEntryIdx = sorted.findIndex((e) => reviewStageIdsResolved.includes(e.toStage));
+          if (reviewEntryIdx === -1 || !sorted[reviewEntryIdx]) return;
+          const entryTime = new Date(sorted[reviewEntryIdx].changedAt).getTime();
+          const next = sorted[reviewEntryIdx + 1];
+          if (!next) {
+            waitingCount += 1;
+            return;
+          }
+          const delta = (new Date(next.changedAt).getTime() - entryTime) / (1000 * 60 * 60 * 24);
+          if (delta >= 0) durations.push(delta);
+        });
+
+        const avgFeedback =
+          durations.length > 0 ? Math.round((durations.reduce((a, b) => a + b, 0) / durations.length) * 10) / 10 : null;
+
+        return {
+          id: hid,
+          jobsOwned,
+          avgFeedbackDays: avgFeedback,
+          waitingCount,
+        };
+      });
+
+      // Load user display names
+      const userIds = Array.from(new Set([...recruiterIds, ...hmIds])).filter((v) => Number.isFinite(v)) as number[];
+      const usersMap = new Map<number, { name: string; role: string }>();
+      if (userIds.length) {
+        const userRows = await db
+          .select({
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            username: users.username,
+            role: users.role,
+          })
+          .from(users)
+          .where(inArray(users.id, userIds));
+        userRows.forEach((u: typeof userRows[number]) => {
+          const name = u.firstName || u.lastName ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() : u.username;
+          usersMap.set(u.id, { name, role: u.role });
+        });
+      }
+
+      const recruitersWithNames = recruiterPerf.map((r) => ({
+        ...r,
+        name: usersMap.get(r.id)?.name ?? `Recruiter #${r.id}`,
+      }));
+      const hmsWithNames = hmPerf.map((h) => ({
+        ...h,
+        name: usersMap.get(h.id)?.name ?? `HM #${h.id}`,
+      }));
+
+      res.json({
+        recruiters: recruitersWithNames,
+        hiringManagers: hmsWithNames,
+      });
+      return;
+    } catch (error) {
+      console.error('[Analytics] performance error:', error);
       next(error);
     }
   });

@@ -177,19 +177,37 @@ export default function RecruiterDashboard() {
     conversions: Array<{ name: string; count: number; rate: number }>;
   };
 
-  type SourcePerfRow = {
-    source: string;
-    apps: number;
-    shortlist: number;
-    hires: number;
-    conversion: number;
-  };
+type SourcePerfRow = {
+  source: string;
+  apps: number;
+  shortlist: number;
+  hires: number;
+  conversion: number;
+};
 
-  type HmFeedbackResponse = {
-    averageDays: number | null;
+type HmFeedbackResponse = {
+  averageDays: number | null;
+  waitingCount: number;
+  sampleSize: number;
+};
+
+type PerformanceResponse = {
+  recruiters: Array<{
+    id: number;
+    name: string;
+    jobsHandled: number;
+    candidatesScreened: number;
+    avgFirstActionDays: number | null;
+    avgStageMoveDays: number | null;
+  }>;
+  hiringManagers: Array<{
+    id: number;
+    name: string;
+    jobsOwned: number;
+    avgFeedbackDays: number | null;
     waitingCount: number;
-    sampleSize: number;
-  };
+  }>;
+};
 
   const commonParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -247,6 +265,15 @@ export default function RecruiterDashboard() {
       }
       const res = await fetch(`/api/analytics/hm-feedback?${params.toString()}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch HM feedback timing");
+      return res.json();
+    },
+  });
+
+  const { data: performance } = useQuery<PerformanceResponse>({
+    queryKey: ["/api/analytics/performance", commonParams],
+    queryFn: async () => {
+      const res = await fetch(`/api/analytics/performance?${commonParams}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch performance metrics");
       return res.json();
     },
   });
@@ -825,6 +852,95 @@ export default function RecruiterDashboard() {
                 {candidateFit.length === 0 && (
                   <p className="text-sm text-slate-500">No AI fit scores yet for this range.</p>
                 )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Performance: Recruiters vs Hiring Managers */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-4 w-4 text-slate-700" />
+                  Recruiter Performance
+                </CardTitle>
+                <CardDescription>Jobs handled, screened volume, action speeds</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Recruiter</TableHead>
+                      <TableHead>Jobs</TableHead>
+                      <TableHead>Screened</TableHead>
+                      <TableHead>First Action</TableHead>
+                      <TableHead>Stage Move</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(performance?.recruiters || []).map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="text-sm text-slate-800">{row.name}</TableCell>
+                        <TableCell className="text-sm text-slate-700">{row.jobsHandled}</TableCell>
+                        <TableCell className="text-sm text-slate-700">{row.candidatesScreened}</TableCell>
+                        <TableCell className="text-sm text-slate-700">
+                          {row.avgFirstActionDays != null ? `${row.avgFirstActionDays}d` : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-700">
+                          {row.avgStageMoveDays != null ? `${row.avgStageMoveDays}d` : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!performance?.recruiters || performance.recruiters.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-sm text-slate-500 py-4">
+                          No recruiter metrics for this range.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-slate-700" />
+                  Hiring Manager Performance
+                </CardTitle>
+                <CardDescription>Jobs owned, feedback latency, waiting count</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Hiring Manager</TableHead>
+                      <TableHead>Jobs</TableHead>
+                      <TableHead>Avg Feedback</TableHead>
+                      <TableHead>Waiting</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(performance?.hiringManagers || []).map((row) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="text-sm text-slate-800">{row.name}</TableCell>
+                        <TableCell className="text-sm text-slate-700">{row.jobsOwned}</TableCell>
+                        <TableCell className="text-sm text-slate-700">
+                          {row.avgFeedbackDays != null ? `${row.avgFeedbackDays}d` : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-700">{row.waitingCount}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(!performance?.hiringManagers || performance.hiringManagers.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-sm text-slate-500 py-4">
+                          No hiring manager metrics for this range.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </div>
