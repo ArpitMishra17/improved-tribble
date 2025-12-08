@@ -964,7 +964,8 @@ export function registerJobsRoutes(
   // ============= AI JOB ANALYSIS ROUTES =============
 
   // AI-powered job description analysis
-  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  // Note: CSRF removed - endpoint is auth-protected, role-protected, rate-limited, and read-only
+  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
