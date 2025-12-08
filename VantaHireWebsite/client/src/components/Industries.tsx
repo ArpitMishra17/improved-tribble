@@ -237,10 +237,10 @@ const Industries = () => {
   }, []);
 
   return (
-    <section 
-      id="industries" 
+    <section
+      id="industries"
       ref={sectionRef}
-      className="bg-gradient-to-b from-[#1E0B40] to-[#2D1B69] py-20 relative overflow-hidden"
+      className="bg-[var(--vh-bg-secondary)] py-20 relative overflow-hidden"
     >
       {/* Premium background decorations */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>

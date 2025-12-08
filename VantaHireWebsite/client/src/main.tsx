@@ -3,6 +3,7 @@ import { HelmetProvider } from "react-helmet-async";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
+import "./styles/public-theme.css";
 
 createRoot(document.getElementById("root")!).render(
   <HelmetProvider>

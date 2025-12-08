@@ -181,7 +181,7 @@ const Testimonials = () => {
   };
 
   return (
-    <section className="bg-gradient-to-b from-[#1E0B40] to-[#2D1B69] relative overflow-hidden py-24">
+    <section className="bg-[var(--vh-bg-primary)] relative overflow-hidden py-24">
       {/* Premium background decorations */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
       

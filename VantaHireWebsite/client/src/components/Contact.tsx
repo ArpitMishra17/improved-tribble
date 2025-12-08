@@ -294,7 +294,7 @@ const Contact = () => {
   }, []);
 
   return (
-    <section id="contact" className="bg-gradient-to-b from-[#2D1B69] to-[#1E0B40] relative overflow-hidden" ref={sectionRef}>
+    <section id="contact" className="bg-[var(--vh-bg-secondary)] relative overflow-hidden" ref={sectionRef}>
       {/* Premium background decorations */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
       <div className="absolute top-20 right-10 w-80 h-80 bg-blue-500/10 rounded-full blur-[40px] animate-pulse-slow"></div>

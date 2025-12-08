@@ -4,7 +4,7 @@ import Footer from "@/components/Footer";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="public-theme min-h-screen w-full flex flex-col">
       <div className="flex-1 flex items-center justify-center">
         <Card className="w-full max-w-md mx-4 bg-white/10 backdrop-blur-sm border-white/20">
           <CardContent className="pt-6">

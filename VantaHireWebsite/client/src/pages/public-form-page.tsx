@@ -435,7 +435,7 @@ export default function PublicFormPage() {
   // Loading state
   if (state === 'loading') {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen w-full flex flex-col public-theme">
         <div className="flex-1 flex items-center justify-center">
           <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
             <CardContent className="pt-6 flex items-center justify-center">
@@ -452,7 +452,7 @@ export default function PublicFormPage() {
   // Expired state
   if (state === 'expired') {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen w-full flex flex-col public-theme">
         <div className="flex-1 flex items-center justify-center">
           <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
             <CardContent className="pt-6">
@@ -474,7 +474,7 @@ export default function PublicFormPage() {
   // Already submitted state
   if (state === 'already_submitted') {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen w-full flex flex-col public-theme">
         <div className="flex-1 flex items-center justify-center">
           <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
             <CardContent className="pt-6">
@@ -496,7 +496,7 @@ export default function PublicFormPage() {
   // Error state
   if (state === 'error') {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen w-full flex flex-col public-theme">
         <div className="flex-1 flex items-center justify-center">
           <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
             <CardContent className="pt-6">
@@ -518,7 +518,7 @@ export default function PublicFormPage() {
   // Success state
   if (state === 'success') {
     return (
-      <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen w-full flex flex-col public-theme">
         <div className="flex-1 flex items-center justify-center">
           <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
             <CardContent className="pt-6">
@@ -539,7 +539,7 @@ export default function PublicFormPage() {
 
   // Form ready state
   return (
-    <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen w-full flex flex-col public-theme">
       <div className="flex-1 flex items-center justify-center py-8">
         <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>

@@ -1,132 +1,146 @@
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
+import vantahireLogo from "@/assets/vantahire-logo.png";
 
 const Footer = () => {
-  const [location] = useLocation();
-
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
-  const handleNavigation = (e: React.MouseEvent, sectionId: string) => {
-    e.preventDefault();
-    
-    // If we're on the homepage, scroll to section
-    if (location === '/') {
-      scrollToSection(sectionId);
-    } else {
-      // Navigate to homepage first, then scroll
-      window.location.href = `/#${sectionId}`;
-    }
-  };
-
   return (
-    <footer className="bg-gradient-to-b from-[#2D1B69] to-[#1E0B40] relative overflow-hidden py-12">
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#7B38FB]/30 to-transparent"></div>
-      
-      {/* Background effects */}
-      <div className="absolute top-0 left-1/4 w-64 h-64 bg-[#7B38FB]/5 rounded-full blur-[80px] animate-pulse-slow"></div>
-      <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-[#FF5BA8]/5 rounded-full blur-[80px] animate-pulse-slow" 
-           style={{ animationDelay: '1.2s' }}></div>
-           
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Main footer content */}
-        <div className="text-center">
-          {/* VantaHire logo */}
-          <div className="mb-8">
-            <Link href="/" className="inline-block">
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-[#FF5BA8] to-[#7B38FB] bg-clip-text text-transparent hover:scale-105 transition-transform duration-300">
-                VantaHire
-              </h2>
+    <footer className="bg-[var(--bg-secondary)] border-t border-[var(--border-subtle)] py-16 relative z-10">
+      <div className="container mx-auto px-4">
+        {/* Footer Content Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12 max-w-6xl mx-auto">
+          {/* Brand Column */}
+          <div className="lg:col-span-1">
+            <Link href="/" className="flex items-center gap-2 mb-4">
+              <img src={vantahireLogo} alt="VantaHire" className="h-9 w-auto" />
+              <span className="text-xl font-bold gradient-text-mixed">VantaHire</span>
             </Link>
+            <p className="text-[var(--text-muted)] text-sm leading-relaxed max-w-xs">
+              AI + Human Expertise for Faster, Fairer Hiring. Serving startups and enterprises across India and APAC.
+            </p>
           </div>
-          
-          {/* Navigation links */}
-          <div className="flex flex-wrap justify-center gap-8 mb-8">
-            <button 
-              onClick={(e) => handleNavigation(e, 'about')}
-              className="text-white/70 hover:text-white transition-all duration-300 text-lg font-medium relative group"
-            >
-              About
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
-            
-            <button 
-              onClick={(e) => handleNavigation(e, 'services')}
-              className="text-white/70 hover:text-white transition-all duration-300 text-lg font-medium relative group"
-            >
+
+          {/* Services Column */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-5">
               Services
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
-            
-            <button 
-              onClick={(e) => handleNavigation(e, 'industries')}
-              className="text-white/70 hover:text-white transition-all duration-300 text-lg font-medium relative group"
-            >
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Contract Staffing
+                </a>
+              </li>
+              <li>
+                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Permanent Hiring
+                </a>
+              </li>
+              <li>
+                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  VantaHire ATS
+                </a>
+              </li>
+              <li>
+                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Pricing
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Company Column */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-5">
+              Company
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <a href="/#about" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Why VantaHire
+                </a>
+              </li>
+              <li>
+                <Link href="/jobs" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Jobs
+                </Link>
+              </li>
+              <li>
+                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Contact
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Industries Column */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-5">
               Industries
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
-            
-            <button 
-              onClick={(e) => handleNavigation(e, 'contact')}
-              className="text-white/70 hover:text-white transition-all duration-300 text-lg font-medium relative group"
-            >
-              Contact
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Technology & SaaS
+                </a>
+              </li>
+              <li>
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Telecom
+                </a>
+              </li>
+              <li>
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  FinTech
+                </a>
+              </li>
+              <li>
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                  Healthcare
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
-        
-        {/* Divider line */}
-        <div className="border-t border-white/10 mb-6"></div>
-        
-        {/* Bottom section */}
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          {/* Copyright */}
-          <div className="text-white/60 mb-4 md:mb-0 text-center md:text-left">
-            <p>© 2025 VantaHire</p>
-            <p className="text-sm mt-1">A unit of Deori RecruiterHub Solutions OPC Pvt Ltd</p>
-            <p className="text-xs mt-1">All rights reserved.</p>
-          </div>
-          
-          {/* Legal links */}
-          <div className="flex flex-wrap gap-6 justify-center">
-            <button
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('cookie-consent:open', { detail: { reset: true } }));
-              }}
-              className="text-white/60 hover:text-white transition-all duration-300 relative group"
-            >
-              Cookie Preferences
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </button>
 
-            <Link
-              href="/privacy-policy"
-              className="text-white/60 hover:text-white transition-all duration-300 relative group"
-            >
-              Privacy Policy
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </Link>
-
-            <Link
-              href="/terms-of-service"
-              className="text-white/60 hover:text-white transition-all duration-300 relative group"
-            >
-              Terms of Service
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </Link>
-
-            <Link
-              href="/cookie-policy"
-              className="text-white/60 hover:text-white transition-all duration-300 relative group"
-            >
-              Cookie Policy
-              <span className="absolute bottom-0 left-0 h-px w-0 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] group-hover:w-full transition-all duration-300"></span>
-            </Link>
+        {/* Footer Bottom */}
+        <div className="border-t border-[var(--border-subtle)] pt-8 max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-[var(--text-muted)] text-sm">
+              © 2025 VantaHire. All rights reserved.
+            </p>
+            <div className="flex flex-wrap gap-6 justify-center">
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('cookie-consent:open', { detail: { reset: true } }));
+                }}
+                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+              >
+                Cookie Preferences
+              </button>
+              <Link
+                href="/privacy-policy"
+                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms-of-service"
+                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+              >
+                Terms of Service
+              </Link>
+              <Link
+                href="/cookie-policy"
+                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+              >
+                Cookie Policy
+              </Link>
+              <a
+                href="mailto:hello@vantahire.com"
+                className="text-[var(--text-secondary)] text-sm hover:text-amber-400 transition-colors"
+              >
+                hello@vantahire.com
+              </a>
+            </div>
           </div>
         </div>
       </div>

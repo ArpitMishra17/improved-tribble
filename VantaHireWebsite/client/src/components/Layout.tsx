@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import QuickAccessBar from "@/components/QuickAccessBar";
 import FloatingActionButton from "@/components/FloatingActionButton";
 import type { User as SelectUser } from "@shared/schema";
+import vantahireLogo from "@/assets/vantahire-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,7 +102,7 @@ const Layout = ({ children }: LayoutProps) => {
       "min-h-screen",
       atsContext
         ? "ats-theme bg-slate-50 text-slate-900"
-        : "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+        : "public-theme"
     )}>
       {/* Quick Access Bar for authenticated users (not in ATS context) */}
       {user && !atsContext && <QuickAccessBar />}
@@ -283,8 +284,8 @@ const Layout = ({ children }: LayoutProps) => {
       {!user && (
         <header className={`fixed top-0 left-0 right-0 transition-all duration-500 z-50
           ${scrollPosition > 50
-            ? 'bg-gradient-to-r from-[#1E0B40]/90 to-[#2D1B69]/90 backdrop-blur-lg shadow-lg py-3 border-b border-white/5'
-            : 'py-6'}`}
+            ? 'bg-[#0d0d1a]/95 backdrop-blur-lg shadow-lg py-3 border-b border-purple-500/20'
+            : 'bg-[#0d0d1a]/80 backdrop-blur-sm py-6'}`}
         >
         {/* Premium background glow effects */}
         <div className={`absolute inset-0 -z-10 transition-opacity duration-700 ${scrollPosition > 50 ? 'opacity-100' : 'opacity-0'}`}>
@@ -294,26 +295,26 @@ const Layout = ({ children }: LayoutProps) => {
         </div>
         
         {/* Bottom accent line */}
-        <div className={`absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#7B38FB]/40 to-transparent animate-shine 
-                        transition-opacity duration-500 ${scrollPosition > 50 ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/40 to-transparent
+                        transition-opacity duration-500 ${scrollPosition > 50 ? 'opacity-100' : 'opacity-50'}`}>
         </div>
         
         <nav className="container mx-auto px-4 flex items-center justify-between">
           {/* Logo */}
-          <div className="text-2xl font-bold relative group">
-            <Link 
-              href="/" 
-              className="animate-gradient-text font-extrabold tracking-wide"
-              onClick={() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              VantaHire
-            </Link>
-            <div className="absolute -inset-1 rounded-full blur-md bg-gradient-to-r from-[#7B38FB]/0 via-[#7B38FB]/0 to-[#FF5BA8]/0 
-                          group-hover:from-[#7B38FB]/10 group-hover:via-[#7B38FB]/20 group-hover:to-[#FF5BA8]/10 
-                          opacity-0 group-hover:opacity-100 transition-all duration-700 -z-10"></div>
-          </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2 group"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <img
+              src={vantahireLogo}
+              alt="VantaHire"
+              className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
+            />
+            <span className="text-xl font-bold gradient-text-mixed hidden sm:inline">VantaHire</span>
+          </Link>
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
@@ -469,20 +470,23 @@ const Layout = ({ children }: LayoutProps) => {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50 p-6 transition-all duration-500 flex flex-col" style={{ backgroundColor: '#0A0A0F' }}>
+          <div className="md:hidden fixed inset-0 z-50 p-6 transition-all duration-500 flex flex-col" style={{ backgroundColor: '#0d0d1a' }}>
             <div className="flex justify-between items-center mb-8">
-              <div className="text-2xl font-bold">
-                <Link 
-                  href="/" 
-                  className="animate-gradient-text font-extrabold"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                >
-                  VantaHire
-                </Link>
-              </div>
+              <Link
+                href="/"
+                className="flex items-center gap-2"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                <img
+                  src={vantahireLogo}
+                  alt="VantaHire"
+                  className="h-10 w-auto"
+                />
+                <span className="text-xl font-bold gradient-text-mixed">VantaHire</span>
+              </Link>
               <button
                 onClick={toggleMenu}
                 className="text-white/70 hover:text-white transition-colors"

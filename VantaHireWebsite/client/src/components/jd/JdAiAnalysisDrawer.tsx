@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Copy, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { addCsrfHeader } from "@/lib/csrf";
 
 interface JdAiAnalysisDrawerProps {
   open: boolean;
@@ -45,7 +46,7 @@ export function JdAiAnalysisDrawer({
     try {
       const res = await fetch("/api/ai/analyze-job-description", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await addCsrfHeader({ "Content-Type": "application/json" }),
         credentials: "include",
         body: JSON.stringify({ title, description }),
       });

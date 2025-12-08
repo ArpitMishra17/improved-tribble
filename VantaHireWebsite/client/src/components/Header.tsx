@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import vantahireLogo from "@/assets/vantahire-logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,7 +19,7 @@ const Header = () => {
       setScrollPosition(window.scrollY);
       
       // Determine active section based on scroll position
-      const sections = ["hero", "about", "services", "industries", "contact"];
+      const sections = ["hero", "about", "services"];
       for (const section of sections) {
         const element = document.getElementById(section);
         if (element) {
@@ -49,9 +50,9 @@ const Header = () => {
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 transition-all duration-500 z-50 
-      ${scrollPosition > 50 
-        ? 'bg-gradient-to-r from-[#1E0B40]/90 to-[#2D1B69]/90 backdrop-blur-lg shadow-lg py-3 border-b border-white/5' 
+    <header className={`fixed top-0 left-0 right-0 transition-all duration-500 z-50
+      ${scrollPosition > 50
+        ? 'bg-[var(--bg-primary)]/90 backdrop-blur-lg shadow-lg py-3 border-b border-[var(--border-subtle)]'
         : 'py-6'}`}
     >
       {/* Premium background glow effects */}
@@ -67,23 +68,21 @@ const Header = () => {
       </div>
       
       <nav className="container mx-auto px-4 flex items-center justify-between">
-        {/* Premium logo styling */}
-        <div className="text-2xl font-bold relative group">
-          <Link 
-            href="/" 
-            className="animate-gradient-text font-extrabold tracking-wide"
-            onClick={() => {
-              // Scroll to top when navigating to homepage
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          >
-            VantaHire
-          </Link>
-          {/* Subtle glow effect on hover */}
-          <div className="absolute -inset-1 rounded-full blur-md bg-gradient-to-r from-[#7B38FB]/0 via-[#7B38FB]/0 to-[#FF5BA8]/0 
-                        group-hover:from-[#7B38FB]/10 group-hover:via-[#7B38FB]/20 group-hover:to-[#FF5BA8]/10 
-                        opacity-0 group-hover:opacity-100 transition-all duration-700 -z-10"></div>
-        </div>
+        {/* Premium logo with image */}
+        <Link
+          href="/"
+          className="flex items-center gap-2 group"
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <img
+            src={vantahireLogo}
+            alt="VantaHire"
+            className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
+          />
+          <span className="text-xl font-bold gradient-text-mixed hidden sm:inline">VantaHire</span>
+        </Link>
         
         {/* Enhanced desktop menu */}
         <div className="hidden md:flex items-center space-x-8">
@@ -122,40 +121,6 @@ const Header = () => {
             <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
           </a>
           
-          <a
-            href="/#industries"
-            className={`relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group ${activeSection === 'industries' ? 'text-white' : 'text-white/70'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              if (window.location.pathname === '/') {
-                scrollToSection("industries");
-              } else {
-                window.location.href = '/#industries';
-              }
-            }}
-          >
-            <span className="relative z-10">Industries</span>
-            <span className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 ${activeSection === 'industries' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></span>
-            <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
-          </a>
-          
-          <a
-            href="/#contact"
-            className={`relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group ${activeSection === 'contact' ? 'text-white' : 'text-white/70'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              if (window.location.pathname === '/') {
-                scrollToSection("contact");
-              } else {
-                window.location.href = '/#contact';
-              }
-            }}
-          >
-            <span className="relative z-10">Contact</span>
-            <span className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 ${activeSection === 'contact' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></span>
-            <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
-          </a>
-
           {/* Jobs link */}
           <Link href="/jobs" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
             <span className="relative z-10">Jobs</span>
@@ -260,7 +225,7 @@ const Header = () => {
             variant="gradient" 
             size="lg" 
             className="rounded-full premium-card hover:scale-105 transform transition-all duration-300 group shadow-lg"
-            onClick={() => window.open('https://calendly.com/vantahire/30min', '_blank')}
+            onClick={() => window.open('https://cal.com/vantahire/quick-connect', '_blank')}
           >
             <span className="group-hover:tracking-wide transition-all duration-300">
               Schedule a Free Consultation
@@ -287,21 +252,24 @@ const Header = () => {
           isMenuOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
         )}
         data-testid="mobile-nav"
-        style={{ backgroundColor: '#0A0A0F' }}
+        style={{ backgroundColor: 'var(--bg-primary)' }}
       >
         <div className="flex justify-between items-center mb-8">
-          <div className="text-2xl font-bold">
-            <Link 
-              href="/" 
-              className="animate-gradient-text font-extrabold"
-              onClick={() => {
-                setIsMenuOpen(false);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            >
-              VantaHire
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2"
+            onClick={() => {
+              setIsMenuOpen(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          >
+            <img
+              src={vantahireLogo}
+              alt="VantaHire"
+              className="h-10 w-auto"
+            />
+            <span className="text-xl font-bold gradient-text-mixed">VantaHire</span>
+          </Link>
           <button
             className="text-white hover:bg-white/10 p-2 rounded-full transition-all"
             onClick={toggleMenu}
@@ -341,37 +309,6 @@ const Header = () => {
           >
             Services
           </a>
-          <a
-            href="/#industries"
-            className={`text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 ${activeSection === 'industries' ? 'border-[#7B38FB]' : 'border-transparent hover:border-[#7B38FB]'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              if (window.location.pathname === '/') {
-                scrollToSection("industries");
-              } else {
-                window.location.href = '/#industries';
-              }
-            }}
-          >
-            Industries
-          </a>
-          <a
-            href="/#contact"
-            className={`text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 ${activeSection === 'contact' ? 'border-[#7B38FB]' : 'border-transparent hover:border-[#7B38FB]'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              if (window.location.pathname === '/') {
-                scrollToSection("contact");
-              } else {
-                window.location.href = '/#contact';
-              }
-            }}
-          >
-            Contact
-          </a>
-
           {/* Mobile Jobs link */}
           <Link 
             href="/jobs"
@@ -457,7 +394,7 @@ const Header = () => {
               variant="gradient" 
               size="lg" 
               className="rounded-full w-full hover:shadow-lg hover:scale-105 transition-all duration-300"
-              onClick={() => window.open('https://calendly.com/vantahire/30min', '_blank')}
+              onClick={() => window.open('https://cal.com/vantahire/quick-connect', '_blank')}
             >
               Schedule a Free Consultation
             </Button>

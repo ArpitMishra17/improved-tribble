@@ -51,7 +51,7 @@ export default function RecruiterAuth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1E0B40] via-[#2D1B69] to-[#1E0B40]">
+    <div className="public-theme min-h-screen">
       <Header />
       <div className="container mx-auto px-4 pt-32 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
