@@ -30,6 +30,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RecruiterKpiRibbon } from "@/components/recruiter/RecruiterKpiRibbon";
+import { RecruiterAiInsightsSection } from "@/components/recruiter/RecruiterAiInsightsSection";
 
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
@@ -296,6 +298,35 @@ type PerformanceResponse = {
       stage.stageName.toLowerCase().includes("review")
     );
     const hmFeedbackTime = hmFeedback?.averageDays ?? hmFeedbackStage?.averageDays ?? null;
+    const newToday = filteredApplications.filter((app) => {
+      const applied = new Date(app.appliedAt);
+      const today = new Date();
+      return applied.toDateString() === today.toDateString();
+    }).length;
+
+    const firstActionDurations: number[] = [];
+    filteredApplications.forEach((app) => {
+      if (app.stageChangedAt) {
+        const delta = (new Date(app.stageChangedAt).getTime() - new Date(app.appliedAt).getTime()) / (1000 * 60 * 60 * 24);
+        if (delta >= 0) firstActionDurations.push(delta);
+      }
+    });
+    const avgFirstReview = firstActionDurations.length
+      ? Math.round((firstActionDurations.reduce((a, b) => a + b, 0) / firstActionDurations.length) * 10) / 10
+      : null;
+
+    let interviewConv = 0;
+    if (dropoffData?.conversions?.length) {
+      const interviewStep = dropoffData.conversions.find((c) => c.name.toLowerCase().includes("interview"));
+      if (interviewStep) interviewConv = interviewStep.rate;
+    } else {
+      const screeningIds = pipelineStages.filter((s) => s.name.toLowerCase().includes("screen")).map((s) => s.id);
+      const interviewIds = pipelineStages.filter((s) => s.name.toLowerCase().includes("interview")).map((s) => s.id);
+      const screeningCount = filteredApplications.filter((a) => a.currentStage && screeningIds.includes(a.currentStage)).length;
+      const interviewCount = filteredApplications.filter((a) => a.currentStage && interviewIds.includes(a.currentStage)).length;
+      interviewConv = screeningCount > 0 ? Math.round((interviewCount / screeningCount) * 1000) / 10 : 0;
+    }
+
     return {
       totalJobs,
       activeJobs,
@@ -304,8 +335,11 @@ type PerformanceResponse = {
       conversionRate,
       avgTimeToFill,
       hmFeedbackTime,
+      newToday,
+      avgFirstReview,
+      interviewConv,
     };
-  }, [filteredJobs, filteredApplications, hiringMetrics, pipelineStages]);
+  }, [filteredJobs, filteredApplications, hiringMetrics, pipelineStages, hmFeedback, dropoffData]);
 
   const pipelineHealthScore = useMemo(() => {
     if (!jobHealth.length) return { score: 72, tag: "Stable" };
@@ -468,6 +502,65 @@ type PerformanceResponse = {
       : "Pipeline is healthy. No major bottlenecks detected.";
   }, [jobHealth, dropoffInsights]);
 
+  const kpiItems = useMemo(
+    () => [
+      { label: "Active Jobs", value: stats.activeJobs },
+      { label: "New Applications Today", value: stats.newToday ?? 0 },
+      { label: "AI Pipeline Health", value: `${pipelineHealthScore.score}`, hint: pipelineHealthScore.tag },
+      {
+        label: "Avg Time to First Review",
+        value: stats.avgFirstReview != null ? `${stats.avgFirstReview}d` : "—",
+      },
+      { label: "Interview Conversion", value: `${stats.interviewConv}%` },
+    ],
+    [stats, pipelineHealthScore]
+  );
+
+  const stageBottlenecks = useMemo(() => {
+    const stuckThresholdDays = 3;
+    const now = new Date().getTime();
+    const bottlenecks: Array<{ stage: string; message: string; actionLabel: string }> = [];
+    pipelineStages.forEach((stage) => {
+      const appsInStage = filteredApplications.filter((a) => a.currentStage === stage.id);
+      const stuck = appsInStage.filter((a) => {
+        if (!a.stageChangedAt) return false;
+        const days = (now - new Date(a.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24);
+        return days >= stuckThresholdDays;
+      });
+      if (stuck.length > 0) {
+        bottlenecks.push({
+          stage: stage.name,
+          message: `${stuck.length} candidate(s) in this stage for > ${stuckThresholdDays} days`,
+          actionLabel: "View candidates",
+        });
+      }
+    });
+    return bottlenecks;
+  }, [pipelineStages, filteredApplications]);
+
+  const dropoffSteps = useMemo(() => {
+    if (dropoffData?.conversions?.length) {
+      return dropoffData.conversions.map((c) => ({
+        name: c.name,
+        count: dropoffData.stages.find((s) => s.name === c.name)?.count ?? c.count,
+        rate: c.rate,
+      }));
+    }
+    return dropoffInsights.conversions.map((c) => ({
+      name: c.name,
+      count: c.count,
+      rate: c.rate,
+    }));
+  }, [dropoffData, dropoffInsights]);
+
+  const dropoffSummary = useMemo(() => {
+    const weakest = dropoffInsights.weakest || dropoffData?.conversions?.find((c) => c.rate === Math.min(...(dropoffData?.conversions.map((x) => x.rate) || [0])));
+    if (weakest) {
+      return `Conversion into ${weakest.name} is ${weakest.rate}%. Consider nudging candidates or refining screening.`;
+    }
+    return "Pipeline is steady. No major drop-offs detected.";
+  }, [dropoffInsights, dropoffData]);
+
   if (jobsLoading || applicationsLoading) {
     return (
       <Layout>
@@ -524,35 +617,8 @@ type PerformanceResponse = {
             </div>
           </div>
 
-          {/* KPI row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
-            <KpiCard
-              label="AI Pipeline Health"
-              value={`${pipelineHealthScore.score} (${pipelineHealthScore.tag})`}
-              icon={Sparkles}
-              isLoading={jobsLoading}
-            />
-            <KpiCard label="Total Jobs" value={stats.totalJobs} icon={Briefcase} isLoading={jobsLoading} />
-            <KpiCard label="Active Jobs" value={stats.activeJobs} icon={CheckCircle} isLoading={jobsLoading} />
-            <KpiCard
-              label="Total Applications"
-              value={stats.totalApplications}
-              icon={Users}
-              isLoading={applicationsLoading}
-            />
-            <KpiCard
-              label="Total Hires"
-              value={`${stats.totalHires} (${stats.conversionRate}% conv)`}
-              icon={Target}
-              isLoading={applicationsLoading}
-            />
-            <KpiCard
-              label="Avg Time to Fill"
-              value={stats.avgTimeToFill ? `${stats.avgTimeToFill}d` : "—"}
-              icon={Clock}
-              isLoading={!hiringMetrics}
-            />
-          </div>
+          {/* KPI ribbon (Tier 1) */}
+          <RecruiterKpiRibbon items={kpiItems} />
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -570,145 +636,26 @@ type PerformanceResponse = {
             />
           </div>
 
-          {/* AI Insights */}
-          <Card className="border-slate-200">
-            <CardHeader className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                <CardTitle className="text-lg">AI Insights</CardTitle>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                Grounded in ATS data only
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-start gap-3 rounded-lg bg-slate-50 p-4 border border-slate-200">
-                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-                <div>
-                  <p className="text-sm text-slate-800">{aiSummaryText}</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Signals: application velocity, stage conversion, job health.
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card className="border-slate-200 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" />
-                      Jobs Needing Attention
-                    </CardTitle>
-                    <CardDescription>Sorted by severity</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Job</TableHead>
-                          <TableHead>Bottleneck</TableHead>
-                          <TableHead className="text-right">Stage count</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {jobsNeedingAttention.slice(0, 5).map((job) => (
-                          <TableRow key={job.jobId}>
-                            <TableCell className="space-y-1">
-                              <div className="font-medium text-slate-900">{job.jobTitle}</div>
-                              <Badge
-                                variant="outline"
-                                className={
-                                  job.status === "red"
-                                    ? "border-red-200 text-red-700 bg-red-50"
-                                    : job.status === "amber"
-                                      ? "border-amber-200 text-amber-700 bg-amber-50"
-                                      : "border-green-200 text-green-700 bg-green-50"
-                                }
-                              >
-                                {job.status.toUpperCase()}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm text-slate-600">
-                              {job.reason || "Needs movement"}
-                            </TableCell>
-                            <TableCell className="text-right text-sm text-slate-700">
-                              {job.totalApplications ?? "—"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {jobsNeedingAttention.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={3} className="text-center text-sm text-slate-500 py-4">
-                              No risk indicators right now.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-slate-200 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-blue-600" />
-                      Drop-off Analysis
-                    </CardTitle>
-                    <CardDescription>Conversion by stage (current pipeline)</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="space-y-2">
-                      {dropoffInsights.conversions.map((stage) => (
-                        <div key={stage.name} className="flex items-center justify-between text-sm">
-                          <span className="text-slate-700">{stage.name}</span>
-                          <span className="font-semibold text-slate-900">{stage.rate}%</span>
-                        </div>
-                      ))}
-                    </div>
-                    {dropoffInsights.weakest && (
-                      <div className="rounded-md bg-amber-50 border border-amber-100 p-3 text-xs text-amber-800">
-                        Conversion from previous stage into <strong>{dropoffInsights.weakest.name}</strong> is{" "}
-                        {dropoffInsights.weakest.rate}% — consider refining screening or follow-ups.
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="border-slate-200 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-slate-600" />
-                    JD Clarity Suggestions
-                  </CardTitle>
-                  <CardDescription>Grounded in JD length, location, and skills coverage</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {jdSuggestions.length === 0 && (
-                    <p className="text-sm text-slate-500">No JD clarity flags detected for the selected filters.</p>
-                  )}
-                  {jdSuggestions.map((item) => (
-                    <div
-                      key={item.jobId}
-                      className="rounded-lg border border-slate-200 p-4 bg-white shadow-sm space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="font-semibold text-slate-900">{item.title}</div>
-                        <Badge variant="outline" className="text-xs">
-                          {item.score}
-                        </Badge>
-                      </div>
-                      <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
-                        {item.tips.map((tip, idx) => (
-                          <li key={idx}>{tip}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
+          {/* AI Insights (Tier 2) */}
+          <RecruiterAiInsightsSection
+            jobsNeedingAttention={jobsNeedingAttention.map((job) => ({
+              jobId: job.jobId,
+              title: job.jobTitle,
+              severity: job.status === "red" ? "high" : job.status === "amber" ? "medium" : "low",
+              reason: job.reason || "Needs movement",
+            }))}
+            jdSuggestions={jdSuggestions.map((j) => ({
+              jobId: j.jobId,
+              title: j.title,
+              score: j.score,
+              tips: j.tips,
+            }))}
+            dropoff={dropoffSteps}
+            dropoffSummary={aiSummaryText || dropoffSummary}
+            bottlenecks={stageBottlenecks}
+            onViewJob={(jobId) => setLocation(`/jobs/${jobId}`)}
+            onViewStage={(stage) => setLocation("/applications")}
+          />
 
           {/* Hiring efficiency */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
