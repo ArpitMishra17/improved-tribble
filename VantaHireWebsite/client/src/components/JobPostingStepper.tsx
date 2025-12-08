@@ -38,6 +38,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { JdAiAnalysisDrawer } from "@/components/jd/JdAiAnalysisDrawer";
 
 // Step validation schemas
 const step1Schema = z.object({
@@ -105,6 +106,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
   const [newSkill, setNewSkill] = useState("");
   const [hiringManagerId, setHiringManagerId] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
+  const [showAiDrawer, setShowAiDrawer] = useState(false);
 
   // Setup step state
   const [cloneFromJobId, setCloneFromJobId] = useState<string>("");
@@ -573,9 +575,14 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               </div>
 
               <div>
-                <Label htmlFor="description" className="mb-2 block">
-                  Job Description *
-                </Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="description" className="block">
+                    Job Description *
+                  </Label>
+                  <Button variant="outline" size="sm" onClick={() => setShowAiDrawer(true)}>
+                    Analyze JD (AI)
+                  </Button>
+                </div>
                 <Textarea
                   id="description"
                   value={formData.description}
@@ -595,6 +602,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                       : ""}
                   </p>
                 </div>
+                <p className="text-xs text-slate-500 mt-1">Clear, inclusive descriptions improve apply rates.</p>
               </div>
             </div>
           )}
@@ -961,8 +969,19 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+      </CardContent>
+    </Card>
+
+    <JdAiAnalysisDrawer
+      open={showAiDrawer}
+      onOpenChange={setShowAiDrawer}
+      title={formData.title}
+      description={formData.description}
+      onReplaceDescription={(text) => {
+        setFormData((prev) => ({ ...prev, description: text }));
+        setShowAiDrawer(false);
+      }}
+    />
+  </div>
+);
 }
