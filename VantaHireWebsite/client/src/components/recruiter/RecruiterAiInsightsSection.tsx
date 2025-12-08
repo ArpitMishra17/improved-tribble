@@ -38,13 +38,14 @@ interface RecruiterAiInsightsSectionProps {
   dropoffSummary: string;
   bottlenecks: Bottleneck[];
   onViewJob?: (jobId: number) => void;
+  onEditJob?: (jobId: number) => void;
   onViewStage?: (stageName: string) => void;
 }
 
 const severityColor: Record<JobAttention["severity"], string> = {
-  high: "bg-red-50 text-red-700 border-red-200",
-  medium: "bg-amber-50 text-amber-700 border-amber-200",
-  low: "bg-green-50 text-green-700 border-green-200",
+  high: "bg-red-100 text-red-800 border-red-300",
+  medium: "bg-orange-100 text-orange-800 border-orange-300",
+  low: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
 export function RecruiterAiInsightsSection({
@@ -54,8 +55,14 @@ export function RecruiterAiInsightsSection({
   dropoffSummary,
   bottlenecks,
   onViewJob,
+  onEditJob,
   onViewStage,
 }: RecruiterAiInsightsSectionProps) {
+  const worstRate =
+    dropoff.length > 0
+      ? dropoff.reduce((min, step) => (step.rate < min ? step.rate : min), dropoff[0]?.rate ?? 0)
+      : null;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="space-y-4">
@@ -65,13 +72,22 @@ export function RecruiterAiInsightsSection({
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               Jobs Needing Attention
             </CardTitle>
-            <CardDescription>Sorted by severity</CardDescription>
+            <CardDescription className="flex items-center gap-2">
+              Sorted by severity
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {jobsNeedingAttention.map((job) => (
               <div
                 key={job.jobId}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 p-3"
+                role="button"
+                tabIndex={0}
+                onClick={() => onViewJob?.(job.jobId)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") onViewJob?.(job.jobId);
+                }}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 p-3 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -94,35 +110,43 @@ export function RecruiterAiInsightsSection({
         </Card>
 
         <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-purple-600" />
-              JD Clarity Suggestions
-            </CardTitle>
-            <CardDescription>Grounded in JD length, location, and skills coverage</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {jdSuggestions.length === 0 && (
-              <p className="text-sm text-slate-500">No JD clarity flags detected for the selected filters.</p>
-            )}
-            {jdSuggestions.map((item) => (
-              <div key={item.jobId} className="rounded-lg border border-slate-200 p-3 bg-white">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-slate-900">{item.title}</div>
-                  <Badge variant="outline" className="text-xs">
-                    {item.score}
-                  </Badge>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-600" />
+                JD Clarity Suggestions
+              </CardTitle>
+              <CardDescription className="flex items-center gap-2">
+                Improving clarity can lift apply rates for similar roles.
+                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {jdSuggestions.length === 0 && (
+                <p className="text-sm text-slate-500">No JD clarity flags detected for the selected filters.</p>
+              )}
+              {jdSuggestions.map((item) => (
+                <div key={item.jobId} className="rounded-lg border border-slate-200 p-3 bg-white">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-slate-900">{item.title}</div>
+                    <Badge variant="outline" className="text-xs">
+                      {item.score}
+                    </Badge>
+                  </div>
+                  <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1 mt-2">
+                    {item.tips.map((tip, idx) => (
+                      <li key={idx}>{tip}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-3">
+                    <Button variant="outline" size="sm" onClick={() => onEditJob?.(item.jobId)}>
+                      Edit JD
+                    </Button>
+                  </div>
                 </div>
-                <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1 mt-2">
-                  {item.tips.map((tip, idx) => (
-                    <li key={idx}>{tip}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
 
       <div className="space-y-4">
         <Card className="shadow-sm">
@@ -131,12 +155,21 @@ export function RecruiterAiInsightsSection({
               <TrendingUp className="h-4 w-4 text-blue-600" />
               Drop-off Analysis
             </CardTitle>
-            <CardDescription>Stage counts and conversions</CardDescription>
+            <CardDescription className="flex items-center gap-2">
+              Stage counts and conversions
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
               {dropoff.map((step, idx) => (
-                <div key={step.name} className="space-y-1">
+                <div
+                  key={step.name}
+                  className={cn(
+                    "space-y-1 rounded-md p-2",
+                    worstRate !== null && step.rate === worstRate ? "bg-amber-50 border border-amber-100" : ""
+                  )}
+                >
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-700">{step.name}</span>
                     <span className="text-slate-900 font-semibold">{step.count}</span>
@@ -153,37 +186,32 @@ export function RecruiterAiInsightsSection({
             <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-xs text-slate-700">
               {dropoffSummary}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Stage Bottlenecks
-            </CardTitle>
-            <CardDescription>Stages that need attention</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {bottlenecks.map((item, idx) => (
-              <div
-                key={`${item.stage}-${idx}`}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md border border-amber-100 bg-amber-50 p-3"
-              >
-                <div className="space-y-1">
-                  <div className="font-semibold text-amber-800">{item.stage}</div>
-                  <p className="text-sm text-amber-700">{item.message}</p>
-                </div>
-                {item.actionLabel && (
-                  <Button variant="outline" size="sm" onClick={() => onViewStage?.(item.stage)}>
-                    {item.actionLabel}
-                  </Button>
-                )}
-              </div>
-            ))}
-            {bottlenecks.length === 0 && (
-              <p className="text-sm text-slate-500">No bottlenecks detected right now.</p>
-            )}
+            <div className="border-t border-slate-200 pt-3 space-y-2">
+              <div className="text-sm font-semibold text-slate-800">Stage bottlenecks</div>
+              {bottlenecks.length === 0 && (
+                <p className="text-sm text-slate-500">No stage bottlenecks detected in this period.</p>
+              )}
+              {bottlenecks.length > 0 && (
+                <ul className="space-y-2">
+                  {bottlenecks.map((item, idx) => (
+                    <li
+                      key={`${item.stage}-${idx}`}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md bg-amber-50 border border-amber-100 p-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold text-amber-800">{item.stage}</div>
+                        <p className="text-sm text-amber-700">{item.message}</p>
+                      </div>
+                      {item.actionLabel && (
+                        <Button variant="outline" size="sm" onClick={() => onViewStage?.(item.stage)}>
+                          {item.actionLabel}
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
