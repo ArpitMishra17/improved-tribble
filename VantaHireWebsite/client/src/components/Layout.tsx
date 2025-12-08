@@ -107,18 +107,21 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Quick Access Bar for authenticated users (not in ATS context) */}
       {user && !atsContext && <QuickAccessBar />}
 
-      {/* ATS Header - Light theme for recruiter/admin dashboards */}
+      {/* ATS Header - Dark theme for recruiter/admin dashboards */}
       {atsContext && (
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-slate-200/80 shadow-sm">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-[#0d0d1a] border-b border-purple-500/20 shadow-lg">
           <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
             {/* Logo */}
-            <div className="text-xl font-bold">
+            <div className="flex items-center gap-3">
               <Link
                 href="/"
-                className="text-primary font-extrabold tracking-wide hover:text-primary/80 transition-colors"
+                className="text-xl font-extrabold tracking-wide bg-gradient-to-r from-purple-400 via-pink-400 to-amber-400 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
               >
                 VantaHire
               </Link>
+              <span className="px-2.5 py-1 bg-amber-500 text-slate-900 text-xs font-bold rounded-md">
+                ATS
+              </span>
             </div>
 
             {/* Desktop Navigation */}
@@ -130,8 +133,8 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === '/recruiter-dashboard'
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-amber-400 bg-white/10"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
                     Dashboard
@@ -141,8 +144,8 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === '/applications'
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-amber-400 bg-white/10"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
                     Applications
@@ -152,8 +155,8 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === '/my-jobs'
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-amber-400 bg-white/10"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
                     My Jobs
@@ -163,8 +166,8 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location.startsWith('/admin/forms')
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-amber-400 bg-white/10"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
                     Forms
@@ -174,8 +177,8 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location.startsWith('/clients')
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-amber-400 bg-white/10"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
                     Clients
@@ -185,8 +188,8 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location.startsWith('/admin/email-templates')
-                        ? "text-primary bg-primary/5"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-amber-400 bg-white/10"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
                     Email
@@ -202,6 +205,7 @@ const Layout = ({ children }: LayoutProps) => {
                 <Button
                   onClick={() => setLocation("/jobs/post")}
                   size="sm"
+                  variant="gold"
                   className="hidden md:flex"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -211,7 +215,7 @@ const Layout = ({ children }: LayoutProps) => {
 
               {/* Role Badge - visible next to username */}
               {getRoleLabel(user?.role) && (
-                <Badge variant="outline" className="text-xs capitalize border-slate-300 text-slate-600 hidden sm:inline-flex">
+                <Badge variant="outline" className="text-xs capitalize border-white/30 text-white/70 hidden sm:inline-flex">
                   {getRoleLabel(user?.role)}
                 </Badge>
               )}
@@ -219,7 +223,7 @@ const Layout = ({ children }: LayoutProps) => {
               {/* User Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
+                  <Button variant="ghost" size="sm" className="gap-2 text-white/70 hover:text-white hover:bg-white/10">
                     <User className="h-4 w-4" />
                     <span className="hidden sm:inline">{displayName}</span>
                     <ChevronDown className="h-3 w-3" />
