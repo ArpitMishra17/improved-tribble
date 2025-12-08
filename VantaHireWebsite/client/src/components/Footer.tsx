@@ -1,7 +1,60 @@
 import { Link } from "wouter";
 import vantahireLogo from "@/assets/vantahire-logo.png";
 
-const Footer = () => {
+interface FooterProps {
+  minimal?: boolean;
+}
+
+const Footer = ({ minimal = false }: FooterProps) => {
+  // Minimal footer for ATS pages
+  if (minimal) {
+    return (
+      <footer className="bg-[#0d0d1a] border-t border-purple-500/20 py-6 relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-white/50 text-sm">
+              © 2025 VantaHire. All rights reserved.
+            </p>
+            <div className="flex flex-wrap gap-6 justify-center">
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('cookie-consent:open', { detail: { reset: true } }));
+                }}
+                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+              >
+                Cookie Preferences
+              </button>
+              <Link
+                href="/privacy-policy"
+                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms-of-service"
+                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+              >
+                Terms of Service
+              </Link>
+              <Link
+                href="/cookie-policy"
+                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+              >
+                Cookie Policy
+              </Link>
+              <a
+                href="mailto:hello@vantahire.com"
+                className="text-white/70 text-sm hover:text-amber-400 transition-colors"
+              >
+                hello@vantahire.com
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className="bg-[var(--bg-secondary)] border-t border-[var(--border-subtle)] py-16 relative z-10">
       <div className="container mx-auto px-4">

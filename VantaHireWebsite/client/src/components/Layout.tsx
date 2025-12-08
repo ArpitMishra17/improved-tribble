@@ -602,7 +602,7 @@ const Layout = ({ children }: LayoutProps) => {
       {user && <FloatingActionButton />}
 
       {/* Footer */}
-      <Footer />
+      <Footer minimal={atsContext} />
     </div>
   );
 };
