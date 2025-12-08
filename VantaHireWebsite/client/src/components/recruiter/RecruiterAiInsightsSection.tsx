@@ -77,31 +77,37 @@ export function RecruiterAiInsightsSection({
               <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {jobsNeedingAttention.map((job) => (
-              <div
-                key={job.jobId}
-                role="button"
-                tabIndex={0}
-                onClick={() => onViewJob?.(job.jobId)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") onViewJob?.(job.jobId);
-                }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 p-3 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="font-semibold text-slate-900">{job.title}</div>
-                    <Badge variant="outline" className={cn("text-xs", severityColor[job.severity])}>
-                      {job.severity.toUpperCase()}
-                    </Badge>
+            <CardContent className="space-y-3">
+              {jobsNeedingAttention.map((job) => (
+                <div
+                  key={job.jobId}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onViewJob?.(job.jobId)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") onViewJob?.(job.jobId);
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 p-3 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="font-semibold text-slate-900">{job.title}</div>
+                      <span
+                        className={cn(
+                          "flex items-center gap-1 text-xs font-medium px-2 py-[2px] rounded-full border",
+                          severityColor[job.severity]
+                        )}
+                      >
+                        <span className="h-2 w-2 rounded-full bg-current" />
+                        {job.severity.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600">{job.reason}</p>
                   </div>
-                  <p className="text-sm text-slate-600">{job.reason}</p>
+                  <Button variant="outline" size="sm" onClick={() => onViewJob?.(job.jobId)}>
+                    View job
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => onViewJob?.(job.jobId)}>
-                  View job
-                </Button>
-              </div>
             ))}
             {jobsNeedingAttention.length === 0 && (
               <p className="text-sm text-slate-500">No risk indicators right now.</p>
@@ -162,24 +168,19 @@ export function RecruiterAiInsightsSection({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
-              {dropoff.map((step, idx) => (
+              {dropoff.map((step) => (
                 <div
                   key={step.name}
                   className={cn(
-                    "space-y-1 rounded-md p-2",
-                    worstRate !== null && step.rate === worstRate ? "bg-amber-50 border border-amber-100" : ""
+                    "flex items-center justify-between gap-3 rounded-md p-2",
+                    worstRate !== null && step.rate === worstRate ? "bg-red-50 border border-red-100" : "bg-slate-50"
                   )}
                 >
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-700">{step.name}</span>
-                    <span className="text-slate-900 font-semibold">{step.count}</span>
+                  <div className="text-sm text-slate-800 font-medium">{step.name}</div>
+                  <div className="flex items-center gap-3 text-sm text-slate-700">
+                    <span>{step.rate}% conversion</span>
+                    <span className="text-slate-600">{step.count} candidates</span>
                   </div>
-                  <Progress value={Math.min(step.rate, 100)} className="h-2" />
-                  {idx > 0 && (
-                    <p className="text-xs text-slate-500">
-                      {step.rate}% conversion from previous stage
-                    </p>
-                  )}
                 </div>
               ))}
             </div>

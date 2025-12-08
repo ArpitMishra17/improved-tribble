@@ -5,6 +5,7 @@ type KpiItem = {
   label: string;
   value: string | number;
   hint?: string;
+  secondary?: string;
 };
 
 interface RecruiterKpiRibbonProps {
@@ -43,6 +44,7 @@ export function RecruiterKpiRibbon({ items, heroLabel, heroTooltip, className }:
           <CardContent className="pt-0">
             <div className="text-2xl font-semibold text-slate-900">{item.value}</div>
             {item.hint && <p className="text-xs text-slate-500 mt-1">{item.hint}</p>}
+            {item.secondary && <p className="text-[11px] text-slate-500 mt-1">{item.secondary}</p>}
           </CardContent>
         </Card>
       ))}

@@ -512,14 +512,20 @@ type PerformanceResponse = {
 
   const kpiItems = useMemo(
     () => [
-      { label: "Active Jobs", value: stats.activeJobs },
-      { label: "New Applications Today", value: stats.newToday ?? 0 },
-      { label: "AI Pipeline Health", value: `${pipelineHealthScore.score}`, hint: pipelineHealthScore.tag },
+      {
+        label: "AI Pipeline Health",
+        value: `${pipelineHealthScore.score}`,
+        hint: pipelineHealthScore.tag,
+        secondary: "Score based on stage movement, time in stage, drop-offs, and stuck candidates.",
+      },
+      { label: "Active Jobs", value: stats.activeJobs, secondary: "Open/active roles you’re handling." },
+      { label: "New Applications Today", value: stats.newToday ?? 0, secondary: "Applications submitted today." },
       {
         label: "Avg Time to First Review",
         value: stats.avgFirstReview != null ? `${stats.avgFirstReview}d` : "—",
+        secondary: "Avg days from apply to first recruiter action.",
       },
-      { label: "Interview Conversion", value: `${stats.interviewConv}%` },
+      { label: "Interview Conversion", value: `${stats.interviewConv}%`, secondary: "Screening → Interview rate." },
     ],
     [stats, pipelineHealthScore]
   );
@@ -638,10 +644,7 @@ type PerformanceResponse = {
                   </div>
                 </div>
                 <RecruiterKpiRibbon
-                  items={[
-                    { label: "AI Pipeline Health", value: `${pipelineHealthScore.score}`, hint: pipelineHealthScore.tag },
-                    ...kpiItems.filter((k) => k.label !== "AI Pipeline Health"),
-                  ]}
+                  items={kpiItems}
                   heroLabel="AI Pipeline Health"
                   heroTooltip="Score based on stage movement, time in stage, drop-offs and stuck candidates."
                 />
@@ -649,7 +652,7 @@ type PerformanceResponse = {
             </Card>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 bg-slate-50 border border-slate-100 rounded-md px-4 py-3">
             <h2 className="text-lg font-semibold text-slate-900">Pipeline & time metrics</h2>
             <p className="text-sm text-slate-500">Charts and summaries respect the selected date range and job filters.</p>
           </div>
@@ -707,7 +710,7 @@ type PerformanceResponse = {
           />
 
           {/* Hiring efficiency */}
-          <div className="space-y-2">
+          <div className="space-y-2 bg-slate-50 border border-slate-100 rounded-md px-4 py-3">
             <h2 className="text-lg font-semibold text-slate-900">Pipeline & time metrics</h2>
             <p className="text-sm text-slate-500">How long it takes to fill roles and move candidates through stages.</p>
           </div>
