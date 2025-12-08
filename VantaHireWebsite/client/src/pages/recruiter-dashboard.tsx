@@ -518,24 +518,53 @@ type PerformanceResponse = {
       : "Pipeline is healthy. No major bottlenecks detected.";
   }, [jobHealth, dropoffInsights]);
 
+  // Derive trends from time-series (compare last 7 days vs previous 7)
+  const appsTrend = useMemo(() => {
+    if (timeSeriesData.length < 14) return { trend: "flat" as const, value: "" };
+    const recent = timeSeriesData.slice(-7).reduce((s, d) => s + d.value, 0);
+    const prior = timeSeriesData.slice(-14, -7).reduce((s, d) => s + d.value, 0);
+    if (prior === 0) return { trend: "flat" as const, value: "" };
+    const pct = Math.round(((recent - prior) / prior) * 100);
+    return {
+      trend: pct > 5 ? "up" as const : pct < -5 ? "down" as const : "flat" as const,
+      value: pct > 0 ? `+${pct}%` : `${pct}%`,
+    };
+  }, [timeSeriesData]);
+
   const kpiItems = useMemo(
     () => [
       {
-        label: "AI Pipeline Health",
-        value: `${pipelineHealthScore.score}`,
+        label: "Pipeline Health",
+        value: `${pipelineHealthScore.score}%`,
         hint: pipelineHealthScore.tag,
-        secondary: "Score based on stage movement, time in stage, drop-offs, and stuck candidates.",
+        trend: pipelineHealthScore.score >= 70 ? "up" as const : pipelineHealthScore.score >= 50 ? "flat" as const : "down" as const,
       },
-      { label: "Active Jobs", value: stats.activeJobs, secondary: "Open/active roles you’re handling." },
-      { label: "New Applications Today", value: stats.newToday ?? 0, secondary: "Applications submitted today." },
       {
-        label: "Avg Time to First Review",
-        value: stats.avgFirstReview != null ? `${stats.avgFirstReview}d` : "—",
-        secondary: "Avg days from apply to first recruiter action.",
+        label: "Active Roles",
+        value: stats.activeJobs,
+        secondary: "Open positions",
       },
-      { label: "Interview Conversion", value: `${stats.interviewConv}%`, secondary: "Screening → Interview rate." },
+      {
+        label: "Today's Apps",
+        value: stats.newToday ?? 0,
+        trend: appsTrend.trend,
+        trendValue: appsTrend.value || undefined,
+        secondary: "vs last week",
+      },
+      {
+        label: "First Review",
+        value: stats.avgFirstReview != null ? `${stats.avgFirstReview}d` : "—",
+        trend: stats.avgFirstReview != null && stats.avgFirstReview <= 2 ? "up" as const : stats.avgFirstReview != null && stats.avgFirstReview > 4 ? "down" as const : "flat" as const,
+        secondary: "Avg response time",
+      },
+      {
+        label: "To Interview",
+        value: `${stats.interviewConv}%`,
+        trend: stats.interviewConv >= 30 ? "up" as const : stats.interviewConv >= 15 ? "flat" as const : "down" as const,
+        secondary: "Screen → Interview",
+      },
     ],
-    [stats, pipelineHealthScore]
+    [stats, pipelineHealthScore, appsTrend]
   );
 
   const stageBottlenecks = useMemo(() => {
@@ -690,7 +719,7 @@ type PerformanceResponse = {
                 </div>
                 <RecruiterKpiRibbon
                   items={kpiItems}
-                  heroLabel="AI Pipeline Health"
+                  heroLabel="Pipeline Health"
                   heroTooltip="Score based on stage movement, time in stage, drop-offs and stuck candidates."
                 />
               </CardContent>
@@ -728,11 +757,7 @@ type PerformanceResponse = {
             </div>
           </div>
 
-          {/* AI Insights (Tier 2) */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-slate-900">AI insights</h2>
-            <p className="text-sm text-slate-500">AI-assisted next actions based on pipeline health.</p>
-          </div>
+          {/* AI Summary + Insights */}
           <AiPipelineSummary
             pipelineHealthScore={pipelineHealthScore}
             preGeneratedSummary={aiInsights?.summary}

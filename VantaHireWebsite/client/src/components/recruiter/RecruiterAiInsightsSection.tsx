@@ -1,9 +1,20 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Sparkles, TrendingUp } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { AlertTriangle, Sparkles, TrendingUp, ChevronDown, ChevronRight, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
 
 type JobAttention = {
   jobId: number;
@@ -11,7 +22,6 @@ type JobAttention = {
   severity: "high" | "medium" | "low";
   reason: string;
   nextAction?: string;
-  metrics?: Record<string, any>;
 };
 
 type JdSuggestion = {
@@ -31,6 +41,8 @@ type Bottleneck = {
   stage: string;
   message: string;
   actionLabel?: string;
+  stuckCount?: number;
+  avgDays?: number;
 };
 
 interface RecruiterAiInsightsSectionProps {
@@ -47,10 +59,10 @@ interface RecruiterAiInsightsSectionProps {
   onViewStage?: ((stageName: string) => void) | undefined;
 }
 
-const severityColor: Record<JobAttention["severity"], string> = {
-  high: "bg-red-100 text-red-800 border-red-300",
-  medium: "bg-orange-100 text-orange-800 border-orange-300",
-  low: "bg-amber-50 text-amber-700 border-amber-200",
+const severityConfig = {
+  high: { color: "bg-red-500", border: "border-l-red-500", text: "text-red-700", label: "Urgent" },
+  medium: { color: "bg-orange-400", border: "border-l-orange-400", text: "text-orange-700", label: "Watch" },
+  low: { color: "bg-amber-300", border: "border-l-amber-300", text: "text-amber-700", label: "Info" },
 };
 
 export function RecruiterAiInsightsSection({
@@ -66,10 +78,9 @@ export function RecruiterAiInsightsSection({
   onEditJob,
   onViewStage,
 }: RecruiterAiInsightsSectionProps) {
-  const worstRate =
-    dropoff.length > 0
-      ? dropoff.reduce((min, step) => (step.rate < min ? step.rate : min), dropoff[0]?.rate ?? 0)
-      : null;
+  const [showAllJobs, setShowAllJobs] = useState(false);
+  const [jdExpanded, setJdExpanded] = useState<number | null>(null);
+  const [insightsOpen, setInsightsOpen] = useState(true);
 
   // Build a map of pre-generated next actions by jobId
   const actionsMap = useMemo(() => {
@@ -80,182 +91,254 @@ export function RecruiterAiInsightsSection({
     return map;
   }, [preGeneratedActions]);
 
+  // Progressive disclosure: show top 3
+  const visibleJobs = showAllJobs ? jobsNeedingAttention : jobsNeedingAttention.slice(0, 3);
+  const hasMoreJobs = jobsNeedingAttention.length > 3;
+
+  // Find max count for funnel bar scaling
+  const maxCount = Math.max(...dropoff.map((d) => d.count), 1);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div className="space-y-4">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Jobs Needing Attention
-            </CardTitle>
-            <CardDescription className="flex items-center gap-2">
-              Sorted by severity
-              <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {jobsNeedingAttention.map((job) => (
-              <div
-                key={job.jobId}
-                role="button"
-                tabIndex={0}
-                  onClick={() => onViewJob?.(job.jobId)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") onViewJob?.(job.jobId);
-                  }}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 p-3 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <div className="font-semibold text-slate-900">{job.title}</div>
-                    <span
-                      className={cn(
-                          "flex items-center gap-1 text-xs font-medium px-2 py-[2px] rounded-full border",
-                          severityColor[job.severity]
-                        )}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-current" />
-                        {job.severity.toUpperCase()}
-                      </span>
-                  </div>
-                  <p className="text-sm text-slate-600">{job.reason}</p>
-                  {(job.nextAction || actionsMap[job.jobId]) && (
-                    <p className="text-xs text-slate-500">
-                      Suggested next action:{" "}
-                      <span className="font-medium text-slate-700">{actionsMap[job.jobId] || job.nextAction}</span>
-                    </p>
-                  )}
-                  {aiLoading && !actionsMap[job.jobId] && !job.nextAction && (
-                    <p className="text-xs text-slate-400 italic">Generating suggestion…</p>
-                  )}
-                </div>
-                <Button variant="outline" size="sm" onClick={() => onViewJob?.(job.jobId)}>
-                  View job
-                </Button>
-              </div>
-            ))}
-            {jobsNeedingAttention.length === 0 && (
-              <p className="text-sm text-slate-500">No risk indicators right now.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-600" />
-                JD Clarity Suggestions
-              </CardTitle>
-              <CardDescription className="flex items-center gap-2">
-                Improving clarity can lift apply rates for similar roles.
-                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {jdSuggestions.length === 0 && (
-                <p className="text-sm text-slate-500">No JD clarity flags detected for the selected filters.</p>
-              )}
-              {jdSuggestions.map((item) => (
-                <div key={item.jobId} className="rounded-lg border border-slate-200 p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold text-slate-900">{item.title}</div>
-                    <Badge variant="outline" className="text-xs">
-                      {item.score}
-                    </Badge>
-                  </div>
-                  <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1 mt-2">
-                    {item.tips.map((tip, idx) => (
-                      <li key={idx}>{tip}</li>
-                    ))}
-                  </ul>
-                  <div className="mt-3">
-                    <Button variant="outline" size="sm" onClick={() => onEditJob?.(item.jobId)}>
-                      Edit JD
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-      <div className="space-y-4">
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-blue-600" />
-              Drop-off Analysis
-            </CardTitle>
-            <CardDescription className="flex items-center gap-2">
-              Stage counts and conversions
-              <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-2">
-              {dropoff.map((step) => (
-                <div
-                  key={step.name}
-                  className={cn(
-                    "flex items-center justify-between gap-3 rounded-md p-2",
-                    worstRate !== null && step.rate === worstRate ? "bg-red-50 border border-red-100" : "bg-slate-50"
-                  )}
-                >
-                  <div className="text-sm text-slate-800 font-medium">{step.name}</div>
-                  <div className="flex items-center gap-3 text-sm text-slate-700">
-                    <span>{step.rate}% conversion</span>
-                    <span className="text-slate-600">{step.count} candidates</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-xs text-slate-700">
-              {dropoffSummary}
-            </div>
-            {/* AI-generated dropoff explanation */}
-            {dropoff.length > 0 && (
-              <div className="text-xs text-slate-700 space-y-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                    AI-assisted
-                  </Badge>
-                  <span className="text-slate-500">{aiLoading ? "Analyzing drop-offs…" : "AI interpretation"}</span>
-                </div>
-                <p className="text-slate-800">
-                  {preGeneratedDropoffExplanation || dropoffSummary}
-                </p>
-              </div>
-            )}
-            <div className="border-t border-slate-200 pt-3 space-y-2">
-              <div className="text-sm font-semibold text-slate-800">Stage bottlenecks</div>
-              {bottlenecks.length === 0 && (
-                <p className="text-sm text-slate-500">No stage bottlenecks detected in this period.</p>
-              )}
-              {bottlenecks.length > 0 && (
-                <ul className="space-y-2">
-                  {bottlenecks.map((item, idx) => (
-                    <li
-                      key={`${item.stage}-${idx}`}
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-md bg-amber-50 border border-amber-100 p-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="font-semibold text-amber-800">{item.stage}</div>
-                        <p className="text-sm text-amber-700">{item.message}</p>
-                      </div>
-                      {item.actionLabel && (
-                        <Button variant="outline" size="sm" onClick={() => onViewStage?.(item.stage)}>
-                          {item.actionLabel}
-                        </Button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+    <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
+      <div className="flex items-center justify-between mb-3">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2 text-slate-700 hover:text-slate-900 p-0">
+            {insightsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            <span className="font-semibold">AI Insights</span>
+            <Badge variant="outline" className="text-[10px] ml-2">AI-assisted</Badge>
+          </Button>
+        </CollapsibleTrigger>
       </div>
-    </div>
+
+      <CollapsibleContent>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* LEFT COLUMN */}
+          <div className="space-y-4">
+            {/* Jobs Needing Attention - Compact Cards */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Needs Attention
+                  {jobsNeedingAttention.length > 0 && (
+                    <Badge variant="secondary" className="text-xs ml-auto">{jobsNeedingAttention.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                {visibleJobs.length === 0 && (
+                  <p className="text-sm text-slate-500 py-2">All jobs healthy</p>
+                )}
+                <TooltipProvider>
+                  {visibleJobs.map((job) => {
+                    const config = severityConfig[job.severity];
+                    const action = actionsMap[job.jobId] || job.nextAction;
+                    return (
+                      <Tooltip key={job.jobId}>
+                        <TooltipTrigger asChild>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onViewJob?.(job.jobId)}
+                            onKeyDown={(e) => { if (e.key === "Enter") onViewJob?.(job.jobId); }}
+                            className={cn(
+                              "flex items-center gap-3 p-2 rounded-md border-l-4 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors",
+                              config.border
+                            )}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm text-slate-900 truncate">{job.title}</span>
+                                <span className={cn("text-[10px] font-medium uppercase", config.text)}>{config.label}</span>
+                              </div>
+                              {action && (
+                                <p className="text-xs text-slate-500 truncate mt-0.5">{action}</p>
+                              )}
+                              {aiLoading && !action && (
+                                <p className="text-xs text-slate-400 italic">Generating...</p>
+                              )}
+                            </div>
+                            <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p className="text-sm">{job.reason}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </TooltipProvider>
+                {hasMoreJobs && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-slate-500"
+                    onClick={() => setShowAllJobs(!showAllJobs)}
+                  >
+                    {showAllJobs ? "Show less" : `Show ${jobsNeedingAttention.length - 3} more`}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* JD Suggestions - Accordion */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  JD Improvements
+                  {jdSuggestions.length > 0 && (
+                    <Badge variant="secondary" className="text-xs ml-auto">{jdSuggestions.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                {jdSuggestions.length === 0 && (
+                  <p className="text-sm text-slate-500 py-2">All JDs look good</p>
+                )}
+                {jdSuggestions.map((item) => (
+                  <Collapsible
+                    key={item.jobId}
+                    open={jdExpanded === item.jobId}
+                    onOpenChange={(open) => setJdExpanded(open ? item.jobId : null)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <div className="flex items-center justify-between p-2 rounded-md bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors">
+                        <div className="flex items-center gap-2">
+                          {jdExpanded === item.jobId ? (
+                            <ChevronDown className="h-3 w-3 text-slate-400" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3 text-slate-400" />
+                          )}
+                          <span className="font-medium text-sm text-slate-900">{item.title}</span>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">{item.score}</Badge>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="pl-5 pr-2 py-2 space-y-2">
+                        <ul className="text-xs text-slate-600 space-y-1">
+                          {item.tips.map((tip, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-purple-400">•</span>
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => onEditJob?.(item.jobId)}>
+                          Edit JD
+                        </Button>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="space-y-4">
+            {/* Dropoff Analysis - Horizontal Funnel Bars */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  Conversion Funnel
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-0">
+                <div className="space-y-2">
+                  {dropoff.map((step, idx) => {
+                    const barWidth = Math.max((step.count / maxCount) * 100, 8);
+                    const isWeak = step.rate < 50;
+                    return (
+                      <div key={step.name} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-700 font-medium">{step.name}</span>
+                          <span className={cn("tabular-nums", isWeak ? "text-red-600 font-medium" : "text-slate-500")}>
+                            {step.rate}%
+                          </span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all",
+                              isWeak ? "bg-red-400" : idx === 0 ? "bg-blue-500" : "bg-blue-400"
+                            )}
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+                        <div className="text-[10px] text-slate-400">{step.count} candidates</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* AI Summary */}
+                {dropoff.length > 0 && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      {preGeneratedDropoffExplanation || dropoffSummary}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Stage Bottlenecks - Heatmap Bars */}
+            <Card className="shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  Stage Delays
+                  {bottlenecks.length > 0 && (
+                    <Badge variant="secondary" className="text-xs ml-auto">{bottlenecks.length}</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {bottlenecks.length === 0 && (
+                  <p className="text-sm text-slate-500 py-2">No delays detected</p>
+                )}
+                <div className="space-y-2">
+                  {bottlenecks.map((item, idx) => {
+                    // Extract stuck count from message (e.g., "5 candidate(s)...")
+                    const countMatch = item.message.match(/(\d+)\s+candidate/);
+                    const stuckCount = countMatch && countMatch[1] ? parseInt(countMatch[1], 10) : 1;
+                    const intensity = Math.min(stuckCount / 5, 1); // Scale to max 5 for intensity
+                    return (
+                      <div
+                        key={`${item.stage}-${idx}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onViewStage?.(item.stage)}
+                        onKeyDown={(e) => { if (e.key === "Enter") onViewStage?.(item.stage); }}
+                        className="flex items-center gap-3 p-2 rounded-md bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors"
+                      >
+                        {/* Heatmap intensity bar */}
+                        <div
+                          className="w-1.5 h-8 rounded-full"
+                          style={{
+                            backgroundColor: `rgba(239, 68, 68, ${0.3 + intensity * 0.7})`,
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-slate-900">{item.stage}</div>
+                          <p className="text-xs text-slate-500 truncate">{stuckCount} stuck</p>
+                        </div>
+                        {item.actionLabel && (
+                          <Button variant="ghost" size="sm" className="text-xs h-7 px-2">
+                            View
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

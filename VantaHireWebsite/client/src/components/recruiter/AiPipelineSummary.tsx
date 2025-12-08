@@ -1,5 +1,7 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AiPipelineSummaryProps {
   pipelineHealthScore: { score: number; tag: string };
@@ -16,38 +18,42 @@ export function AiPipelineSummary({
 }: AiPipelineSummaryProps) {
   const fallback =
     pipelineHealthScore.score >= 80
-      ? "Pipeline looks healthy overall. Keep candidates moving to maintain momentum."
+      ? "Pipeline healthy. Keep candidates moving."
       : pipelineHealthScore.score >= 60
-        ? "Pipeline is stable but watch for slow stages and review stuck candidates."
-        : "Pipeline risk detected. Focus on clearing bottlenecks and reviewing stuck candidates.";
+        ? "Stable pipeline. Watch slow stages."
+        : "Pipeline needs attention. Clear bottlenecks.";
 
   const formattedDate = generatedAt
-    ? new Date(generatedAt).toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" })
+    ? new Date(generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
     : null;
 
   return (
-    <Card className="shadow-sm border-slate-200">
-      <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <CardTitle className="text-base">AI pipeline summary</CardTitle>
-          <CardDescription>
-            AI-assisted narrative based on current KPIs.
-            {formattedDate && (
-              <span className="text-slate-400 ml-2">Generated {formattedDate}</span>
+    <Card className={cn(
+      "shadow-sm border-l-4",
+      pipelineHealthScore.score >= 70 ? "border-l-emerald-400" :
+      pipelineHealthScore.score >= 50 ? "border-l-amber-400" : "border-l-red-400"
+    )}>
+      <CardContent className="py-3">
+        <div className="flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            {aiLoading ? (
+              <p className="text-sm text-slate-500">Analyzing pipeline...</p>
+            ) : (
+              <p className="text-sm text-slate-700 leading-relaxed">
+                {preGeneratedSummary || fallback}
+              </p>
             )}
-          </CardDescription>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {formattedDate && (
+              <span className="text-[10px] text-slate-400">{formattedDate}</span>
+            )}
+            <Badge variant="outline" className="text-[9px] uppercase tracking-wide px-1.5 py-0">
+              AI
+            </Badge>
+          </div>
         </div>
-        <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-          AI-assisted
-        </Badge>
-      </CardHeader>
-      <CardContent>
-        {aiLoading && <p className="text-sm text-slate-500">Generating insight…</p>}
-        {!aiLoading && (
-          <p className="text-sm text-slate-800 leading-relaxed">
-            {preGeneratedSummary || fallback}
-          </p>
-        )}
       </CardContent>
     </Card>
   );
