@@ -1,8 +1,74 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { getCsrfToken, clearCsrfToken } from "./csrf";
 
+// Rate limit info returned from 429 responses
+export interface RateLimitInfo {
+  error: string;
+  limit?: number;
+  remaining?: number;
+  used?: number;
+  retryAfterSeconds?: number;
+}
+
+// Custom error class for rate limit errors
+export class RateLimitError extends Error {
+  public readonly rateLimitInfo: RateLimitInfo;
+  public readonly status = 429;
+
+  constructor(info: RateLimitInfo) {
+    super(info.error);
+    this.name = 'RateLimitError';
+    this.rateLimitInfo = info;
+  }
+
+  get retryAfterSeconds(): number | undefined {
+    return this.rateLimitInfo.retryAfterSeconds;
+  }
+
+  get remaining(): number | undefined {
+    return this.rateLimitInfo.remaining;
+  }
+
+  get limit(): number | undefined {
+    return this.rateLimitInfo.limit;
+  }
+
+  get formattedRetryTime(): string {
+    const seconds = this.rateLimitInfo.retryAfterSeconds;
+    if (!seconds) return 'later';
+    if (seconds < 60) return `in ${seconds} seconds`;
+    if (seconds < 3600) return `in ${Math.ceil(seconds / 60)} minutes`;
+    return `in ${Math.ceil(seconds / 3600)} hours`;
+  }
+
+  /** Get formatted remaining info for toast: "0/20 remaining" or empty if unavailable */
+  get formattedRemaining(): string {
+    if (this.rateLimitInfo.remaining !== undefined && this.rateLimitInfo.limit !== undefined) {
+      return `${this.rateLimitInfo.remaining}/${this.rateLimitInfo.limit} remaining`;
+    }
+    return '';
+  }
+}
+
+// Helper to check if error is a rate limit error
+export function isRateLimitError(error: unknown): error is RateLimitError {
+  return error instanceof RateLimitError;
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    // Handle rate limit responses specially
+    if (res.status === 429) {
+      try {
+        const data = await res.json();
+        throw new RateLimitError(data as RateLimitInfo);
+      } catch (e) {
+        if (e instanceof RateLimitError) throw e;
+        // Fallback if JSON parsing fails
+        throw new RateLimitError({ error: 'Rate limit exceeded. Please try again later.' });
+      }
+    }
+
     const text = (await res.text()) || res.statusText;
     throw new Error(`${res.status}: ${text}`);
   }
@@ -12,13 +78,15 @@ export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  _retryCount = 0,
 ): Promise<Response> {
   // Build headers with CSRF token for mutating requests
   const headers: HeadersInit = data ? { "Content-Type": "application/json" } : {};
 
   // Add CSRF token for state-changing operations
   const mutatingMethods = ['POST', 'PATCH', 'DELETE', 'PUT'];
-  if (mutatingMethods.includes(method.toUpperCase())) {
+  const isMutating = mutatingMethods.includes(method.toUpperCase());
+  if (isMutating) {
     try {
       const csrfToken = await getCsrfToken();
       headers['x-csrf-token'] = csrfToken;
@@ -35,9 +103,11 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  // Clear cached CSRF token on 403 (likely invalid token)
-  if (res.status === 403) {
+  // Retry once on 403 for mutating requests (likely stale CSRF token)
+  if (res.status === 403 && isMutating && _retryCount === 0) {
     clearCsrfToken();
+    // Retry with fresh token
+    return apiRequest(method, url, data, 1);
   }
 
   await throwIfResNotOk(res);
@@ -50,9 +120,21 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    const doFetch = async (isRetry = false): Promise<Response> => {
+      const res = await fetch(queryKey[0] as string, {
+        credentials: "include",
+      });
+
+      // Handle 403 with one retry (clear stale CSRF token state)
+      if (res.status === 403 && !isRetry) {
+        clearCsrfToken();
+        return doFetch(true);
+      }
+
+      return res;
+    };
+
+    const res = await doFetch();
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;

@@ -169,10 +169,30 @@ export function FormCanvas({
     >
       <div className="p-6">
         <div className="mb-4">
-          <h2 className="text-white font-semibold text-lg">Form Canvas</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-white font-semibold text-lg">Form Canvas</h2>
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs",
+                fields.length >= 50
+                  ? "border-red-400 text-red-400"
+                  : fields.length >= 40
+                  ? "border-amber-400 text-amber-400"
+                  : "border-slate-500 text-slate-400"
+              )}
+            >
+              {fields.length} / 50 fields
+            </Badge>
+          </div>
           <p className="text-slate-400 text-sm mt-1">
             Drag fields from palette or reorder existing fields. Click to edit properties.
           </p>
+          {fields.length >= 50 && (
+            <p className="text-red-400 text-xs mt-2">
+              Maximum field limit reached. Remove fields to add more.
+            </p>
+          )}
         </div>
 
         {fields.length === 0 ? (

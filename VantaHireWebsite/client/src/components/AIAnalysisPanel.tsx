@@ -6,18 +6,21 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { 
-  Brain, 
-  CheckCircle, 
-  AlertTriangle, 
-  TrendingUp, 
+import { apiRequest, isRateLimitError, RateLimitError } from "@/lib/queryClient";
+import {
+  Brain,
+  CheckCircle,
+  AlertTriangle,
+  TrendingUp,
   Lightbulb,
   Target,
   Users,
   Search,
   Clock,
-  Sparkles
+  Sparkles,
+  DollarSign,
+  RotateCcw,
+  AlertCircle
 } from "lucide-react";
 
 interface AnalysisResult {
@@ -30,6 +33,8 @@ interface AnalysisResult {
   suggestions: string[];
   model_version: string;
   analysis_timestamp: string;
+  cost?: number;
+  durationMs?: number;
 }
 
 interface AIAnalysisPanelProps {
@@ -65,13 +70,24 @@ export default function AIAnalysisPanel({
       });
     },
     onError: (error: Error) => {
+      const is429 = isRateLimitError(error);
+      const rateLimitErr = error as RateLimitError;
+      const remainingInfo = is429 && rateLimitErr.formattedRemaining ? ` (${rateLimitErr.formattedRemaining})` : '';
       toast({
-        title: "Analysis Failed",
-        description: error.message || "Unable to analyze job description at this time.",
+        title: is429 ? "AI limit reached" : "Analysis Failed",
+        description: is429
+          ? `You've reached today's AI analysis limit${remainingInfo}. Try again ${rateLimitErr.formattedRetryTime}.`
+          : error.message || "Unable to analyze job description at this time.",
         variant: "destructive",
       });
     },
   });
+
+  // Format cost for display
+  const formatCost = (cost: number) => {
+    if (cost < 0.01) return "<$0.01";
+    return `$${cost.toFixed(3)}`;
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600";
@@ -152,7 +168,29 @@ export default function AIAnalysisPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {!analysisResult ? (
+        {!analysisResult && analysisMutation.isError ? (
+          <div className="text-center py-6">
+            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-300" />
+            <p className="text-sm text-red-600 font-medium">Analysis failed</p>
+            <p className="text-xs text-slate-500 mt-1 mb-4">
+              {isRateLimitError(analysisMutation.error)
+                ? `Daily AI limit reached. Try again ${(analysisMutation.error as RateLimitError).formattedRetryTime}.`
+                : analysisMutation.error?.message || "An error occurred"}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                analysisMutation.reset();
+                analysisMutation.mutate();
+              }}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Retry
+            </Button>
+          </div>
+        ) : !analysisResult ? (
           <div className="text-center">
             <Button
               onClick={() => analysisMutation.mutate()}
@@ -270,12 +308,23 @@ export default function AIAnalysisPanel({
               </div>
             )}
 
-            {/* Analysis Info */}
-            <div className="flex justify-between items-center text-xs text-slate-500 pt-4 border-t border-slate-200">
+            {/* Analysis Info with cost/duration */}
+            <div className="flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-200">
+              <div className="flex items-center gap-3">
+                {analysisResult.durationMs !== undefined && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {(analysisResult.durationMs / 1000).toFixed(1)}s
+                  </span>
+                )}
+                {analysisResult.cost !== undefined && (
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" />
+                    {formatCost(analysisResult.cost)}
+                  </span>
+                )}
+              </div>
               <span>Model: {analysisResult.model_version}</span>
-              <span>
-                Analyzed: {new Date(analysisResult.analysis_timestamp).toLocaleString()}
-              </span>
             </div>
 
             {/* Re-analyze Button */}

@@ -10,6 +10,7 @@ import {
   pipelineStages,
   applicationStageHistory,
   emailTemplates,
+  emailAuditLog,
   automationSettings,
   applicationFeedback,
   clients,
@@ -33,6 +34,7 @@ import {
   type InsertPipelineStage,
   type EmailTemplate,
   type InsertEmailTemplate,
+  type EmailAuditLog,
   type AutomationSetting,
   consultants,
   type Consultant,
@@ -639,7 +641,31 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return log;
   }
-  
+
+  // Get audit log entries for a job
+  async getJobAuditLog(jobId: number): Promise<(JobAuditLog & { performedByUser: { id: number; username: string; firstName: string | null; lastName: string | null } | null })[]> {
+    const results = await db
+      .select({
+        log: jobAuditLog,
+        performedByUser: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        },
+      })
+      .from(jobAuditLog)
+      .leftJoin(users, eq(jobAuditLog.performedBy, users.id))
+      .where(eq(jobAuditLog.jobId, jobId))
+      .orderBy(desc(jobAuditLog.timestamp));
+
+    type AuditLogRow = typeof results[number];
+    return results.map((row: AuditLogRow) => ({
+      ...row.log,
+      performedByUser: row.performedByUser?.id ? row.performedByUser : null,
+    }));
+  }
+
   async getJobsByUser(userId: number): Promise<(Job & { applicationCount: number; hiringManager?: { id: number; firstName: string | null; lastName: string | null; username: string }; clientName?: string | null })[]> {
     const results = await db
       .select({
@@ -661,7 +687,8 @@ export class DatabaseStorage implements IStorage {
       .groupBy(jobs.id, users.id, users.firstName, users.lastName, users.username, clients.id, clients.name)
       .orderBy(desc(jobs.createdAt));
 
-    return results.map((row: any) => ({
+    type JobRow = typeof results[number];
+    return results.map((row: JobRow) => ({
       ...row.job,
       applicationCount: row.applicationCount ?? 0,
       hiringManager: row.hiringManager?.id ? row.hiringManager : undefined,
@@ -824,6 +851,36 @@ export class DatabaseStorage implements IStorage {
   async getApplication(id: number): Promise<Application | undefined> {
     const [application] = await db.select().from(applications).where(eq(applications.id, id));
     return application || undefined;
+  }
+
+  // Get email history for an application
+  async getApplicationEmailHistory(applicationId: number): Promise<(EmailAuditLog & { sentByUser: { id: number; username: string; firstName: string | null; lastName: string | null } | null; template: { id: number; name: string } | null })[]> {
+    const results = await db
+      .select({
+        log: emailAuditLog,
+        sentByUser: {
+          id: users.id,
+          username: users.username,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        },
+        template: {
+          id: emailTemplates.id,
+          name: emailTemplates.name,
+        },
+      })
+      .from(emailAuditLog)
+      .leftJoin(users, eq(emailAuditLog.sentBy, users.id))
+      .leftJoin(emailTemplates, eq(emailAuditLog.templateId, emailTemplates.id))
+      .where(eq(emailAuditLog.applicationId, applicationId))
+      .orderBy(desc(emailAuditLog.sentAt));
+
+    type EmailLogRow = typeof results[number];
+    return results.map((row: EmailLogRow) => ({
+      ...row.log,
+      sentByUser: row.sentByUser?.id ? row.sentByUser : null,
+      template: row.template?.id ? row.template : null,
+    }));
   }
 
   // Phase 4: User profile management methods

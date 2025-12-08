@@ -101,6 +101,14 @@ export interface ListResponsesResponse {
   responses: FormResponseSummaryDTO[];
 }
 
+export interface InvitationQuotaResponse {
+  limit: number;
+  used: number;
+  remaining: number;
+  retryAfterSeconds: number;
+  resetTime: string;
+}
+
 export interface CreateInvitationRequest {
   applicationId: number;
   formId: number;
@@ -197,6 +205,17 @@ export const formsApi = {
    */
   async deleteTemplate(id: number): Promise<DeleteTemplateResponse> {
     const res = await apiRequest('DELETE', `/api/forms/templates/${id}`, {});
+    return res.json();
+  },
+
+  /**
+   * Get invitation quota status (remaining daily invites)
+   */
+  async getInvitationQuota(): Promise<InvitationQuotaResponse> {
+    const res = await fetch('/api/forms/invitations/quota', {
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error(`Failed to fetch invitation quota: ${res.statusText}`);
     return res.json();
   },
 
@@ -330,6 +349,7 @@ export const formsQueryKeys = {
   templates: () => ['/api/forms/templates'] as const,
   templateDetail: (templateId: number) => [`/api/forms/templates/${templateId}`] as const,
   invitations: (applicationId: number) => [`/api/forms/invitations?applicationId=${applicationId}`] as const,
+  invitationQuota: () => ['/api/forms/invitations/quota'] as const,
   responses: (applicationId: number) => [`/api/forms/responses?applicationId=${applicationId}`] as const,
   responseDetail: (responseId: number) => [`/api/forms/responses/${responseId}`] as const,
   publicForm: (token: string) => [`/api/forms/public/${token}`] as const,

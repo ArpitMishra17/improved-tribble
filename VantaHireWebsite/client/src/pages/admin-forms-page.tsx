@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,13 +18,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { FileText, Plus, Edit, Trash2, Eye, EyeOff, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { FileText, Plus, Edit, Trash2, Eye, EyeOff, Loader2, Upload, X, Users, AlertTriangle, CheckCircle } from "lucide-react";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { formsApi, formsQueryKeys, type FormTemplateDTO } from "@/lib/formsApi";
-import { queryClient } from "@/lib/queryClient";
+import { formsApi, formsQueryKeys, type FormTemplateDTO, type InvitationQuotaResponse } from "@/lib/formsApi";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+
+// Helper to validate email
+const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+};
 
 export default function AdminFormsPage() {
   const { user } = useAuth();
@@ -28,6 +45,14 @@ export default function AdminFormsPage() {
   const [, navigate] = useLocation();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<FormTemplateDTO | null>(null);
+
+  // Bulk invite state
+  const [bulkInviteDialogOpen, setBulkInviteDialogOpen] = useState(false);
+  const [bulkInviteTemplate, setBulkInviteTemplate] = useState<FormTemplateDTO | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailList, setEmailList] = useState<string[]>([]);
+  const [bulkInviteProgress, setBulkInviteProgress] = useState<{ sent: number; total: number; results: Array<{ email: string; status: string }> } | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if not admin or recruiter
   if (user && !['admin', 'recruiter'].includes(user.role)) {
@@ -82,6 +107,53 @@ export default function AdminFormsPage() {
     },
   });
 
+  // Fetch invitation quota
+  const { data: invitationQuota } = useQuery<InvitationQuotaResponse>({
+    queryKey: formsQueryKeys.invitationQuota(),
+    queryFn: () => formsApi.getInvitationQuota(),
+    enabled: bulkInviteDialogOpen,
+    staleTime: 30_000,
+  });
+
+  // Bulk invite mutation - sends to email addresses directly
+  const bulkInviteMutation = useMutation({
+    mutationFn: async ({ templateId, emails }: { templateId: number; emails: string[] }) => {
+      const results: Array<{ email: string; status: string; error?: string }> = [];
+      setBulkInviteProgress({ sent: 0, total: emails.length, results: [] });
+
+      let sent = 0;
+      for (const email of emails) {
+        try {
+          await apiRequest("POST", "/api/forms/invitations/external", {
+            formId: templateId,
+            email: email.trim(),
+          });
+          results.push({ email, status: 'sent' });
+        } catch (err: any) {
+          results.push({ email, status: 'failed', error: err.message });
+        }
+        sent++;
+        setBulkInviteProgress({ sent, total: emails.length, results: [...results] });
+      }
+
+      return { results, summary: { total: emails.length, sent: results.filter(r => r.status === 'sent').length, failed: results.filter(r => r.status === 'failed').length } };
+    },
+    onSuccess: ({ summary }) => {
+      queryClient.invalidateQueries({ queryKey: formsQueryKeys.invitationQuota() });
+      toast({
+        title: "Bulk invitations complete",
+        description: `Sent: ${summary.sent}, Failed: ${summary.failed}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Bulk invite failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateNew = () => {
     navigate("/admin/forms/editor/new");
   };
@@ -105,6 +177,77 @@ export default function AdminFormsPage() {
   const canEditTemplate = (template: FormTemplateDTO) => {
     return user?.role === 'admin' || template.createdBy === user?.id;
   };
+
+  // Bulk invite handlers
+  const handleOpenBulkInvite = (template: FormTemplateDTO) => {
+    setBulkInviteTemplate(template);
+    setEmailInput("");
+    setEmailList([]);
+    setBulkInviteProgress(null);
+    setBulkInviteDialogOpen(true);
+  };
+
+  const handleCloseBulkInvite = () => {
+    setBulkInviteDialogOpen(false);
+    setBulkInviteTemplate(null);
+    setEmailInput("");
+    setEmailList([]);
+    setBulkInviteProgress(null);
+  };
+
+  const handleAddEmails = () => {
+    const newEmails = emailInput
+      .split(/[\n,;]+/)
+      .map(e => e.trim().toLowerCase())
+      .filter(e => e && isValidEmail(e));
+
+    // Add new emails, removing duplicates
+    const combined = [...new Set([...emailList, ...newEmails])];
+    setEmailList(combined);
+    setEmailInput("");
+  };
+
+  const handleRemoveEmail = (email: string) => {
+    setEmailList(emailList.filter(e => e !== email));
+  };
+
+  const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const emails = text
+        .split(/[\n,;]+/)
+        .map(e => e.trim().toLowerCase())
+        .filter(e => e && isValidEmail(e));
+
+      const combined = [...new Set([...emailList, ...emails])];
+      setEmailList(combined);
+      toast({
+        title: "CSV Imported",
+        description: `Added ${emails.length} email(s) from CSV`,
+      });
+    };
+    reader.readAsText(file);
+
+    // Reset file input
+    if (csvInputRef.current) {
+      csvInputRef.current.value = "";
+    }
+  };
+
+  const handleSendBulkInvites = () => {
+    if (!bulkInviteTemplate || emailList.length === 0) return;
+    bulkInviteMutation.mutate({
+      templateId: bulkInviteTemplate.id,
+      emails: emailList,
+    });
+  };
+
+  // Find duplicates in current list
+  const duplicateEmails = emailList.filter((email, index) => emailList.indexOf(email) !== index);
 
   const templates = templatesData?.templates || [];
 
@@ -206,6 +349,18 @@ export default function AdminFormsPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* Bulk Invite */}
+                          {template.isPublished && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenBulkInvite(template)}
+                              className="text-primary hover:text-primary/80 hover:bg-primary/10"
+                              title="Bulk Invite"
+                            >
+                              <Users className="w-4 h-4" />
+                            </Button>
+                          )}
                           {/* Toggle Publish */}
                           {canEditTemplate(template) && (
                             <Button
@@ -291,6 +446,183 @@ export default function AdminFormsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Bulk Invite Dialog */}
+        <Dialog open={bulkInviteDialogOpen} onOpenChange={(open) => !open && handleCloseBulkInvite()}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Bulk Invite Candidates
+              </DialogTitle>
+              <DialogDescription>
+                Send form invitations to multiple candidates for "{bulkInviteTemplate?.name}"
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Quota Info */}
+            {invitationQuota && (
+              <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg text-sm">
+                <span className="text-slate-600">Daily limit:</span>
+                <span className="font-medium text-slate-900">
+                  {invitationQuota.used} / {invitationQuota.limit} used
+                </span>
+                <span className="text-slate-500">
+                  ({invitationQuota.remaining} remaining)
+                </span>
+              </div>
+            )}
+
+            {/* Email Input Section */}
+            <div className="space-y-3">
+              <Label htmlFor="emailInput" className="text-slate-700">
+                Add Email Addresses
+              </Label>
+              <Textarea
+                id="emailInput"
+                placeholder="Enter email addresses (one per line, or comma/semicolon separated)"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddEmails}
+                  disabled={!emailInput.trim()}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add to List
+                </Button>
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleCsvUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => csvInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-1" />
+                  Import CSV
+                </Button>
+              </div>
+            </div>
+
+            {/* Email Preview List */}
+            {emailList.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-slate-700">
+                    Recipients ({emailList.length})
+                  </Label>
+                  {duplicateEmails.length > 0 && (
+                    <span className="flex items-center gap-1 text-sm text-amber-600">
+                      <AlertTriangle className="w-4 h-4" />
+                      {duplicateEmails.length} duplicate(s) removed
+                    </span>
+                  )}
+                </div>
+                <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
+                  {emailList.map((email, index) => (
+                    <div
+                      key={`${email}-${index}`}
+                      className="flex items-center justify-between py-1 px-2 bg-slate-50 rounded text-sm"
+                    >
+                      <span className="text-slate-700">{email}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveEmail(email)}
+                        className="h-6 w-6 p-0 text-slate-400 hover:text-red-500"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Progress Display */}
+            {bulkInviteProgress && (
+              <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-600">Sending invitations...</span>
+                  <span className="font-medium text-slate-900">
+                    {bulkInviteProgress.sent} / {bulkInviteProgress.total}
+                  </span>
+                </div>
+                <Progress
+                  value={(bulkInviteProgress.sent / bulkInviteProgress.total) * 100}
+                  className="h-2"
+                />
+                {bulkInviteProgress.sent === bulkInviteProgress.total && (
+                  <div className="space-y-2 mt-3">
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-1 text-green-600">
+                        <CheckCircle className="w-4 h-4" />
+                        {bulkInviteProgress.results.filter(r => r.status === 'sent').length} sent
+                      </span>
+                      {bulkInviteProgress.results.filter(r => r.status === 'failed').length > 0 && (
+                        <span className="flex items-center gap-1 text-red-600">
+                          <AlertTriangle className="w-4 h-4" />
+                          {bulkInviteProgress.results.filter(r => r.status === 'failed').length} failed
+                        </span>
+                      )}
+                    </div>
+                    {bulkInviteProgress.results.filter(r => r.status === 'failed').length > 0 && (
+                      <div className="text-xs text-red-600 max-h-24 overflow-y-auto">
+                        {bulkInviteProgress.results
+                          .filter(r => r.status === 'failed')
+                          .map((r, i) => (
+                            <div key={i}>{r.email}: Failed</div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseBulkInvite}
+              >
+                {bulkInviteProgress?.sent === bulkInviteProgress?.total ? "Close" : "Cancel"}
+              </Button>
+              {(!bulkInviteProgress || bulkInviteProgress.sent !== bulkInviteProgress.total) && (
+                <Button
+                  type="button"
+                  onClick={handleSendBulkInvites}
+                  disabled={emailList.length === 0 || bulkInviteMutation.isPending}
+                >
+                  {bulkInviteMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-4 h-4 mr-2" />
+                      Send {emailList.length} Invitation{emailList.length !== 1 ? 's' : ''}
+                    </>
+                  )}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

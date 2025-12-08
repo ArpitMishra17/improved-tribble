@@ -13,9 +13,21 @@ import { FormTemplateDTO } from "@/lib/formsApi";
 import { AISummaryPanel } from "@/components/AISummaryPanel";
 import { FeedbackPanel } from "@/components/FeedbackPanel";
 import { ClientFeedbackList } from "@/components/ClientFeedbackList";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+
+// Email history entry type
+interface EmailHistoryEntry {
+  id: number;
+  templateName: string;
+  templateType: string;
+  sentAt: string;
+  recipientEmail: string;
+  status: string;
+  sentBy: { firstName: string; lastName: string } | null;
+}
 
 interface ApplicationDetailPanelProps {
   application: Application;
@@ -53,6 +65,17 @@ export function ApplicationDetailPanel({
   onUpdateStatus,
 }: ApplicationDetailPanelProps) {
   const { toast } = useToast();
+
+  // Fetch email history for this application
+  const { data: emailHistory = [], isLoading: emailHistoryLoading } = useQuery<EmailHistoryEntry[]>({
+    queryKey: ["/api/applications", application.id, "email-history"],
+    queryFn: async () => {
+      const response = await fetch(`/api/applications/${application.id}/email-history`, { credentials: 'include' });
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
   const [selectedStageId, setSelectedStageId] = useState<string>("");
   const [stageNotes, setStageNotes] = useState("");
   const [interviewDate, setInterviewDate] = useState("");
@@ -234,6 +257,7 @@ export function ApplicationDetailPanel({
             <TabsTrigger className="min-w-[64px]" value="ai">AI</TabsTrigger>
             <TabsTrigger className="min-w-[96px]" value="feedback">Feedback</TabsTrigger>
             <TabsTrigger className="min-w-[88px]" value="history">History</TabsTrigger>
+            <TabsTrigger className="min-w-[72px]" value="emails">Emails</TabsTrigger>
             <TabsTrigger className="min-w-[72px]" value="notes">Notes</TabsTrigger>
             <TabsTrigger className="min-w-[104px]" value="interview">Interview</TabsTrigger>
             <TabsTrigger className="min-w-[80px]" value="rating">Rating</TabsTrigger>
@@ -532,6 +556,55 @@ export function ApplicationDetailPanel({
                         {entry.notes && (
                           <p className="text-slate-600 text-sm mt-2">{entry.notes}</p>
                         )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          {/* Emails Tab */}
+          <TabsContent value="emails" className="space-y-3">
+            {emailHistoryLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : emailHistory.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-8">No emails sent to this candidate</p>
+            ) : (
+              emailHistory.map((entry) => (
+                <Card key={entry.id} className="bg-slate-50 border-slate-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <Mail className="h-4 w-4 text-primary mt-1" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-slate-900 text-sm font-medium">{entry.templateName}</p>
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {entry.templateType.replace(/_/g, ' ')}
+                          </Badge>
+                        </div>
+                        <p className="text-slate-500 text-xs mt-1">
+                          To: {entry.recipientEmail}
+                        </p>
+                        <p className="text-slate-500 text-xs">
+                          {format(new Date(entry.sentAt), "MMM d, yyyy 'at' h:mm a")}
+                        </p>
+                        {entry.sentBy && (
+                          <p className="text-slate-400 text-xs mt-1">
+                            Sent by {entry.sentBy.firstName} {entry.sentBy.lastName}
+                          </p>
+                        )}
+                        <Badge
+                          className={`mt-2 text-xs ${
+                            entry.status === 'sent' ? 'bg-green-100 text-green-700' :
+                            entry.status === 'failed' ? 'bg-red-100 text-red-700' :
+                            'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {entry.status}
+                        </Badge>
                       </div>
                     </div>
                   </CardContent>

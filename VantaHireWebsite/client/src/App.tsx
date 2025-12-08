@@ -20,6 +20,10 @@ import AdminFormsPage from "@/pages/admin-forms-page";
 import AdminEmailTemplatesPage from "@/pages/admin-email-templates-page";
 import FormEditorPage from "@/pages/form-editor-page";
 import UnifiedAdminDashboard from "@/pages/unified-admin-dashboard";
+import AdminFormResponsesPage from "@/pages/admin-form-responses-page";
+import AdminConsultantsPage from "@/pages/admin-consultants-page";
+import AdminAIUsagePage from "@/pages/admin-ai-usage-page";
+import AdminFeedbackPage from "@/pages/admin-feedback-page";
 import ApplicationManagementPage from "@/pages/application-management-page";
 import JobEditPage from "@/pages/job-edit-page";
 import JobPipelinePage from "@/pages/job-pipeline-page";
@@ -71,8 +75,12 @@ function Router() {
       <ProtectedRoute path="/admin/super" component={AdminSuperDashboard} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/testing" component={AdminTestingPage} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/forms/editor/:id?" component={FormEditorPage} requiredRole={['admin', 'recruiter']} />
+      <ProtectedRoute path="/admin/forms/responses" component={AdminFormResponsesPage} requiredRole={['admin']} />
       <ProtectedRoute path="/admin/forms" component={AdminFormsPage} requiredRole={['admin', 'recruiter']} />
       <ProtectedRoute path="/admin/email-templates" component={AdminEmailTemplatesPage} requiredRole={['admin', 'recruiter']} />
+      <ProtectedRoute path="/admin/consultants" component={AdminConsultantsPage} requiredRole={['admin']} />
+      <ProtectedRoute path="/admin/ai-usage" component={AdminAIUsagePage} requiredRole={['admin']} />
+      <ProtectedRoute path="/admin/feedback" component={AdminFeedbackPage} requiredRole={['admin']} />
       <ProtectedRoute path="/analytics" component={JobAnalyticsDashboard} requiredRole={['recruiter', 'admin']} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />

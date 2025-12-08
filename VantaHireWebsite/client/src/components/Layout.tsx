@@ -1,8 +1,10 @@
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useAIFeatures } from "@/hooks/use-ai-features";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Menu, X, User, LogOut, Briefcase, Plus, ChevronDown, Settings, BarChart3, Shield, TestTube } from "lucide-react";
+import { Menu, X, User, LogOut, Briefcase, Plus, ChevronDown, Settings, BarChart3, Shield, TestTube, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
 import QuickAccessBar from "@/components/QuickAccessBar";
@@ -23,6 +25,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const [location, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const { resumeAdvisor, fitScoring } = useAIFeatures();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrollPosition, setScrollPosition] = useState(0);
 
@@ -30,7 +33,20 @@ const Layout = ({ children }: LayoutProps) => {
   const isRecruiter = user?.role === 'recruiter';
   const isAdmin = user?.role === 'admin';
   const isCandidate = user?.role === 'candidate';
+  const isHiringManager = user?.role === 'hiring_manager';
   const displayName = user?.firstName || user?.username || 'User';
+  const aiEnabled = resumeAdvisor || fitScoring;
+
+  // Get role display label
+  const getRoleLabel = (role: string | undefined) => {
+    switch (role) {
+      case 'admin': return 'Admin';
+      case 'recruiter': return 'Recruiter';
+      case 'hiring_manager': return 'Hiring Manager';
+      case 'candidate': return 'Candidate';
+      default: return null;
+    }
+  };
 
   // ATS context detection - determines if we should use light ATS theme
   const atsUser = isRecruiter || isAdmin;
@@ -192,6 +208,13 @@ const Layout = ({ children }: LayoutProps) => {
                 </Button>
               )}
 
+              {/* Role Badge - visible next to username */}
+              {getRoleLabel(user?.role) && (
+                <Badge variant="outline" className="text-xs capitalize border-slate-300 text-slate-600 hidden sm:inline-flex">
+                  {getRoleLabel(user?.role)}
+                </Badge>
+              )}
+
               {/* User Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -207,6 +230,19 @@ const Layout = ({ children }: LayoutProps) => {
                   </div>
                   <div className="px-2 py-1 text-xs text-slate-500">
                     @{user?.username}
+                  </div>
+                  <div className="px-2 py-1.5 flex items-center gap-2">
+                    {getRoleLabel(user?.role) && (
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {getRoleLabel(user?.role)}
+                      </Badge>
+                    )}
+                    {aiEnabled && (
+                      <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-100">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        AI Beta
+                      </Badge>
+                    )}
                   </div>
                   <DropdownMenuSeparator />
 

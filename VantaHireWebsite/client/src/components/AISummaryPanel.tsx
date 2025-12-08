@@ -9,12 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Sparkles, RefreshCw, CheckCircle, AlertCircle, XCircle, Zap } from "lucide-react";
+import { Sparkles, RefreshCw, CheckCircle, AlertCircle, XCircle, Zap, DollarSign, Clock, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { PipelineStage } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, isRateLimitError, RateLimitError } from "@/lib/queryClient";
 
 interface AISummaryPanelProps {
   applicationId: number;
@@ -82,16 +82,24 @@ export function AISummaryPanel({
       });
     },
     onError: (error: Error) => {
-      const is429 = error.message.includes("429");
+      const is429 = isRateLimitError(error);
+      const rateLimitErr = error as RateLimitError;
+      const remainingInfo = is429 && rateLimitErr.formattedRemaining ? ` (${rateLimitErr.formattedRemaining})` : '';
       toast({
         title: is429 ? "AI limit reached" : "Generation failed",
         description: is429
-          ? "You've reached today's AI summary limit. Please try again tomorrow."
+          ? `You've reached today's AI summary limit${remainingInfo}. Try again ${rateLimitErr.formattedRetryTime}.`
           : error.message,
         variant: "destructive",
       });
     },
   });
+
+  // Format cost for display
+  const formatCost = (cost: number) => {
+    if (cost < 0.01) return "<$0.01";
+    return `$${cost.toFixed(3)}`;
+  };
 
   const getActionBadge = (action: string | null | undefined) => {
     switch (action) {
@@ -335,7 +343,46 @@ export function AISummaryPanel({
                 </ul>
               </div>
             )}
+
+            {/* Cost & Performance Info */}
+            {expandedSummary && (
+              <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-200">
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {(expandedSummary.durationMs / 1000).toFixed(1)}s
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" />
+                    {formatCost(expandedSummary.cost)}
+                  </span>
+                </div>
+                <span>Model: {expandedSummary.modelVersion}</span>
+              </div>
+            )}
           </>
+        ) : generateSummaryMutation.isError ? (
+          <div className="text-center py-8">
+            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-300" />
+            <p className="text-sm text-red-600 font-medium">Failed to generate summary</p>
+            <p className="text-xs text-slate-500 mt-1 mb-4">
+              {isRateLimitError(generateSummaryMutation.error)
+                ? `Daily AI limit reached. Try again ${(generateSummaryMutation.error as RateLimitError).formattedRetryTime}.`
+                : generateSummaryMutation.error?.message || "An error occurred"}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                generateSummaryMutation.reset();
+                generateSummaryMutation.mutate();
+              }}
+              className="gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Retry
+            </Button>
+          </div>
         ) : (
           <div className="text-center py-8 text-slate-500">
             <Sparkles className="h-12 w-12 mx-auto mb-3 text-slate-300" />

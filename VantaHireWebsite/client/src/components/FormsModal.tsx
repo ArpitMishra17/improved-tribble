@@ -28,7 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import type { Application } from "@shared/schema";
 import type { FormResponseDetailDTO, FormResponseSummaryDTO } from "@shared/forms.types";
-import { formsApi, formsQueryKeys, type CreateInvitationRequest } from "@/lib/formsApi";
+import { formsApi, formsQueryKeys, type CreateInvitationRequest, type InvitationQuotaResponse } from "@/lib/formsApi";
 
 interface FormsModalProps {
   open: boolean;
@@ -79,11 +79,20 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
     enabled: open,
   });
 
+  // Fetch invitation quota - remaining daily invites
+  const { data: invitationQuota } = useQuery<InvitationQuotaResponse>({
+    queryKey: formsQueryKeys.invitationQuota(),
+    queryFn: () => formsApi.getInvitationQuota(),
+    enabled: open,
+    staleTime: 30_000, // Cache for 30 seconds
+  });
+
   // Send invitation mutation - strongly typed request/response
   const sendInvitationMutation = useMutation({
     mutationFn: (data: CreateInvitationRequest) => formsApi.createInvitation(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: formsQueryKeys.invitations(application.id) });
+      queryClient.invalidateQueries({ queryKey: formsQueryKeys.invitationQuota() });
       toast({
         title: "Form Sent",
         description: "Form invitation has been sent successfully.",
@@ -253,7 +262,21 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
         <div className="space-y-6 mt-4">
           {/* Send New Form Section */}
           <div className="p-4 bg-white/5 rounded-lg border border-white/10">
-            <h3 className="text-slate-900 font-medium mb-3">Send New Form</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-slate-900 font-medium">Send New Form</h3>
+              {/* Invitation Quota Display */}
+              {invitationQuota && (
+                <span className={`text-xs px-2 py-1 rounded ${
+                  invitationQuota.remaining === 0
+                    ? 'bg-red-50 text-red-700'
+                    : invitationQuota.remaining <= 10
+                    ? 'bg-amber-50 text-amber-700'
+                    : 'bg-blue-50 text-blue-700'
+                }`}>
+                  {invitationQuota.remaining} invites remaining today
+                </span>
+              )}
+            </div>
             <div className="space-y-3">
               <div>
                 <Label className="text-slate-600">Select Form Template</Label>
@@ -288,13 +311,18 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
 
               <Button
                 onClick={handleSendForm}
-                disabled={sendInvitationMutation.isPending || !selectedTemplateId}
+                disabled={sendInvitationMutation.isPending || !selectedTemplateId || invitationQuota?.remaining === 0}
                 className="w-full "
               >
                 {sendInvitationMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     Sending...
+                  </>
+                ) : invitationQuota?.remaining === 0 ? (
+                  <>
+                    <AlertCircle className="w-4 h-4 mr-2" />
+                    Daily limit reached
                   </>
                 ) : (
                   <>

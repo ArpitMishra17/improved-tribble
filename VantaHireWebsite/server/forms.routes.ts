@@ -7,6 +7,7 @@ import { eq, and, desc, sql, or, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import rateLimit from "express-rate-limit";
+import type { RateLimitInfo } from "express-rate-limit";
 import { getEmailService } from "./simpleEmailService";
 import { upload, uploadToGCS } from "./gcs-storage";
 import type { FormSnapshot, FormFieldSnapshot, FormAnswer, FileUploadResult } from "@shared/forms.types";
@@ -52,12 +53,19 @@ export const FORM_ERRORS = {
 const publicFormRateLimit = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: FORM_PUBLIC_RATE_LIMIT,
-  message: FORM_ERRORS.RATE_LIMITED,
   standardHeaders: true,
   legacyHeaders: false,
   skip: () => isTestEnv, // Skip rate limiting in test environment
-  handler: (req, res) => {
-    res.status(429).json(FORM_ERRORS.RATE_LIMITED);
+  handler: (req: Request, res: Response) => {
+    const info = (req as Request & { rateLimit?: RateLimitInfo }).rateLimit;
+    const retryAfter = info?.resetTime ? Math.ceil((info.resetTime.getTime() - Date.now()) / 1000) : undefined;
+    res.status(429).json({
+      ...FORM_ERRORS.RATE_LIMITED,
+      limit: info?.limit,
+      remaining: info?.remaining ?? 0,
+      used: info?.used,
+      retryAfterSeconds: retryAfter,
+    });
   }
 });
 
@@ -65,10 +73,20 @@ const invitationRateLimit = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: FORM_INVITE_DAILY_LIMIT,
   skip: () => isTestEnv, // Skip rate limiting in test environment
-  message: { error: 'Daily invitation limit reached. Please try again tomorrow.' },
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.user?.id?.toString() || req.ip || 'anonymous',
+  handler: (req: Request, res: Response) => {
+    const info = (req as Request & { rateLimit?: RateLimitInfo }).rateLimit;
+    const retryAfter = info?.resetTime ? Math.ceil((info.resetTime.getTime() - Date.now()) / 1000) : undefined;
+    res.status(429).json({
+      error: 'Daily invitation limit reached. Please try again tomorrow.',
+      limit: info?.limit,
+      remaining: info?.remaining ?? 0,
+      used: info?.used,
+      retryAfterSeconds: retryAfter,
+    });
+  },
 });
 
 // Validation schemas
@@ -511,6 +529,51 @@ VantaHire Team`;
 
   // ==================== Invitation Endpoints ====================
 
+  // Get invitation quota status (remaining daily invites)
+  app.get(
+    "/api/forms/invitations/quota",
+    requireAuth,
+    requireRole(['recruiter', 'admin']),
+    async (req: Request, res: Response) => {
+      try {
+        // Count invitations sent today by this user
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const [result] = await db.select({
+          count: sql<number>`count(*)::int`
+        })
+        .from(formInvitations)
+        .where(
+          and(
+            eq(formInvitations.sentBy, req.user!.id),
+            sql`${formInvitations.createdAt} >= ${today}`
+          )
+        );
+
+        const used = result?.count ?? 0;
+        const limit = FORM_INVITE_DAILY_LIMIT;
+        const remaining = Math.max(0, limit - used);
+
+        // Calculate reset time (next midnight)
+        const resetTime = new Date(today);
+        resetTime.setDate(resetTime.getDate() + 1);
+        const retryAfterSeconds = Math.ceil((resetTime.getTime() - Date.now()) / 1000);
+
+        return res.json({
+          limit,
+          used,
+          remaining,
+          retryAfterSeconds,
+          resetTime: resetTime.toISOString(),
+        });
+      } catch (error: any) {
+        console.error('[Forms] Error fetching invitation quota:', error);
+        return res.status(500).json({ error: 'Failed to fetch invitation quota' });
+      }
+    }
+  );
+
   // Create form invitation
   app.post(
     "/api/forms/invitations",
@@ -940,6 +1003,101 @@ VantaHire Team`;
     }
   );
 
+  // Send reminder for a form invitation
+  app.post(
+    "/api/forms/invitations/:id/remind",
+    requireAuth,
+    requireRole(['recruiter', 'admin']),
+    csrf,
+    invitationRateLimit,
+    async (req: Request, res: Response) => {
+      try {
+        const invitationId = parseInt(req.params.id ?? '', 10);
+
+        if (!invitationId || !Number.isFinite(invitationId) || invitationId <= 0) {
+          return res.status(400).json({ error: 'Invalid invitation ID' });
+        }
+
+        // Fetch the invitation with application and form
+        const invitation = await db.query.formInvitations.findFirst({
+          where: eq(formInvitations.id, invitationId),
+          with: {
+            application: {
+              with: { job: true },
+            },
+            form: true,
+          },
+        });
+
+        if (!invitation) {
+          return res.status(404).json({ error: 'Invitation not found' });
+        }
+
+        // Verify ownership
+        if (!invitation.application?.job || invitation.application.job.postedBy !== req.user!.id) {
+          return res.status(403).json({ error: 'Unauthorized: You can only send reminders for your own job postings' });
+        }
+
+        // Check if invitation is still pending/sent (not answered, expired, or failed)
+        if (!['pending', 'sent', 'viewed'].includes(invitation.status)) {
+          return res.status(400).json({
+            error: 'Cannot send reminder',
+            reason: invitation.status === 'answered' ? 'Form already answered' : `Invitation status is "${invitation.status}"`,
+          });
+        }
+
+        // Check if invitation is expired
+        if (new Date(invitation.expiresAt) < new Date()) {
+          return res.status(400).json({
+            error: 'Cannot send reminder',
+            reason: 'Invitation has expired',
+          });
+        }
+
+        // Send reminder email
+        const emailResult = await sendFormInvitationEmail(
+          invitation.id,
+          invitation.application.email,
+          invitation.application.name,
+          invitation.form.name,
+          invitation.token,
+          invitation.customMessage || undefined,
+          req.user!.id
+        );
+
+        // Update reminder sent timestamp
+        if (emailResult.success) {
+          await db.update(formInvitations)
+            .set({ reminderSentAt: new Date() })
+            .where(eq(formInvitations.id, invitationId));
+        }
+
+        // Log to email_audit_log
+        await db.insert(emailAuditLog).values({
+          applicationId: invitation.applicationId,
+          templateType: 'form_reminder',
+          recipientEmail: invitation.application.email,
+          subject: `Reminder: Form Request - ${invitation.form.name}`,
+          sentAt: new Date(),
+          sentBy: req.user!.id,
+          status: emailResult.success ? 'success' : 'failed',
+          errorMessage: emailResult.error,
+          previewUrl: emailResult.previewUrl,
+        });
+
+        return res.json({
+          success: emailResult.success,
+          message: emailResult.success ? 'Reminder sent successfully' : 'Failed to send reminder',
+          previewUrl: emailResult.previewUrl,
+          error: emailResult.error,
+        });
+      } catch (error: any) {
+        console.error('[Forms] Error sending reminder:', error);
+        return res.status(500).json({ error: 'Failed to send reminder' });
+      }
+    }
+  );
+
   // ==================== Public Form Endpoints (CSRF-exempt, token-based auth) ====================
 
   // Get public form by token
@@ -1261,6 +1419,71 @@ VantaHire Team`;
       } catch (error: any) {
         console.error('[Forms] Error fetching responses:', error);
         return res.status(500).json({ error: 'Failed to fetch responses' });
+      }
+    }
+  );
+
+  // List all responses for a specific form template
+  app.get(
+    "/api/forms/:id/responses",
+    requireAuth,
+    requireRole(['recruiter', 'admin']),
+    async (req: Request, res: Response) => {
+      try {
+        const formId = parseInt(req.params.id ?? '', 10);
+
+        if (!formId || !Number.isFinite(formId) || formId <= 0) {
+          return res.status(400).json({ error: 'Invalid form ID' });
+        }
+
+        // Verify form exists and user owns it
+        const form = await db.query.forms.findFirst({
+          where: eq(forms.id, formId),
+        });
+
+        if (!form) {
+          return res.status(404).json({ error: 'Form not found' });
+        }
+
+        if (form.createdBy !== req.user!.id && req.user!.role !== 'admin') {
+          return res.status(403).json({ error: 'Unauthorized: You can only view responses for your own forms' });
+        }
+
+        // Fetch all responses submitted for invitations of this form
+        const responses = await db
+          .select({
+            response: formResponses,
+            invitation: formInvitations,
+            application: applications,
+          })
+          .from(formResponses)
+          .innerJoin(formInvitations, eq(formResponses.invitationId, formInvitations.id))
+          .innerJoin(applications, eq(formResponses.applicationId, applications.id))
+          .where(eq(formInvitations.formId, formId))
+          .orderBy(desc(formResponses.submittedAt));
+
+        type ResponseRow = typeof responses[number];
+        const responseSummaries = responses.map((row: ResponseRow) => {
+          const snapshot: FormSnapshot = parseFormSnapshot(row.invitation.fieldSnapshot);
+          return {
+            id: row.response.id,
+            formName: snapshot.formName,
+            submittedAt: row.response.submittedAt,
+            invitationId: row.response.invitationId,
+            applicationId: row.application.id,
+            candidateName: row.application.name,
+            candidateEmail: row.application.email,
+          };
+        });
+
+        return res.json({
+          form: { id: form.id, name: form.name },
+          responses: responseSummaries,
+          total: responseSummaries.length
+        });
+      } catch (error: any) {
+        console.error('[Forms] Error fetching form responses:', error);
+        return res.status(500).json({ error: 'Failed to fetch form responses' });
       }
     }
   );
