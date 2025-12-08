@@ -4,12 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, Sparkles, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useState } from "react";
+import { callLLM } from "@/lib/ai/llmClient";
+import { DropoffAiExplanation } from "./DropoffAiExplanation";
 
 type JobAttention = {
   jobId: number;
   title: string;
   severity: "high" | "medium" | "low";
   reason: string;
+  nextAction?: string;
+  metrics?: Record<string, any>;
 };
 
 type JdSuggestion = {
@@ -63,6 +68,48 @@ export function RecruiterAiInsightsSection({
       ? dropoff.reduce((min, step) => (step.rate < min ? step.rate : min), dropoff[0]?.rate ?? 0)
       : null;
 
+  // AI next-action suggestions per job (fail-soft)
+  const [aiNextActions, setAiNextActions] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const generate = async () => {
+      const summaries = await Promise.all(
+        jobsNeedingAttention.map(async (job) => {
+          const payload = {
+            title: job.title,
+            severity: job.severity,
+            reason: job.reason,
+            metrics: job.metrics || {},
+          };
+          const prompt = `You are helping a recruiter prioritize a job. Given this job context, propose one short next action (max 18 words).\n\n${JSON.stringify(
+            payload,
+            null,
+            2
+          )}\n\nUse only the provided info.`;
+          try {
+            const res = await callLLM(prompt);
+            return { id: job.jobId, text: res };
+          } catch (err) {
+            console.warn("AI next-action failed", err);
+            return { id: job.jobId, text: "" };
+          }
+        })
+      );
+      if (!cancelled) {
+        const map: Record<number, string> = {};
+        summaries.forEach((s) => {
+          if (s.text) map[s.id] = s.text;
+        });
+        setAiNextActions(map);
+      }
+    };
+    if (jobsNeedingAttention.length) generate();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobsNeedingAttention]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="space-y-4">
@@ -77,23 +124,23 @@ export function RecruiterAiInsightsSection({
               <Badge variant="outline" className="text-[10px] uppercase tracking-wide">AI-assisted</Badge>
             </CardDescription>
           </CardHeader>
-            <CardContent className="space-y-3">
-              {jobsNeedingAttention.map((job) => (
-                <div
-                  key={job.jobId}
-                  role="button"
-                  tabIndex={0}
+          <CardContent className="space-y-3">
+            {jobsNeedingAttention.map((job) => (
+              <div
+                key={job.jobId}
+                role="button"
+                tabIndex={0}
                   onClick={() => onViewJob?.(job.jobId)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") onViewJob?.(job.jobId);
                   }}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 p-3 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="font-semibold text-slate-900">{job.title}</div>
-                      <span
-                        className={cn(
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-md border border-slate-200 p-3 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold text-slate-900">{job.title}</div>
+                    <span
+                      className={cn(
                           "flex items-center gap-1 text-xs font-medium px-2 py-[2px] rounded-full border",
                           severityColor[job.severity]
                         )}
@@ -101,13 +148,19 @@ export function RecruiterAiInsightsSection({
                         <span className="h-2 w-2 rounded-full bg-current" />
                         {job.severity.toUpperCase()}
                       </span>
-                    </div>
-                    <p className="text-sm text-slate-600">{job.reason}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => onViewJob?.(job.jobId)}>
-                    View job
-                  </Button>
+                  <p className="text-sm text-slate-600">{job.reason}</p>
+                  {(job.nextAction || aiNextActions[job.jobId]) && (
+                    <p className="text-xs text-slate-500">
+                      Suggested next action:{" "}
+                      <span className="font-medium text-slate-700">{aiNextActions[job.jobId] || job.nextAction}</span>
+                    </p>
+                  )}
                 </div>
+                <Button variant="outline" size="sm" onClick={() => onViewJob?.(job.jobId)}>
+                  View job
+                </Button>
+              </div>
             ))}
             {jobsNeedingAttention.length === 0 && (
               <p className="text-sm text-slate-500">No risk indicators right now.</p>
@@ -116,7 +169,7 @@ export function RecruiterAiInsightsSection({
         </Card>
 
         <Card className="shadow-sm">
-            <CardHeader>
+          <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-purple-600" />
                 JD Clarity Suggestions
@@ -187,6 +240,7 @@ export function RecruiterAiInsightsSection({
             <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-xs text-slate-700">
               {dropoffSummary}
             </div>
+            <DropoffAiExplanation dropoff={dropoff} fallback={dropoffSummary} />
             <div className="border-t border-slate-200 pt-3 space-y-2">
               <div className="text-sm font-semibold text-slate-800">Stage bottlenecks</div>
               {bottlenecks.length === 0 && (

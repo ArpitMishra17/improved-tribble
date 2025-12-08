@@ -9,7 +9,7 @@
  * - Feature flags for gradual rollout
  */
 
-import type { Express, Request, Response } from 'express';
+import type { Express, Request, Response, NextFunction } from 'express';
 import { requireAuth, requireRole } from './auth';
 import { doubleCsrfProtection } from './csrf';
 import rateLimit from 'express-rate-limit';
@@ -23,6 +23,7 @@ import { computeFitScore, isFitStale, getStalenessReason } from './lib/aiMatchin
 import { getUserLimits, canUseFitComputation } from './lib/aiLimits';
 import { getRedisHealth } from './lib/redis';
 import { z } from 'zod';
+import Groq from "groq-sdk";
 
 const AI_MATCH_ENABLED = process.env.AI_MATCH_ENABLED === 'true';
 const AI_RESUME_ENABLED = process.env.AI_RESUME_ENABLED === 'true';
@@ -92,6 +93,33 @@ const batchComputeLimiter = rateLimit({
   },
 });
 
+const genericGenerationLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req: any, res: any) => {
+    console.warn('[RATE_LIMIT] AI generate limit exceeded', {
+      userId: req.user?.id,
+      endpoint: req.path,
+      limitType: 'per-minute',
+      ip: req.ip,
+    });
+    res.status(429).json({ error: 'Too many AI generation requests. Please try again later.' });
+  },
+});
+
+let groqClient: Groq | null = null;
+function getGroq(): Groq {
+  if (!GROQ_API_KEY) {
+    throw new Error('Groq API key not configured');
+  }
+  if (!groqClient) {
+    groqClient = new Groq({ apiKey: GROQ_API_KEY });
+  }
+  return groqClient;
+}
+
 /**
  * Feature flag check middleware
  * Also validates GROQ_API_KEY is configured for AI features
@@ -122,6 +150,48 @@ function requireFeatureFlag(flag: 'match' | 'resume') {
 }
 
 export function registerAIRoutes(app: Express): void {
+  /**
+   * POST /api/ai/generate
+   * Generic AI proxy for frontend (dashboard summaries, next-actions, etc.)
+   * Only for authenticated recruiters/admins.
+   */
+  app.post(
+    "/api/ai/generate",
+    requireAuth,
+    requireRole(['recruiter', 'admin']),
+    doubleCsrfProtection,
+    genericGenerationLimiter,
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        if (!GROQ_API_KEY) {
+          res.status(503).json({ error: "AI service unavailable" });
+          return;
+        }
+        const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt : '';
+        if (!prompt) {
+          res.status(400).json({ error: 'Prompt is required' });
+          return;
+        }
+        const client = getGroq();
+        const response = await client.chat.completions.create({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: "You are a concise assistant for recruiter dashboards. Respond with short, clear text." },
+            { role: "user", content: prompt }
+          ],
+          max_tokens: 350,
+          temperature: 0.4,
+        });
+        const text = response.choices[0]?.message?.content?.trim() || "";
+        res.json({ text });
+        return;
+      } catch (error) {
+        console.error("[AI generate] error:", error);
+        res.status(502).json({ error: "AI generation failed" });
+      }
+    }
+  );
+
   // ========================================
   // Resume Management Routes
   // ========================================

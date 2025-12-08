@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/table";
 import { RecruiterKpiRibbon } from "@/components/recruiter/RecruiterKpiRibbon";
 import { RecruiterAiInsightsSection } from "@/components/recruiter/RecruiterAiInsightsSection";
+import { AiPipelineSummary } from "@/components/recruiter/AiPipelineSummary";
 
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
@@ -688,6 +689,15 @@ type PerformanceResponse = {
             <h2 className="text-lg font-semibold text-slate-900">AI insights</h2>
             <p className="text-sm text-slate-500">AI-assisted next actions based on pipeline health.</p>
           </div>
+          <AiPipelineSummary
+            pipelineHealthScore={pipelineHealthScore}
+            timeRangeLabel={`Last ${RANGE_PRESETS[rangePreset]} days`}
+            applicationsOverTime={timeSeriesData}
+            stageDistribution={funnelData.map((f) => ({ name: f.name, count: f.count }))}
+            dropoff={dropoffSteps}
+            timeInStage={hiringMetrics?.timeInStage?.map((t) => ({ stageName: t.stageName, averageDays: t.averageDays })) || []}
+            jobsNeedingAttentionCount={jobsNeedingAttention.length}
+          />
           <RecruiterAiInsightsSection
             jobsNeedingAttention={jobsNeedingAttention.map((job) => ({
               jobId: job.jobId,
