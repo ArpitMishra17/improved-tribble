@@ -12,6 +12,17 @@ Redesign the Job Applications Kanban page to improve recruiter workflow efficien
 
 ---
 
+## Final Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Card density | **Full only** | Keep current verbose cards; no toggle needed |
+| AI Insights placement | **Right sidebar** | Collapsible, always accessible without scrolling |
+| Filter persistence | **URL params** | Shareable links, back button works, bookmarkable views |
+| Stage history | **Available** | `stageHistory` exists in schema; enables time-in-stage insights |
+
+---
+
 ## Current State Analysis
 
 ### Files Involved
@@ -29,10 +40,10 @@ Redesign the Job Applications Kanban page to improve recruiter workflow efficien
 
 1. **Poor hierarchy** - Filters, actions, and content compete for attention
 2. **No pipeline summary** - Recruiter must mentally count cards to understand health
-3. **Cards are verbose** - Too much chrome, not enough information density
-4. **Actions scattered** - Bulk actions in toolbar, quick actions in card menu, full actions in panel
-5. **Context loss** - ResizablePanel compresses kanban when detail panel opens
-6. **No "next action" hints** - Cards don't indicate what the recruiter should do
+3. **Actions scattered** - Bulk actions in toolbar, quick actions in card menu, full actions in panel
+4. **Context loss** - ResizablePanel compresses kanban when detail panel opens
+5. **No "next action" hints** - Cards don't indicate what the recruiter should do
+6. **Filters don't persist** - Must re-apply filters on each page load
 
 ### Data Already Available (No New APIs Needed)
 
@@ -47,12 +58,15 @@ From `applications[]`:
 From `pipelineStages[]`:
 - `id`, `name`, `order`, `color` - Stage metadata
 
+From `stageHistory[]`:
+- Transition timestamps - Calculate avg time in stage
+
 Derived metrics (client-side):
 - Applications per stage
 - New applications today
 - Candidates stuck > 3 days in non-final stages
 - AI fit distribution (Exceptional/Strong/Good counts)
-- Average time in stage (if `stageHistory` is fetched)
+- Average time in stage
 
 ---
 
@@ -68,31 +82,31 @@ Derived metrics (client-side):
 │ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────────────┐ │
 │ │ Total   │ │ New     │ │ In      │ │ Stuck   │ │ AI Fit: 6 Exc · 18 Str │ │
 │ │ 48      │ │ Today   │ │ Applied │ │ > 3d    │ │ · 12 Good              │ │
-│ │ 42 actv │ │ 3       │ │ 12      │ │ 5 ⚠️    │ │                        │ │
+│ │ 42 actv │ │ 3       │ │ 12      │ │ 5 ⚠     │ │                        │ │
 │ └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────────────────────┘ │
 │                                                    <- JobSummaryRibbon      │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ [Sort: Newest ▾] [Stage: All ▾] [🔍 Search...]  [Exc] [Str] [Good]  48/48   │
+│ [Sort: Newest ▾] [Stage: All ▾] [Search...]  [Exc] [Str] [Good]  48/48     │
 │                                                            <- FiltersBar    │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│ ☑️ Select all  │ [Move Stage] [Email] [Form] [Share] [Export] │  3 selected │
+│ ☑ Select all  │ [Move Stage] [Email] [Form] [Share] [Export] │  3 selected │
 │                                                       <- BulkActionBar      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─ Applied (12) ─┐  ┌─ Screening (8) ─┐  ┌─ Interview (6) ─┐  ┌─ Offer ─┐  │
-│  │ 5 need review  │  │ Avg: 1.2 days   │  │ 2 scheduled     │  │ 1 sent  │  │
-│  │ 2 Exc · 6 Str  │  │ 1 Exc · 4 Str   │  │ 1 Exc · 2 Str   │  │         │  │
-│  ├────────────────┤  ├─────────────────┤  ├─────────────────┤  ├─────────┤  │
-│  │ ☐ Jane Doe     │  │ ☐ Bob Smith     │  │ ☐ Alice Chen    │  │ ☐ ...   │  │
-│  │   📧 jane@...  │  │   📧 bob@...    │  │   📧 alice@...  │  │         │  │
-│  │   [Exceptional]│  │   [Strong]      │  │   [Exceptional] │  │         │  │
-│  │   → Review     │  │   → Schedule    │  │   → Prep notes  │  │         │  │
-│  ├────────────────┤  ├─────────────────┤  ├─────────────────┤  │         │  │
-│  │ ☐ John Doe     │  │ ...             │  │ ...             │  │         │  │
-│  │   ...          │  │                 │  │                 │  │         │  │
-│  └────────────────┘  └─────────────────┘  └─────────────────┘  └─────────┘  │
-│                                                       <- KanbanBoard        │
-│                                                          (horizontal scroll)│
+├───────────────────────────────────────────────────────────────┬─────────────┤
+│                                                               │ AI Insights │
+│  ┌─ Applied (12) ─┐  ┌─ Screening (8) ─┐  ┌─ Interview ─┐    │ [collapse]  │
+│  │ 5 need review  │  │ Avg: 1.2 days   │  │ 2 scheduled │    │─────────────│
+│  │ 2 Exc · 6 Str  │  │ 1 Exc · 4 Str   │  │ 1 Exc · 2   │    │ ⚠ Urgent    │
+│  ├────────────────┤  ├─────────────────┤  ├─────────────┤    │ 3 stuck >3d │
+│  │ ☐ Jane Doe     │  │ ☐ Bob Smith     │  │ ☐ Alice     │    │             │
+│  │   📧 jane@...  │  │   📧 bob@...    │  │   📧 alice  │    │ 📊 Bottlenck│
+│  │   [Exceptional]│  │   [Strong]      │  │   [Except.] │    │ No moves in │
+│  │   → Review     │  │   → Schedule    │  │   → Prep    │    │ Interview   │
+│  ├────────────────┤  ├─────────────────┤  ├─────────────┤    │             │
+│  │ ☐ John Doe     │  │ ...             │  │ ...         │    │ 💡 Suggest  │
+│  │   ...          │  │                 │  │             │    │ Move 4 Str  │
+│  └────────────────┘  └─────────────────┘  └─────────────┘    │ to Interview│
+│                                                               └─────────────┘
+│                                   <- KanbanBoard + AIInsightsPanel (sidebar)│
 └─────────────────────────────────────────────────────────────────────────────┘
 
 When candidate clicked -> Sheet drawer slides in from right:
@@ -145,20 +159,20 @@ interface JobSummaryRibbonProps {
 
 ---
 
-### 2. FiltersBar (NEW)
+### 2. FiltersBar (NEW) - With URL Persistence
 
 **File:** `components/kanban/FiltersBar.tsx`
 
 **Props:**
 ```typescript
 interface FiltersBarProps {
-  // Current values
+  // Current values (synced with URL)
   sortBy: 'date' | 'ai_fit';
   stageFilter: string;
   searchQuery: string;
   fitLabelFilter: string[];
 
-  // Callbacks
+  // Callbacks (update URL params)
   onSortChange: (sort: 'date' | 'ai_fit') => void;
   onStageFilterChange: (stageId: string) => void;
   onSearchChange: (query: string) => void;
@@ -172,18 +186,23 @@ interface FiltersBarProps {
 }
 ```
 
-**Layout:**
-- Horizontal bar with items spaced evenly
-- Sort dropdown (left)
-- Stage dropdown
-- Search input with icon
-- AI fit chip toggles (Exceptional/Strong/Good)
-- Results count (right-aligned)
+**URL Parameter Schema:**
+```
+/jobs/:id/applications?sort=date&stage=2&fit=Strong,Exceptional&q=jane
+```
+
+| Param | Default | Values |
+|-------|---------|--------|
+| `sort` | `date` | `date`, `ai_fit` |
+| `stage` | `all` | stage ID or `all` |
+| `fit` | (none) | comma-separated: `Exceptional,Strong,Good` |
+| `q` | (none) | search string |
 
 **Implementation notes:**
-- Extract existing filter logic from main page
-- Debounce search input (300ms)
-- Visual distinction between active/inactive filters
+- Use `useSearchParams` from wouter or custom hook
+- Only include non-default values in URL
+- Debounce search input (300ms) before updating URL
+- Parse URL on mount to restore filter state
 
 ---
 
@@ -196,7 +215,7 @@ interface FiltersBarProps {
 // Add to StageColumnProps
 stageInsights?: {
   needsReview: number;      // Not viewed/downloaded
-  avgDaysInStage?: number;  // From stageHistory if available
+  avgDaysInStage?: number;  // From stageHistory
   aiFitSummary: string;     // "2 Exc · 4 Str"
   scheduledInterviews: number;
 };
@@ -218,59 +237,7 @@ stageInsights?: {
 
 ---
 
-### 4. CandidateCardCompact (NEW)
-
-**File:** `components/kanban/CandidateCardCompact.tsx`
-
-**Props:** Same as `ApplicationCard` plus:
-```typescript
-interface CandidateCardCompactProps extends ApplicationCardProps {
-  nextAction?: string;  // Derived action hint
-}
-```
-
-**Layout (more compact than current):**
-```
-┌─────────────────────────────────────────┐
-│ ⋮⋮ ☐  Jane Doe              [Exc] ★4 ⋯ │
-│       jane@example.com · 555-1234       │
-│       → Review resume                   │
-└─────────────────────────────────────────┘
-```
-
-**Key differences from current ApplicationCard:**
-- Single line for name + tags + rating + menu
-- Contact info condensed to one line with truncation
-- "Next action" hint derived from stage + status:
-  - In Applied → "Review resume"
-  - In Screening + no interview → "Schedule interview"
-  - Interview scheduled → "Prep notes"
-  - In Offer → "Follow up"
-
-**Next Action Logic:**
-```typescript
-function deriveNextAction(app: Application, stage?: PipelineStage): string {
-  const stageName = stage?.name?.toLowerCase() || '';
-
-  if (app.status === 'rejected') return 'Archived';
-  if (stageName.includes('offer')) return 'Follow up';
-  if (app.interviewDate) return 'Prep notes';
-  if (stageName.includes('interview')) return 'Schedule interview';
-  if (stageName.includes('screening')) return 'Review & decide';
-  if (app.status === 'reviewed') return 'Move forward?';
-  return 'Review resume';
-}
-```
-
-**Implementation notes:**
-- Maintain drag handle and checkbox
-- Keep quick actions dropdown
-- More aggressive truncation
-- Reduce vertical padding (p-3 instead of p-4)
-
----
-
-### 5. CandidateDrawer (NEW)
+### 4. CandidateDrawer (NEW)
 
 **File:** `components/kanban/CandidateDrawer.tsx`
 
@@ -314,7 +281,7 @@ interface CandidateDrawerProps {
 
 ---
 
-### 6. AIInsightsPanel (NEW - Optional)
+### 5. AIInsightsPanel (NEW) - Right Sidebar
 
 **File:** `components/kanban/AIInsightsPanel.tsx`
 
@@ -323,11 +290,14 @@ interface CandidateDrawerProps {
 interface AIInsightsPanelProps {
   applications: Application[];
   pipelineStages: PipelineStage[];
+  stageHistory?: any[];  // For time-in-stage calculations
   onBulkAction?: (actionType: string, applicationIds: number[]) => void;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 ```
+
+**Layout:** Fixed-width right sidebar (280px expanded, 48px collapsed)
 
 **Insights to surface (all derived from existing data):**
 
@@ -344,7 +314,8 @@ interface AIInsightsPanelProps {
    - "Send reminder email to Y candidates awaiting response"
 
 **Implementation notes:**
-- Start as collapsed accordion or right sidebar
+- Collapsible via chevron icon
+- Collapse state persisted in localStorage
 - Each insight is a card with an action button
 - Action buttons wire to existing bulk mutation handlers
 - Mark as "AI-assisted" to set expectations
@@ -356,8 +327,9 @@ interface AIInsightsPanelProps {
 **File:** `pages/application-management-page.tsx`
 
 ### State Changes
-- Remove filter/sort state from page (move to FiltersBar with lifted state)
+- Add URL param sync for filters (custom hook)
 - Add `isDrawerOpen` state for Sheet
+- Add `insightsPanelCollapsed` state (persisted to localStorage)
 - Keep all mutations and handlers
 
 ### New Component Tree
@@ -374,7 +346,7 @@ interface AIInsightsPanelProps {
       pipelineStages={pipelineStages}
     />
 
-    {/* Filters */}
+    {/* Filters (synced with URL) */}
     <FiltersBar
       sortBy={sortBy}
       stageFilter={stageFilter}
@@ -404,14 +376,14 @@ interface AIInsightsPanelProps {
           onToggleSelect={handleToggleSelect}
           onOpenDetails={handleOpenDetails}
           onDragEnd={handleDragEnd}
-          CardComponent={CandidateCardCompact}  // New prop
         />
       </div>
 
-      {/* Optional AI Insights Panel */}
+      {/* AI Insights Panel (Right Sidebar) */}
       <AIInsightsPanel
         applications={applications}
         pipelineStages={pipelineStages}
+        stageHistory={stageHistory}
         isCollapsed={insightsPanelCollapsed}
         onToggleCollapse={() => setInsightsPanelCollapsed(!insightsPanelCollapsed)}
         onBulkAction={handleBulkAction}
@@ -438,8 +410,8 @@ interface AIInsightsPanelProps {
 
 ### Phase 1: Non-Breaking Additions
 1. Create `JobSummaryRibbon` - add to page above filters
-2. Create `FiltersBar` - add alongside existing filters (can coexist)
-3. Create `CandidateCardCompact` - add as optional card variant
+2. Create `FiltersBar` with URL sync - add alongside existing filters
+3. Create `useFilterParams` hook for URL state management
 
 ### Phase 2: Drawer Migration
 4. Create `CandidateDrawer` - wire up alongside ResizablePanel
@@ -448,7 +420,7 @@ interface AIInsightsPanelProps {
 
 ### Phase 3: Enhancements
 7. Enhance `StageColumn` headers with insights
-8. Add `AIInsightsPanel` (can be behind feature flag)
+8. Add `AIInsightsPanel` (right sidebar)
 9. Remove deprecated components/code
 
 ---
@@ -458,44 +430,52 @@ interface AIInsightsPanelProps {
 | Action | File | Changes |
 |--------|------|---------|
 | CREATE | `components/kanban/JobSummaryRibbon.tsx` | ~150 lines |
-| CREATE | `components/kanban/FiltersBar.tsx` | ~180 lines |
-| CREATE | `components/kanban/CandidateCardCompact.tsx` | ~200 lines |
+| CREATE | `components/kanban/FiltersBar.tsx` | ~200 lines |
 | CREATE | `components/kanban/CandidateDrawer.tsx` | ~100 lines (wrapper) |
-| CREATE | `components/kanban/AIInsightsPanel.tsx` | ~250 lines |
+| CREATE | `components/kanban/AIInsightsPanel.tsx` | ~280 lines |
+| CREATE | `hooks/useFilterParams.ts` | ~80 lines |
 | MODIFY | `components/kanban/StageColumn.tsx` | +50 lines (header insights) |
-| MODIFY | `components/kanban/KanbanBoard.tsx` | +20 lines (card component prop) |
 | MODIFY | `pages/application-management-page.tsx` | -200 lines (extraction), +100 lines (new structure) |
 
-**Estimated net change:** +500-700 lines of new modular code
+**Estimated net change:** +550-750 lines of new modular code
 
 ---
 
 ## Testing Checklist
 
+### Functional
 - [ ] All existing E2E tests pass (`job-application-flow.spec.ts`)
 - [ ] Drag and drop still works
 - [ ] Bulk actions still work
-- [ ] Detail panel/drawer shows all tabs
-- [ ] Mobile responsive (320px - 768px)
+- [ ] Detail drawer shows all tabs
+- [ ] URL params persist and restore correctly
+- [ ] Shareable URLs load correct filter state
+
+### Performance
+- [ ] No jank with 100+ applications
+- [ ] Drawer opens < 100ms
+- [ ] Filter changes feel instant
+
+### Accessibility
 - [ ] Keyboard navigation (Tab, Enter, Escape)
 - [ ] Screen reader announces regions
-- [ ] No TypeScript errors
-- [ ] Performance: No jank with 100+ applications
+- [ ] Focus management when drawer opens/closes
+- [ ] ARIA labels on filter controls
 
----
-
-## Open Questions
-
-1. **Card density toggle?** Should we offer a toggle between compact and full cards?
-2. **AI Insights placement?** Right sidebar vs collapsible panel vs bottom drawer?
-3. **Persist filter state?** URL params or localStorage?
-4. **Stage time tracking?** Do we have `stageHistory` data to calculate avg time in stage?
+### Responsive
+- [ ] Mobile responsive (320px - 768px)
+- [ ] AI panel collapses gracefully on small screens
+- [ ] Drawer full-width on mobile
 
 ---
 
 ## Approval Checklist
 
-- [ ] UX layout approved
-- [ ] Component breakdown approved
-- [ ] Migration strategy approved
-- [ ] Ready to implement
+- [x] Card density: Full only (no toggle)
+- [x] AI Insights: Right sidebar (collapsible)
+- [x] Filter persistence: URL params
+- [x] Stage history: Available for time-in-stage
+- [x] UX layout approved
+- [x] Component breakdown approved
+- [x] Migration strategy approved
+- [x] **Ready to implement**
