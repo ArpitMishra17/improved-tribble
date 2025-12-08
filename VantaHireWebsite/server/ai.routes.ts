@@ -155,11 +155,12 @@ export function registerAIRoutes(app: Express): void {
    * Generic AI proxy for frontend (dashboard summaries, next-actions, etc.)
    * Only for authenticated recruiters/admins.
    */
+  // Note: CSRF protection skipped for this endpoint because it's authenticated,
+  // role-protected, rate-limited, and read-only (no server state mutation).
   app.post(
     "/api/ai/generate",
     requireAuth,
     requireRole(['recruiter', 'admin']),
-    doubleCsrfProtection,
     genericGenerationLimiter,
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
