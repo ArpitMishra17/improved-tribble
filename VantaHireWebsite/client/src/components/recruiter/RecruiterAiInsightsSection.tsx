@@ -1,12 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { AlertTriangle, Sparkles, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
-import { callLLM } from "@/lib/ai/llmClient";
-import { DropoffAiExplanation } from "./DropoffAiExplanation";
+import { useMemo } from "react";
 
 type JobAttention = {
   jobId: number;
@@ -42,9 +39,12 @@ interface RecruiterAiInsightsSectionProps {
   dropoff: DropoffStep[];
   dropoffSummary: string;
   bottlenecks: Bottleneck[];
-  onViewJob?: (jobId: number) => void;
-  onEditJob?: (jobId: number) => void;
-  onViewStage?: (stageName: string) => void;
+  preGeneratedActions?: Array<{ jobId: number; nextAction: string }> | undefined;
+  preGeneratedDropoffExplanation?: string | undefined;
+  aiLoading?: boolean | undefined;
+  onViewJob?: ((jobId: number) => void) | undefined;
+  onEditJob?: ((jobId: number) => void) | undefined;
+  onViewStage?: ((stageName: string) => void) | undefined;
 }
 
 const severityColor: Record<JobAttention["severity"], string> = {
@@ -59,6 +59,9 @@ export function RecruiterAiInsightsSection({
   dropoff,
   dropoffSummary,
   bottlenecks,
+  preGeneratedActions,
+  preGeneratedDropoffExplanation,
+  aiLoading = false,
   onViewJob,
   onEditJob,
   onViewStage,
@@ -68,47 +71,14 @@ export function RecruiterAiInsightsSection({
       ? dropoff.reduce((min, step) => (step.rate < min ? step.rate : min), dropoff[0]?.rate ?? 0)
       : null;
 
-  // AI next-action suggestions per job (fail-soft)
-  const [aiNextActions, setAiNextActions] = useState<Record<number, string>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    const generate = async () => {
-      const summaries = await Promise.all(
-        jobsNeedingAttention.map(async (job) => {
-          const payload = {
-            title: job.title,
-            severity: job.severity,
-            reason: job.reason,
-            metrics: job.metrics || {},
-          };
-          const prompt = `You are helping a recruiter prioritize a job. Given this job context, propose one short next action (max 18 words).\n\n${JSON.stringify(
-            payload,
-            null,
-            2
-          )}\n\nUse only the provided info.`;
-          try {
-            const res = await callLLM(prompt);
-            return { id: job.jobId, text: res };
-          } catch (err) {
-            console.warn("AI next-action failed", err);
-            return { id: job.jobId, text: "" };
-          }
-        })
-      );
-      if (!cancelled) {
-        const map: Record<number, string> = {};
-        summaries.forEach((s) => {
-          if (s.text) map[s.id] = s.text;
-        });
-        setAiNextActions(map);
-      }
-    };
-    if (jobsNeedingAttention.length) generate();
-    return () => {
-      cancelled = true;
-    };
-  }, [jobsNeedingAttention]);
+  // Build a map of pre-generated next actions by jobId
+  const actionsMap = useMemo(() => {
+    const map: Record<number, string> = {};
+    preGeneratedActions?.forEach((a) => {
+      if (a.nextAction) map[a.jobId] = a.nextAction;
+    });
+    return map;
+  }, [preGeneratedActions]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -150,11 +120,14 @@ export function RecruiterAiInsightsSection({
                       </span>
                   </div>
                   <p className="text-sm text-slate-600">{job.reason}</p>
-                  {(job.nextAction || aiNextActions[job.jobId]) && (
+                  {(job.nextAction || actionsMap[job.jobId]) && (
                     <p className="text-xs text-slate-500">
                       Suggested next action:{" "}
-                      <span className="font-medium text-slate-700">{aiNextActions[job.jobId] || job.nextAction}</span>
+                      <span className="font-medium text-slate-700">{actionsMap[job.jobId] || job.nextAction}</span>
                     </p>
+                  )}
+                  {aiLoading && !actionsMap[job.jobId] && !job.nextAction && (
+                    <p className="text-xs text-slate-400 italic">Generating suggestion…</p>
                   )}
                 </div>
                 <Button variant="outline" size="sm" onClick={() => onViewJob?.(job.jobId)}>
@@ -240,7 +213,20 @@ export function RecruiterAiInsightsSection({
             <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-xs text-slate-700">
               {dropoffSummary}
             </div>
-            <DropoffAiExplanation dropoff={dropoff} fallback={dropoffSummary} />
+            {/* AI-generated dropoff explanation */}
+            {dropoff.length > 0 && (
+              <div className="text-xs text-slate-700 space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+                    AI-assisted
+                  </Badge>
+                  <span className="text-slate-500">{aiLoading ? "Analyzing drop-offs…" : "AI interpretation"}</span>
+                </div>
+                <p className="text-slate-800">
+                  {preGeneratedDropoffExplanation || dropoffSummary}
+                </p>
+              </div>
+            )}
             <div className="border-t border-slate-200 pt-3 space-y-2">
               <div className="text-sm font-semibold text-slate-800">Stage bottlenecks</div>
               {bottlenecks.length === 0 && (

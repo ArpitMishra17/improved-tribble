@@ -24,6 +24,7 @@ import { getUserLimits, canUseFitComputation } from './lib/aiLimits';
 import { getRedisHealth } from './lib/redis';
 import { z } from 'zod';
 import Groq from "groq-sdk";
+import { getDashboardAiInsights, DashboardAiPayload } from "./lib/aiDashboard";
 
 const AI_MATCH_ENABLED = process.env.AI_MATCH_ENABLED === 'true';
 const AI_RESUME_ENABLED = process.env.AI_RESUME_ENABLED === 'true';
@@ -95,7 +96,7 @@ const batchComputeLimiter = rateLimit({
 
 const genericGenerationLimiter = rateLimit({
   windowMs: 60_000,
-  max: 10,
+  max: 30, // Higher limit to accommodate dashboard which fires multiple AI calls per page load
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: any, res: any) => {
@@ -189,6 +190,32 @@ export function registerAIRoutes(app: Express): void {
       } catch (error) {
         console.error("[AI generate] error:", error);
         res.status(502).json({ error: "AI generation failed" });
+      }
+    }
+  );
+
+  /**
+   * POST /api/ai/dashboard-insights
+   * Batched AI insights for recruiter dashboard, cached per user.
+   */
+  app.post(
+    "/api/ai/dashboard-insights",
+    requireAuth,
+    requireRole(['recruiter', 'admin']),
+    genericGenerationLimiter,
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const payload = req.body as DashboardAiPayload;
+        if (!payload || !payload.pipelineHealthScore || !Array.isArray(payload.jobsNeedingAttention)) {
+          res.status(400).json({ error: "Invalid payload" });
+          return;
+        }
+        const insights = await getDashboardAiInsights(req.user!.id, payload);
+        res.json(insights);
+        return;
+      } catch (error) {
+        console.error("[AI dashboard insights] error:", error);
+        res.status(502).json({ error: "AI dashboard insights unavailable" });
       }
     }
   );

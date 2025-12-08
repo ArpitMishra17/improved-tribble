@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   Users,
@@ -90,6 +90,13 @@ type AnalyticsNudges = {
     count: number;
     oldestStaleDays: number;
   }>;
+};
+
+type DashboardAiInsights = {
+  summary: string;
+  dropoffExplanation: string;
+  jobs: Array<{ jobId: number; nextAction: string }>;
+  generatedAt: string;
 };
 
 const RANGE_PRESETS: Record<string, number> = {
@@ -576,6 +583,43 @@ type PerformanceResponse = {
     return "Pipeline is steady. No major drop-offs detected.";
   }, [dropoffInsights, dropoffData]);
 
+  // Batched AI insights - one call per day, cached server-side
+  const aiPayload = useMemo(() => {
+    if (!pipelineHealthScore || !jobsNeedingAttention.length) return null;
+    return {
+      pipelineHealthScore,
+      timeRangeLabel: `Last ${RANGE_PRESETS[rangePreset]} days`,
+      applicationsOverTime: timeSeriesData.slice(-14),
+      stageDistribution: funnelData.map((f) => ({ name: f.name, count: f.count })),
+      dropoff: dropoffSteps,
+      timeInStage: hiringMetrics?.timeInStage?.map((t) => ({ stageName: t.stageName, averageDays: t.averageDays })) || [],
+      jobsNeedingAttention: jobsNeedingAttention.map((job) => ({
+        jobId: job.jobId,
+        title: job.jobTitle,
+        severity: job.status === "red" ? "high" as const : job.status === "amber" ? "medium" as const : "low" as const,
+        reason: job.reason || "Needs movement",
+      })),
+    };
+  }, [pipelineHealthScore, rangePreset, timeSeriesData, funnelData, dropoffSteps, hiringMetrics, jobsNeedingAttention]);
+
+  const { data: aiInsights, isLoading: aiLoading } = useQuery<DashboardAiInsights>({
+    queryKey: ["/api/ai/dashboard-insights", aiPayload],
+    queryFn: async () => {
+      if (!aiPayload) throw new Error("No payload");
+      const res = await fetch("/api/ai/dashboard-insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(aiPayload),
+      });
+      if (!res.ok) throw new Error("AI insights failed");
+      return res.json();
+    },
+    enabled: !!aiPayload,
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours client-side
+    retry: false,
+  });
+
   if (jobsLoading || applicationsLoading) {
     return (
       <Layout>
@@ -691,12 +735,9 @@ type PerformanceResponse = {
           </div>
           <AiPipelineSummary
             pipelineHealthScore={pipelineHealthScore}
-            timeRangeLabel={`Last ${RANGE_PRESETS[rangePreset]} days`}
-            applicationsOverTime={timeSeriesData}
-            stageDistribution={funnelData.map((f) => ({ name: f.name, count: f.count }))}
-            dropoff={dropoffSteps}
-            timeInStage={hiringMetrics?.timeInStage?.map((t) => ({ stageName: t.stageName, averageDays: t.averageDays })) || []}
-            jobsNeedingAttentionCount={jobsNeedingAttention.length}
+            preGeneratedSummary={aiInsights?.summary}
+            aiLoading={aiLoading}
+            generatedAt={aiInsights?.generatedAt}
           />
           <RecruiterAiInsightsSection
             jobsNeedingAttention={jobsNeedingAttention.map((job) => ({
@@ -714,8 +755,11 @@ type PerformanceResponse = {
             dropoff={dropoffSteps}
             dropoffSummary={aiSummaryText || dropoffSummary}
             bottlenecks={stageBottlenecks}
+            preGeneratedActions={aiInsights?.jobs}
+            preGeneratedDropoffExplanation={aiInsights?.dropoffExplanation}
+            aiLoading={aiLoading}
             onViewJob={(jobId) => setLocation(`/jobs/${jobId}`)}
-            onEditJob={(jobId) => setLocation(`/jobs/${jobId}`)} // TODO: point to explicit edit route when available
+            onEditJob={(jobId) => setLocation(`/jobs/${jobId}`)}
             onViewStage={(stage) => setLocation("/applications")}
           />
 
