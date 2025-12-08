@@ -1,0 +1,78 @@
+<svg width="1200" height="628" viewBox="0 0 1200 628" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D0D1A"/>
+      <stop offset="100%" style="stop-color:#141428"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7B38FB"/>
+      <stop offset="100%" style="stop-color:#FF5BA8"/>
+    </linearGradient>
+    <linearGradient id="goldGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F59E0B"/>
+      <stop offset="100%" style="stop-color:#FBBF24"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="628" fill="url(#bgGrad2)"/>
+
+  <!-- Decorative elements -->
+  <circle cx="1100" cy="100" r="250" fill="#7B38FB" fill-opacity="0.08"/>
+  <circle cx="100" cy="550" r="200" fill="#F59E0B" fill-opacity="0.06"/>
+  <circle cx="600" cy="314" r="150" fill="#FF5BA8" fill-opacity="0.04"/>
+
+  <!-- "We're Hiring" Badge -->
+  <rect x="80" y="80" width="180" height="40" rx="20" fill="#7B38FB" fill-opacity="0.2" stroke="#7B38FB" stroke-opacity="0.4"/>
+  <text x="170" y="107" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#A78BFA" text-anchor="middle">We're Hiring!</text>
+
+  <!-- Accent line -->
+  <rect x="80" y="150" width="100" height="5" rx="2.5" fill="url(#purpleGrad2)"/>
+
+  <!-- Main Headline -->
+  <text x="80" y="220" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="url(#purpleGrad2)">Join Our Team</text>
+  <text x="80" y="290" font-family="Arial, sans-serif" font-size="56" font-weight="bold">
+    <tspan fill="white">Build the Future of </tspan>
+  </text>
+  <text x="80" y="360" font-family="Arial, sans-serif" font-size="56" font-weight="bold" fill="url(#goldGrad2)">Hiring.</text>
+
+  <!-- Description -->
+  <text x="80" y="420" font-family="Arial, sans-serif" font-size="22" fill="#A1A1AA">
+    AI-powered recruitment meets human expertise.
+  </text>
+  <text x="80" y="450" font-family="Arial, sans-serif" font-size="22" fill="#A1A1AA">
+    Explore exciting opportunities at VantaHire.
+  </text>
+
+  <!-- CTA Button -->
+  <rect x="80" y="490" width="220" height="56" rx="28" fill="url(#goldGrad2)"/>
+  <text x="190" y="526" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#0D0D1A" text-anchor="middle">View Open Roles</text>
+
+  <!-- Stats on right side -->
+  <g transform="translate(850, 200)">
+    <rect x="-20" y="-30" width="280" height="250" rx="16" fill="white" fill-opacity="0.05" stroke="white" stroke-opacity="0.1"/>
+
+    <text x="120" y="10" font-family="Arial, sans-serif" font-size="14" fill="#71717A" text-anchor="middle">Why VantaHire?</text>
+
+    <g transform="translate(0, 50)">
+      <circle cx="10" cy="0" r="6" fill="#7B38FB"/>
+      <text x="30" y="6" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#7B38FB">~40%</text>
+      <text x="130" y="6" font-family="Arial, sans-serif" font-size="16" fill="#A1A1AA">Faster Hiring</text>
+    </g>
+
+    <g transform="translate(0, 110)">
+      <circle cx="10" cy="0" r="6" fill="#F59E0B"/>
+      <text x="30" y="6" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#F59E0B">60%</text>
+      <text x="110" y="6" font-family="Arial, sans-serif" font-size="16" fill="#A1A1AA">Fewer Mis-Hires</text>
+    </g>
+
+    <g transform="translate(0, 170)">
+      <circle cx="10" cy="0" r="6" fill="#10B981"/>
+      <text x="30" y="6" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#10B981">96%</text>
+      <text x="110" y="6" font-family="Arial, sans-serif" font-size="16" fill="#A1A1AA">Satisfaction</text>
+    </g>
+  </g>
+
+  <!-- Website -->
+  <text x="1120" y="600" font-family="Arial, sans-serif" font-size="18" fill="#71717A" text-anchor="end">vantahire.com</text>
+</svg>

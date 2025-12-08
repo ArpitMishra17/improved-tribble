@@ -1,0 +1,58 @@
+<svg width="1584" height="396" viewBox="0 0 1584 396" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0D0D1A"/>
+      <stop offset="100%" style="stop-color:#141428"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7B38FB"/>
+      <stop offset="100%" style="stop-color:#FF5BA8"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#F59E0B"/>
+      <stop offset="100%" style="stop-color:#FBBF24"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1584" height="396" fill="url(#bgGrad)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="1400" cy="100" r="200" fill="#7B38FB" fill-opacity="0.1"/>
+  <circle cx="200" cy="350" r="150" fill="#F59E0B" fill-opacity="0.08"/>
+
+  <!-- Accent line -->
+  <rect x="100" y="140" width="80" height="4" rx="2" fill="url(#purpleGrad)"/>
+
+  <!-- Main Text -->
+  <text x="100" y="200" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="url(#purpleGrad)">AI + Human Expertise.</text>
+  <text x="100" y="260" font-family="Arial, sans-serif" font-size="48" font-weight="bold">
+    <tspan fill="white">Faster, Fairer </tspan>
+    <tspan fill="url(#goldGrad)">Hiring.</tspan>
+  </text>
+
+  <!-- Tagline -->
+  <text x="100" y="310" font-family="Arial, sans-serif" font-size="20" fill="#A1A1AA">
+    AI-powered recruitment for IT, Telecom, Automotive, Fintech &amp; Healthcare
+  </text>
+
+  <!-- Stats -->
+  <g transform="translate(1050, 160)">
+    <circle cx="0" cy="0" r="4" fill="#7B38FB"/>
+    <text x="15" y="5" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#7B38FB">~40%</text>
+    <text x="90" y="5" font-family="Arial, sans-serif" font-size="14" fill="#71717A">Faster Hiring</text>
+  </g>
+  <g transform="translate(1050, 210)">
+    <circle cx="0" cy="0" r="4" fill="#F59E0B"/>
+    <text x="15" y="5" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#F59E0B">60%</text>
+    <text x="80" y="5" font-family="Arial, sans-serif" font-size="14" fill="#71717A">Fewer Mis-Hires</text>
+  </g>
+  <g transform="translate(1050, 260)">
+    <circle cx="0" cy="0" r="4" fill="#10B981"/>
+    <text x="15" y="5" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#10B981">96%</text>
+    <text x="80" y="5" font-family="Arial, sans-serif" font-size="14" fill="#71717A">Satisfaction</text>
+  </g>
+
+  <!-- Website -->
+  <text x="1484" y="370" font-family="Arial, sans-serif" font-size="16" fill="#71717A" text-anchor="end">vantahire.com</text>
+</svg>
