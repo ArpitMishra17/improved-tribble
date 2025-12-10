@@ -17,7 +17,7 @@ import Layout from "@/components/Layout";
 import type { Job, Application, PipelineStage } from "@shared/schema";
 import { KpiCard } from "@/components/dashboards/KpiCard";
 import { TimeSeriesChart } from "@/components/dashboards/TimeSeriesChart";
-import { FunnelChart } from "@/components/dashboards/FunnelChart";
+import { StageFunnel } from "@/components/dashboards/StageFunnel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -379,8 +379,8 @@ type PerformanceResponse = {
 
   const funnelData = useMemo(() => {
     if (dropoffData) {
-      const sorted = [...dropoffData.stages].sort((a, b) => b.count - a.count);
-      const maxCount = sorted[0]?.count ?? 0;
+      const stageColorMap = new Map(pipelineStages.map((s) => [s.id, s.color]));
+      const sorted = [...dropoffData.stages].sort((a, b) => a.order - b.order);
       const unassigned = dropoffData.unassigned
         ? [{ name: "Unassigned", count: dropoffData.unassigned, color: "#94a3b8", order: -1 }]
         : [];
@@ -389,7 +389,9 @@ type PerformanceResponse = {
         ...sorted.map((s) => ({
           name: s.name,
           count: s.count,
-          color: s.count === maxCount ? "#334155" : "#64748b",
+          color: stageColorMap.get(s.stageId) || "#64748b",
+          order: s.order,
+          stageId: s.stageId,
         })),
       ];
     }
@@ -405,11 +407,12 @@ type PerformanceResponse = {
       count: counts[String(stage.id)] || 0,
       color: stage.color || "#64748b",
       order: stage.order,
+      stageId: stage.id,
     }));
     const unassigned = counts["unassigned"]
       ? [{ name: "Unassigned", count: counts["unassigned"], color: "#94a3b8", order: -1 }]
       : [];
-    return [...unassigned, ...mapped].sort((a, b) => b.count - a.count);
+    return [...unassigned, ...mapped];
   }, [dropoffData, filteredApplications, pipelineStages]);
 
   const dropoffInsights = useMemo(() => {
@@ -651,6 +654,19 @@ type PerformanceResponse = {
     retry: false,
   });
 
+  const handleStageClick = (stage: { stageId?: number; name: string }) => {
+    const params = new URLSearchParams();
+    if (stage.stageId) {
+      params.set("stage", String(stage.stageId));
+    } else if (stage.name.toLowerCase() === "unassigned") {
+      params.set("stage", "unassigned");
+    }
+    // TODO: Pass date range filters when the applications page supports them.
+    const basePath = selectedJobId === "all" ? "/applications" : `/jobs/${selectedJobId}/applications`;
+    const query = params.toString();
+    setLocation(query ? `${basePath}?${query}` : basePath);
+  };
+
   if (jobsLoading || applicationsLoading) {
     return (
       <Layout>
@@ -744,19 +760,13 @@ type PerformanceResponse = {
               />
               <p className="text-xs text-slate-500">Hover to see exact values by day.</p>
             </div>
-            <div className="space-y-2">
-              <FunnelChart
-                title="Stage distribution"
-                description={`Applications by pipeline stage — last ${RANGE_PRESETS[rangePreset]} days (filters applied)`}
-                data={funnelData}
-                isLoading={applicationsLoading || stagesLoading}
-              />
-              <p className="text-xs text-slate-500">
-                {funnelData.length > 0 && funnelData[0]
-                  ? `Most candidates are currently in ${funnelData[0].name}; consider reviewing and moving them forward.`
-                  : "Review stage distribution to keep candidates moving."}
-              </p>
-            </div>
+            <StageFunnel
+              title="Stage distribution"
+              description={`Applications by pipeline stage — last ${RANGE_PRESETS[rangePreset]} days (filters applied)`}
+              data={funnelData}
+              isLoading={applicationsLoading || stagesLoading}
+              onStageClick={handleStageClick}
+            />
           </div>
 
           {/* AI Summary + Insights */}

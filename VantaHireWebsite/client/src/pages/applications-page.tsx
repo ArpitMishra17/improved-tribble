@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ type ApplicationWithJob = Application & {
 
 export default function ApplicationsPage() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [newStatus, setNewStatus] = useState("");
@@ -36,6 +36,14 @@ export default function ApplicationsPage() {
   const { data: applications = [], isLoading: applicationsLoading } = useQuery<ApplicationWithJob[]>({
     queryKey: ["/api/my-applications-received"],
   });
+
+  useEffect(() => {
+    const search = location?.split("?")[1] || "";
+    if (!search) return;
+    const params = new URLSearchParams(search);
+    const stageParam = params.get("stage");
+    if (stageParam) setStageFilter(stageParam);
+  }, [location]);
 
   // Fetch pipeline stages for stage filter
   const { data: pipelineStages = [] } = useQuery<PipelineStage[]>({

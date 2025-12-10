@@ -65,7 +65,7 @@ export default function ApplicationManagementPage() {
   const [match, params] = useRoute("/jobs/:id/applications");
   const { user } = useAuth();
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [selectedApplications, setSelectedApplications] = useState<number[]>([]);
   const [stageFilter, setStageFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,6 +127,14 @@ export default function ApplicationManagementPage() {
     const timer = setTimeout(() => setIsVisible(true), 200);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const search = location?.split("?")[1] || "";
+    if (!search) return;
+    const params = new URLSearchParams(search);
+    const stageParam = params.get("stage");
+    if (stageParam) setStageFilter(stageParam);
+  }, [location]);
 
   // Redirect if not recruiter or admin
   if (!user || !['recruiter', 'admin'].includes(user.role)) {
