@@ -86,15 +86,25 @@ export default function BrandAssetsPage() {
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                   <div>
                     <h3 className="text-white font-semibold text-lg">VantaHire Logo</h3>
-                    <p className="text-white/60 text-sm">High resolution PNG • Transparent background</p>
+                    <p className="text-white/60 text-sm">High resolution • Transparent background</p>
                   </div>
-                  <Button
-                    onClick={() => handleDownload("/brand/vantahire-logo.png", "vantahire-logo.png")}
-                    className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PNG
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleDownload("/brand/vantahire-logo.png", "vantahire-logo.png")}
+                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      PNG
+                    </Button>
+                    <Button
+                      onClick={() => handleDownload("/brand/vantahire-logo.svg", "vantahire-logo.svg")}
+                      variant="outline"
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      SVG
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
