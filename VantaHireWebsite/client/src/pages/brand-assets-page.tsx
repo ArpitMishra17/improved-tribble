@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
-import { Download, FileType, Copy, Check } from "lucide-react";
+import { Download, FileType, Copy, Check, Image, Video, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Layout from "@/components/Layout";
 import { useState } from "react";
@@ -37,7 +37,7 @@ export default function BrandAssetsPage() {
     <Layout>
       <Helmet>
         <title>Brand Assets | VantaHire</title>
-        <meta name="description" content="Download official VantaHire logo and brand assets. PNG format available." />
+        <meta name="description" content="Download official VantaHire logo and brand assets in multiple formats." />
       </Helmet>
 
       <div className="public-theme min-h-screen">
@@ -55,21 +55,21 @@ export default function BrandAssetsPage() {
               <span className="bg-gradient-to-r from-purple-400 to-amber-400 bg-clip-text text-transparent">Assets</span>
             </h1>
             <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed">
-              Download the official VantaHire logo and access brand guidelines.
+              Download the official VantaHire logo and brand assets in multiple formats.
             </p>
           </div>
 
           {/* Primary Logo Section */}
-          <section className="mb-16 max-w-4xl mx-auto">
+          <section className="mb-16 max-w-5xl mx-auto">
             <h2 className="text-2xl font-bold text-white mb-8 text-center">Primary Logo</h2>
 
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden mb-6">
               {/* Logo Preview - Dark Background */}
               <div className="bg-[#0D0D1A] p-12 flex items-center justify-center">
                 <img
                   src="/brand/vantahire-logo.png"
                   alt="VantaHire Logo"
-                  className="max-h-32 w-auto"
+                  className="max-h-40 w-auto"
                 />
               </div>
 
@@ -78,40 +78,289 @@ export default function BrandAssetsPage() {
                 <img
                   src="/brand/vantahire-logo.png"
                   alt="VantaHire Logo on Light"
-                  className="max-h-32 w-auto"
+                  className="max-h-40 w-auto"
                 />
               </div>
+            </Card>
 
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            {/* Logo Download Options */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
+                <div className="flex flex-col items-center text-center">
+                  <Image className="h-8 w-8 text-purple-400 mb-2" />
+                  <h3 className="text-white font-semibold text-sm mb-1">PNG</h3>
+                  <p className="text-white/50 text-xs mb-3">High resolution</p>
+                  <Button
+                    size="sm"
+                    onClick={() => handleDownload("/brand/vantahire-logo.png", "vantahire-logo.png")}
+                    className="w-full bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
+                <div className="flex flex-col items-center text-center">
+                  <FileType className="h-8 w-8 text-purple-400 mb-2" />
+                  <h3 className="text-white font-semibold text-sm mb-1">SVG</h3>
+                  <p className="text-white/50 text-xs mb-3">Vector format</p>
+                  <Button
+                    size="sm"
+                    onClick={() => handleDownload("/brand/vantahire-logo.svg", "vantahire-logo.svg")}
+                    className="w-full bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
+                <div className="flex flex-col items-center text-center">
+                  <Image className="h-8 w-8 text-purple-400 mb-2" />
+                  <h3 className="text-white font-semibold text-sm mb-1">JPG</h3>
+                  <p className="text-white/50 text-xs mb-3">With background</p>
+                  <Button
+                    size="sm"
+                    onClick={() => handleDownload("/brand/vantahire-logo.jpg", "vantahire-logo.jpg")}
+                    className="w-full bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              </Card>
+
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
+                <div className="flex flex-col items-center text-center">
+                  <FileText className="h-8 w-8 text-purple-400 mb-2" />
+                  <h3 className="text-white font-semibold text-sm mb-1">PDF</h3>
+                  <p className="text-white/50 text-xs mb-3">Print ready</p>
+                  <Button
+                    size="sm"
+                    onClick={() => handleDownload("/brand/vantahire-logo.pdf", "vantahire-logo.pdf")}
+                    className="w-full bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </div>
+              </Card>
+            </div>
+
+            {/* Large Logo */}
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4 mt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Image className="h-6 w-6 text-amber-400" />
                   <div>
-                    <h3 className="text-white font-semibold text-lg">VantaHire Logo</h3>
-                    <p className="text-white/60 text-sm">High resolution • Transparent background</p>
+                    <h3 className="text-white font-semibold">High Resolution Logo</h3>
+                    <p className="text-white/50 text-xs">Extra large PNG for print</p>
                   </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => handleDownload("/brand/vantahire-logo-large.png", "vantahire-logo-large.png")}
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  PNG (Large)
+                </Button>
+              </div>
+            </Card>
+          </section>
+
+          {/* Icon/Favicon Section */}
+          <section className="mb-16 max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-8 text-center">Icon / Favicon</h2>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
+                <div className="bg-[#0D0D1A] p-8 flex items-center justify-center">
+                  <img
+                    src="/brand/vantahire-icon.png"
+                    alt="VantaHire Icon"
+                    className="h-32 w-32 object-contain"
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="text-white font-semibold mb-3">App Icon</h3>
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => handleDownload("/brand/vantahire-logo.png", "vantahire-logo.png")}
+                      size="sm"
+                      onClick={() => handleDownload("/brand/vantahire-icon.png", "vantahire-icon.png")}
                       className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
                     >
-                      <Download className="h-4 w-4 mr-2" />
                       PNG
                     </Button>
                     <Button
-                      onClick={() => handleDownload("/brand/vantahire-logo.svg", "vantahire-logo.svg")}
+                      size="sm"
+                      onClick={() => handleDownload("/brand/vantahire-icon.svg", "vantahire-icon.svg")}
                       variant="outline"
                       className="border-white/20 text-white hover:bg-white/10"
                     >
+                      SVG
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload("/brand/vantahire-icon.jpg", "vantahire-icon.jpg")}
+                      variant="outline"
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      JPG
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Animated Logo */}
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
+                <div className="bg-[#0D0D1A] p-8 flex items-center justify-center">
+                  <video
+                    src="/brand/vantahire-logo-animated.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="h-32 w-auto"
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white font-semibold">Animated Logo</h3>
+                      <p className="text-white/50 text-xs">MP4 video format</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload("/brand/vantahire-logo-animated.mp4", "vantahire-logo-animated.mp4")}
+                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                    >
+                      <Video className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          {/* Social Media Section */}
+          <section className="mb-16 max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-8 text-center">Social Media</h2>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* LinkedIn Banner JPG */}
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden md:col-span-2">
+                <div className="bg-[#0D0D1A] p-4 flex items-center justify-center">
+                  <img
+                    src="/brand/vantahire-linkedin-banner.jpg"
+                    alt="LinkedIn Banner"
+                    className="w-full h-auto max-h-48 object-contain"
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white font-semibold">LinkedIn Banner</h3>
+                      <p className="text-white/60 text-xs">1584 × 396px • JPG</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload("/brand/vantahire-linkedin-banner.jpg", "vantahire-linkedin-banner.jpg")}
+                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                    >
                       <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Social Square JPG */}
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
+                <div className="bg-[#0D0D1A] p-4 flex items-center justify-center aspect-square">
+                  <img
+                    src="/brand/vantahire-social-square.jpg"
+                    alt="Social Square"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white font-semibold">Profile Image</h3>
+                      <p className="text-white/60 text-xs">Square format • JPG</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload("/brand/vantahire-social-square.jpg", "vantahire-social-square.jpg")}
+                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* SVG Templates */}
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-6">
+                <h3 className="text-white font-semibold mb-4">SVG Templates</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">LinkedIn Banner</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownload("/brand/linkedin-banner.svg", "vantahire-linkedin-banner.svg")}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      SVG
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">LinkedIn Job Post</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownload("/brand/linkedin-job-post.svg", "vantahire-linkedin-job-post.svg")}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      SVG
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">Social Square</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownload("/brand/social-square.svg", "vantahire-social-square.svg")}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
+                      SVG
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">Twitter/X Header</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownload("/brand/twitter-header.svg", "vantahire-twitter-header.svg")}
+                      className="border-white/20 text-white hover:bg-white/10"
+                    >
                       SVG
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </Card>
+            </div>
           </section>
 
           {/* Brand Colors */}
-          <section className="mb-16 max-w-4xl mx-auto">
+          <section className="mb-16 max-w-5xl mx-auto">
             <h2 className="text-2xl font-bold text-white mb-8 text-center">Brand Colors</h2>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -144,119 +393,8 @@ export default function BrandAssetsPage() {
             <p className="text-white/40 text-sm text-center mt-4">Click any color to copy hex code</p>
           </section>
 
-          {/* Social Media Templates */}
-          <section className="mb-16 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-8 text-center">Social Media Templates</h2>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* LinkedIn Banner */}
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
-                <div className="bg-[#0D0D1A] p-4 flex items-center justify-center aspect-[4/1]">
-                  <img
-                    src="/brand/linkedin-banner.svg"
-                    alt="LinkedIn Banner"
-                    className="w-full h-auto"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-semibold">LinkedIn Company Banner</h3>
-                      <p className="text-white/60 text-xs">1584 × 396px • SVG</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleDownload("/brand/linkedin-banner.svg", "vantahire-linkedin-banner.svg")}
-                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* LinkedIn Job Post */}
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
-                <div className="bg-[#0D0D1A] p-4 flex items-center justify-center aspect-[1200/628]">
-                  <img
-                    src="/brand/linkedin-job-post.svg"
-                    alt="LinkedIn Job Post"
-                    className="w-full h-auto"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-semibold">LinkedIn Job Post</h3>
-                      <p className="text-white/60 text-xs">1200 × 628px • SVG</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleDownload("/brand/linkedin-job-post.svg", "vantahire-linkedin-job-post.svg")}
-                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Social Square */}
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
-                <div className="bg-[#0D0D1A] p-4 flex items-center justify-center aspect-square">
-                  <img
-                    src="/brand/social-square.svg"
-                    alt="Social Square"
-                    className="w-full h-auto"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-semibold">Social Square</h3>
-                      <p className="text-white/60 text-xs">1080 × 1080px • SVG</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleDownload("/brand/social-square.svg", "vantahire-social-square.svg")}
-                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Twitter Header */}
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 overflow-hidden">
-                <div className="bg-[#0D0D1A] p-4 flex items-center justify-center aspect-[3/1]">
-                  <img
-                    src="/brand/twitter-header.svg"
-                    alt="Twitter Header"
-                    className="w-full h-auto"
-                  />
-                </div>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-semibold">Twitter/X Header</h3>
-                      <p className="text-white/60 text-xs">1500 × 500px • SVG</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleDownload("/brand/twitter-header.svg", "vantahire-twitter-header.svg")}
-                      className="bg-gradient-to-r from-purple-500 to-amber-500 hover:from-purple-600 hover:to-amber-600"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-
           {/* Usage Guidelines */}
-          <section className="mb-16 max-w-4xl mx-auto">
+          <section className="mb-16 max-w-5xl mx-auto">
             <div className="bg-white/5 border border-white/10 rounded-xl p-8">
               <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
                 <FileType className="h-5 w-5 text-purple-400" />
@@ -310,10 +448,10 @@ export default function BrandAssetsPage() {
           </section>
 
           {/* Request More Assets */}
-          <div className="text-center py-12 border-t border-white/10 max-w-4xl mx-auto">
+          <div className="text-center py-12 border-t border-white/10 max-w-5xl mx-auto">
             <h3 className="text-white font-semibold mb-2">Need additional assets?</h3>
             <p className="text-white/50 text-sm mb-6">
-              Request LinkedIn banners, social media templates, or custom formats.
+              Request custom formats or specific dimensions.
             </p>
             <a href="mailto:hello@vantahire.com?subject=Brand Asset Request">
               <Button variant="outline" className="border-white/20 bg-transparent text-white hover:bg-white/10">
