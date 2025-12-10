@@ -188,7 +188,7 @@ export default function ApplicationsPage() {
           </div>
 
           {/* Filters */}
-          <Card className="shadow-sm">
+          <Card className="shadow-sm" data-tour="applications-filters">
             <CardContent className="p-4">
               <div className="space-y-4">
                 {/* Row 1: Search and Status */}
@@ -266,7 +266,7 @@ export default function ApplicationsPage() {
           </Card>
 
           {/* Applications List */}
-          <Card className="shadow-sm">
+          <Card className="shadow-sm" data-tour="applications-list">
             <CardHeader>
               <CardTitle className="text-slate-900 text-lg">
                 All Applications ({filteredApplications.length})

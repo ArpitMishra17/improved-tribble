@@ -693,7 +693,7 @@ type PerformanceResponse = {
                 </p>
               </div>
             </div>
-            <Card className="shadow-sm border-slate-200">
+            <Card className="shadow-sm border-slate-200" data-tour="dashboard-metrics">
               <CardContent className="pt-4">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
                   <div className="text-sm text-slate-600">
@@ -760,23 +760,28 @@ type PerformanceResponse = {
               />
               <p className="text-xs text-slate-500">Hover to see exact values by day.</p>
             </div>
-            <StageFunnel
-              title="Stage distribution"
-              description={`Applications by pipeline stage — last ${RANGE_PRESETS[rangePreset]} days (filters applied)`}
-              data={funnelData}
-              isLoading={applicationsLoading || stagesLoading}
-              onStageClick={handleStageClick}
-            />
+            <div data-tour="stage-funnel">
+              <StageFunnel
+                title="Stage distribution"
+                description={`Applications by pipeline stage — last ${RANGE_PRESETS[rangePreset]} days (filters applied)`}
+                data={funnelData}
+                isLoading={applicationsLoading || stagesLoading}
+                onStageClick={handleStageClick}
+              />
+            </div>
           </div>
 
           {/* AI Summary + Insights */}
-          <AiPipelineSummary
-            pipelineHealthScore={pipelineHealthScore}
-            preGeneratedSummary={aiInsights?.summary}
-            aiLoading={aiLoading}
-            generatedAt={aiInsights?.generatedAt}
-          />
-          <RecruiterAiInsightsSection
+          <div data-tour="recent-activity">
+            <AiPipelineSummary
+              pipelineHealthScore={pipelineHealthScore}
+              preGeneratedSummary={aiInsights?.summary}
+              aiLoading={aiLoading}
+              generatedAt={aiInsights?.generatedAt}
+            />
+          </div>
+          <div data-tour="quick-actions">
+            <RecruiterAiInsightsSection
             jobsNeedingAttention={jobsNeedingAttention.map((job) => ({
               jobId: job.jobId,
               title: job.jobTitle,
@@ -799,6 +804,7 @@ type PerformanceResponse = {
             onEditJob={(jobId) => setLocation(`/jobs/${jobId}`)}
             onViewStage={(stage) => setLocation("/applications")}
           />
+          </div>
 
           {/* Hiring efficiency */}
           <div className="space-y-2 bg-slate-50 border border-slate-100 rounded-md px-4 py-3">

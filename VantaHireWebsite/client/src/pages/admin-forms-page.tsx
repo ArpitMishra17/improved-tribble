@@ -268,6 +268,7 @@ export default function AdminFormsPage() {
           <Button
             onClick={handleCreateNew}
             className=""
+            data-tour="create-form-button"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Template
@@ -275,7 +276,7 @@ export default function AdminFormsPage() {
         </div>
 
         {/* Templates Table */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm" data-tour="forms-list">
           <CardHeader>
             <CardTitle className="text-slate-900">Templates</CardTitle>
             <CardDescription className="text-slate-500">

@@ -44,6 +44,8 @@ import TermsOfServicePage from "@/pages/terms-of-service-page";
 import CookiePolicyPage from "@/pages/cookie-policy-page";
 import BrandAssetsPage from "@/pages/brand-assets-page";
 import { CookieConsent, AnalyticsOnConsent } from "@/components/CookieConsent";
+import { TourProvider } from "@/components/TourProvider";
+import { TourLauncher } from "@/components/TourLauncher";
 
 function Router() {
   return (
@@ -95,11 +97,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <Toaster />
-          {/* Inject analytics only after consent */}
-          <AnalyticsOnConsent />
-          <CookieConsent />
-          <Router />
+          <TourProvider>
+            <Toaster />
+            {/* Inject analytics only after consent */}
+            <AnalyticsOnConsent />
+            <CookieConsent />
+            <Router />
+            <TourLauncher />
+          </TourProvider>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

@@ -217,7 +217,7 @@ export default function ClientsPage() {
               Manage client organizations for agency and multi-company recruiting.
             </p>
           </div>
-          <Button onClick={openCreateDialog}>
+          <Button onClick={openCreateDialog} data-tour="add-client-button">
             <Plus className="w-4 h-4 mr-2" />
             Add Client
           </Button>
@@ -241,7 +241,7 @@ export default function ClientsPage() {
         </Card>
 
         {/* Clients Table */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm" data-tour="clients-list">
           <CardHeader>
             <CardTitle className="text-slate-900">Client List</CardTitle>
             <CardDescription className="text-slate-500">

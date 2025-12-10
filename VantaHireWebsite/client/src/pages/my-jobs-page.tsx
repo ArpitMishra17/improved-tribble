@@ -122,7 +122,7 @@ export default function MyJobsPage() {
               <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">My Jobs</h1>
               <p className="text-slate-500 text-sm md:text-base">Manage your job postings, status, and applications</p>
             </div>
-            <Button onClick={() => setLocation("/jobs/post")}>
+            <Button onClick={() => setLocation("/jobs/post")} data-tour="post-job-button">
               <Plus className="h-4 w-4 mr-2" />
               Post New Job
             </Button>
@@ -148,7 +148,7 @@ export default function MyJobsPage() {
           </div>
 
           {/* Jobs List */}
-          <Card className="shadow-sm">
+          <Card className="shadow-sm" data-tour="jobs-list">
             <CardHeader>
               <CardTitle className="text-slate-900 text-lg">
                 Job Postings ({filteredJobs.length})
