@@ -64,9 +64,10 @@ export function StageFunnel({ title, description, data, isLoading, onStageClick 
               {data.map((stage, index) => {
                 const percent = total > 0 ? (stage.count / total) * 100 : 0;
                 const width = calculateWidth(index, stage.count);
+                const fallbackColors = FUNNEL_COLORS[index % FUNNEL_COLORS.length] || { bg: "#475569", text: "#ffffff" };
                 const colors = stage.color
                   ? { bg: stage.color, text: "#ffffff" }
-                  : FUNNEL_COLORS[index % FUNNEL_COLORS.length];
+                  : fallbackColors;
 
                 return (
                   <Tooltip key={stage.name}>

@@ -48,4 +48,21 @@ test.describe("Tour Launcher", () => {
     const tourLauncher = page.locator('button[aria-label="Open help guide"]');
     await expect(tourLauncher).toBeVisible({ timeout: 10000 });
   });
+
+  test("recruiter dashboard shows pipeline checklist", async ({ page }) => {
+    await loginAs(page, "recruiter");
+    await page.goto("/recruiter-dashboard");
+
+    const checklistCard = page.getByTestId("pipeline-checklist-card");
+    await expect(checklistCard).toBeVisible({ timeout: 10000 });
+
+    // Checklist should either have actions or the empty-state hero
+    const rows = checklistCard.getByTestId("pipeline-action-row");
+    const rowCount = await rows.count();
+    if (rowCount === 0) {
+      await expect(checklistCard.getByText("AI-Powered Actions")).toBeVisible();
+    } else {
+      await expect(rows.first()).toBeVisible();
+    }
+  });
 });

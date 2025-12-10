@@ -37,6 +37,63 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import type { PipelineStage } from "@shared/schema";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+// Types for analytics data
+type HiringMetrics = {
+  timeToFill: {
+    overall: number | null;
+    byJob: Array<{
+      jobId: number;
+      jobTitle: string;
+      averageDays: number;
+      hiredCount: number;
+    }>;
+  };
+  timeInStage: Array<{
+    stageId: number;
+    stageName: string;
+    stageOrder: number;
+    averageDays: number;
+    transitionCount: number;
+  }>;
+  totalApplications: number;
+  totalHires: number;
+  conversionRate: number;
+};
+
+type SourcePerfRow = {
+  source: string;
+  apps: number;
+  shortlist: number;
+  hires: number;
+  conversion: number;
+};
+
+type PerformanceResponse = {
+  recruiters: Array<{
+    id: number;
+    name: string;
+    jobsHandled: number;
+    candidatesScreened: number;
+    avgFirstActionDays: number | null;
+    avgStageMoveDays: number | null;
+  }>;
+  hiringManagers: Array<{
+    id: number;
+    name: string;
+    jobsOwned: number;
+    avgFeedbackDays: number | null;
+    waitingCount: number;
+  }>;
+};
 
 interface AdminStats {
   totalJobs: number;
@@ -146,6 +203,52 @@ export default function AdminSuperDashboard() {
   // Fetch all users
   const { data: users, isLoading: usersLoading } = useQuery<UserDetails[]>({
     queryKey: ["/api/admin/users"],
+  });
+
+  // Analytics queries - org-wide metrics
+  const { data: hiringMetrics, isLoading: metricsLoading } = useQuery<HiringMetrics>({
+    queryKey: ["/api/analytics/hiring-metrics"],
+    queryFn: async () => {
+      const end = new Date();
+      const start = new Date(end.getTime() - 90 * 24 * 60 * 60 * 1000); // Last 90 days
+      const params = new URLSearchParams({
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+      });
+      const res = await fetch(`/api/analytics/hiring-metrics?${params.toString()}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch hiring metrics");
+      return res.json();
+    },
+  });
+
+  const { data: sourcePerformance, isLoading: sourcePerfLoading } = useQuery<SourcePerfRow[]>({
+    queryKey: ["/api/analytics/source-performance"],
+    queryFn: async () => {
+      const end = new Date();
+      const start = new Date(end.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const params = new URLSearchParams({
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+      });
+      const res = await fetch(`/api/analytics/source-performance?${params.toString()}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch source performance");
+      return res.json();
+    },
+  });
+
+  const { data: teamPerformance, isLoading: teamPerfLoading } = useQuery<PerformanceResponse>({
+    queryKey: ["/api/analytics/performance"],
+    queryFn: async () => {
+      const end = new Date();
+      const start = new Date(end.getTime() - 90 * 24 * 60 * 60 * 1000);
+      const params = new URLSearchParams({
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+      });
+      const res = await fetch(`/api/analytics/performance?${params.toString()}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch team performance");
+      return res.json();
+    },
   });
 
   // Update job status mutation
@@ -395,7 +498,7 @@ export default function AdminSuperDashboard() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="pending" className="relative">
               <AlertCircle className="h-4 w-4 mr-2" />
               Pending Approval
@@ -416,6 +519,10 @@ export default function AdminSuperDashboard() {
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               Users
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
             </TabsTrigger>
             <TabsTrigger value="logs">
               <Settings className="h-4 w-4 mr-2" />
@@ -920,6 +1027,270 @@ export default function AdminSuperDashboard() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="space-y-6">
+              {/* Time to Fill & Time in Stage */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-blue-600" />
+                      Time to Fill by Job
+                    </CardTitle>
+                    <CardDescription className="text-slate-600">
+                      Average days from posting to hire (last 90 days)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {metricsLoading ? (
+                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                    ) : hiringMetrics?.timeToFill.byJob?.length ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Job Title</TableHead>
+                            <TableHead className="text-right">Avg Days</TableHead>
+                            <TableHead className="text-right">Hires</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {hiringMetrics.timeToFill.byJob.slice(0, 10).map((row) => (
+                            <TableRow key={row.jobId}>
+                              <TableCell className="font-medium">{row.jobTitle}</TableCell>
+                              <TableCell className="text-right">{row.averageDays.toFixed(1)}d</TableCell>
+                              <TableCell className="text-right">{row.hiredCount}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-4 text-slate-500">No hiring data yet</div>
+                    )}
+                    {hiringMetrics?.timeToFill.overall && (
+                      <div className="mt-4 pt-4 border-t text-sm">
+                        <span className="text-slate-600">Overall average: </span>
+                        <span className="font-semibold text-slate-900">{hiringMetrics.timeToFill.overall.toFixed(1)} days</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-purple-600" />
+                      Time in Stage Breakdown
+                    </CardTitle>
+                    <CardDescription className="text-slate-600">
+                      Average days candidates spend in each stage
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {metricsLoading ? (
+                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                    ) : hiringMetrics?.timeInStage?.length ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Stage</TableHead>
+                            <TableHead className="text-right">Avg Days</TableHead>
+                            <TableHead className="text-right">Transitions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {hiringMetrics.timeInStage
+                            .sort((a, b) => a.stageOrder - b.stageOrder)
+                            .map((row) => (
+                              <TableRow key={row.stageId}>
+                                <TableCell className="font-medium">{row.stageName}</TableCell>
+                                <TableCell className="text-right">{row.averageDays.toFixed(1)}d</TableCell>
+                                <TableCell className="text-right">{row.transitionCount}</TableCell>
+                              </TableRow>
+                            ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-4 text-slate-500">No stage transition data yet</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Source Performance */}
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-green-600" />
+                    Source Performance
+                  </CardTitle>
+                  <CardDescription className="text-slate-600">
+                    Application sources and their conversion rates (last 90 days)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {sourcePerfLoading ? (
+                    <div className="text-center py-4 text-slate-500">Loading...</div>
+                  ) : sourcePerformance?.length ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Source</TableHead>
+                          <TableHead className="text-right">Applications</TableHead>
+                          <TableHead className="text-right">Shortlisted</TableHead>
+                          <TableHead className="text-right">Hired</TableHead>
+                          <TableHead className="text-right">Conversion</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sourcePerformance.map((row) => (
+                          <TableRow key={row.source}>
+                            <TableCell className="font-medium capitalize">{row.source || 'Direct'}</TableCell>
+                            <TableCell className="text-right">{row.apps}</TableCell>
+                            <TableCell className="text-right">{row.shortlist}</TableCell>
+                            <TableCell className="text-right">{row.hires}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant={row.conversion >= 10 ? "default" : "secondary"} className={row.conversion >= 10 ? "bg-green-100 text-green-800" : ""}>
+                                {row.conversion}%
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-4 text-slate-500">No source data available</div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Team Performance */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-600" />
+                      Recruiter Performance
+                    </CardTitle>
+                    <CardDescription className="text-slate-600">
+                      Recruiter activity and response times
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {teamPerfLoading ? (
+                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                    ) : teamPerformance?.recruiters?.length ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Recruiter</TableHead>
+                            <TableHead className="text-right">Jobs</TableHead>
+                            <TableHead className="text-right">Screened</TableHead>
+                            <TableHead className="text-right">Avg First Action</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {teamPerformance.recruiters.slice(0, 10).map((row) => (
+                            <TableRow key={row.id}>
+                              <TableCell className="font-medium">{row.name}</TableCell>
+                              <TableCell className="text-right">{row.jobsHandled}</TableCell>
+                              <TableCell className="text-right">{row.candidatesScreened}</TableCell>
+                              <TableCell className="text-right">
+                                {row.avgFirstActionDays != null ? `${row.avgFirstActionDays.toFixed(1)}d` : '—'}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-4 text-slate-500">No recruiter data yet</div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                      <Crown className="h-5 w-5 text-amber-600" />
+                      Hiring Manager Performance
+                    </CardTitle>
+                    <CardDescription className="text-slate-600">
+                      Feedback turnaround and pending reviews
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {teamPerfLoading ? (
+                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                    ) : teamPerformance?.hiringManagers?.length ? (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Hiring Manager</TableHead>
+                            <TableHead className="text-right">Jobs Owned</TableHead>
+                            <TableHead className="text-right">Avg Feedback</TableHead>
+                            <TableHead className="text-right">Waiting</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {teamPerformance.hiringManagers.slice(0, 10).map((row) => (
+                            <TableRow key={row.id}>
+                              <TableCell className="font-medium">{row.name}</TableCell>
+                              <TableCell className="text-right">{row.jobsOwned}</TableCell>
+                              <TableCell className="text-right">
+                                {row.avgFeedbackDays != null ? `${row.avgFeedbackDays.toFixed(1)}d` : '—'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {row.waitingCount > 0 ? (
+                                  <Badge className="bg-orange-100 text-orange-800">{row.waitingCount}</Badge>
+                                ) : (
+                                  '0'
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <div className="text-center py-4 text-slate-500">No hiring manager data yet</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Summary Stats */}
+              <Card className="shadow-sm bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                <CardContent className="py-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                    <div>
+                      <div className="text-3xl font-bold text-blue-700">
+                        {hiringMetrics?.totalApplications ?? 0}
+                      </div>
+                      <div className="text-sm text-slate-600">Total Applications</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-bold text-green-700">
+                        {hiringMetrics?.totalHires ?? 0}
+                      </div>
+                      <div className="text-sm text-slate-600">Total Hires</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-bold text-purple-700">
+                        {hiringMetrics?.conversionRate?.toFixed(1) ?? 0}%
+                      </div>
+                      <div className="text-sm text-slate-600">Conversion Rate</div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-bold text-amber-700">
+                        {hiringMetrics?.timeToFill.overall?.toFixed(0) ?? '—'}
+                      </div>
+                      <div className="text-sm text-slate-600">Avg Time to Fill (days)</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* System Logs Tab */}

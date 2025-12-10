@@ -38,14 +38,14 @@ export const tourConfigs: TourConfig[] = [
         tourId: "dashboard-overview",
       },
       {
-        target: '[data-tour="recent-activity"]',
-        content: "Recent activity shows the latest updates across all your job postings - new applications, status changes, and more.",
+        target: '[data-tour="pipeline-checklist"]',
+        content: "The pipeline action checklist prioritizes what to do next. Complete items or reanalyze to refresh AI guidance.",
         route: "/recruiter-dashboard",
         tourId: "dashboard-overview",
       },
       {
-        target: '[data-tour="quick-actions"]',
-        content: "Quick actions let you jump to common tasks like posting a new job, reviewing applications, or managing candidates.",
+        target: '[data-tour="recent-activity"]',
+        content: "AI summary highlights pipeline health and current risks based on your filters.",
         route: "/recruiter-dashboard",
         tourId: "dashboard-overview",
       },

@@ -1,40 +1,16 @@
 import { useMemo, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import {
-  Users,
-  Briefcase,
-  Clock,
-  CheckCircle,
-  TrendingUp,
-  AlertTriangle,
-  Target,
-  BarChart3,
-  Filter,
-  Sparkles,
-} from "lucide-react";
 import Layout from "@/components/Layout";
 import type { Job, Application, PipelineStage } from "@shared/schema";
-import { KpiCard } from "@/components/dashboards/KpiCard";
 import { TimeSeriesChart } from "@/components/dashboards/TimeSeriesChart";
 import { StageFunnel } from "@/components/dashboards/StageFunnel";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { RecruiterKpiRibbon } from "@/components/recruiter/RecruiterKpiRibbon";
-import { RecruiterAiInsightsSection } from "@/components/recruiter/RecruiterAiInsightsSection";
+import { PipelineActionChecklist } from "@/components/recruiter/PipelineActionChecklist";
 import { AiPipelineSummary } from "@/components/recruiter/AiPipelineSummary";
-import { useAuth } from "@/hooks/use-auth";
-
+import type { PipelineData } from "@/lib/pipeline-types";
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
   job?: { title: string };
@@ -107,7 +83,6 @@ const RANGE_PRESETS: Record<string, number> = {
 };
 
 export default function RecruiterDashboard() {
-  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [rangePreset, setRangePreset] = useState<keyof typeof RANGE_PRESETS>("30d");
   const [selectedJobId, setSelectedJobId] = useState<number | "all">("all");
@@ -189,36 +164,10 @@ export default function RecruiterDashboard() {
     conversions: Array<{ name: string; count: number; rate: number }>;
   };
 
-type SourcePerfRow = {
-  source: string;
-  apps: number;
-  shortlist: number;
-  hires: number;
-  conversion: number;
-};
-
 type HmFeedbackResponse = {
   averageDays: number | null;
   waitingCount: number;
   sampleSize: number;
-};
-
-type PerformanceResponse = {
-  recruiters: Array<{
-    id: number;
-    name: string;
-    jobsHandled: number;
-    candidatesScreened: number;
-    avgFirstActionDays: number | null;
-    avgStageMoveDays: number | null;
-  }>;
-  hiringManagers: Array<{
-    id: number;
-    name: string;
-    jobsOwned: number;
-    avgFeedbackDays: number | null;
-    waitingCount: number;
-  }>;
 };
 
   const commonParams = useMemo(() => {
@@ -234,15 +183,6 @@ type PerformanceResponse = {
     queryFn: async () => {
       const res = await fetch(`/api/analytics/dropoff?${commonParams}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch dropoff analytics");
-      return res.json();
-    },
-  });
-
-  const { data: sourcePerfData } = useQuery<SourcePerfRow[]>({
-    queryKey: ["/api/analytics/source-performance", commonParams],
-    queryFn: async () => {
-      const res = await fetch(`/api/analytics/source-performance?${commonParams}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch source performance");
       return res.json();
     },
   });
@@ -277,15 +217,6 @@ type PerformanceResponse = {
       }
       const res = await fetch(`/api/analytics/hm-feedback?${params.toString()}`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch HM feedback timing");
-      return res.json();
-    },
-  });
-
-  const { data: performance } = useQuery<PerformanceResponse>({
-    queryKey: ["/api/analytics/performance", commonParams],
-    queryFn: async () => {
-      const res = await fetch(`/api/analytics/performance?${commonParams}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch performance metrics");
       return res.json();
     },
   });
@@ -471,39 +402,6 @@ type PerformanceResponse = {
     return suggestions;
   }, [filteredJobs]);
 
-  const sourcePerformance = useMemo(() => {
-    if (sourcePerfData) return sourcePerfData;
-    const grouped: Record<string, { apps: number; shortlist: number; hires: number }> = {};
-    filteredApplications.forEach((app) => {
-      const key = app.source || "unknown";
-      if (!grouped[key]) grouped[key] = { apps: 0, shortlist: 0, hires: 0 };
-      grouped[key].apps += 1;
-      if (app.status === "shortlisted" || app.status === "interview") grouped[key].shortlist += 1;
-      if (app.status === "hired") grouped[key].hires += 1;
-    });
-    return Object.entries(grouped).map(([source, metrics]) => ({
-      source,
-      apps: metrics.apps,
-      shortlist: metrics.shortlist,
-      hires: metrics.hires,
-      conversion: metrics.apps > 0 ? Math.round((metrics.hires / metrics.apps) * 1000) / 10 : 0,
-    }));
-  }, [sourcePerfData, filteredApplications]);
-
-  const candidateFit = useMemo(() => {
-    const buckets: Record<string, number> = {};
-    filteredApplications.forEach((app) => {
-      const label = app.aiFitLabel || "Unscored";
-      buckets[label] = (buckets[label] || 0) + 1;
-    });
-    const total = filteredApplications.length || 1;
-    return Object.entries(buckets).map(([label, count]) => ({
-      label,
-      count,
-      percent: Math.round((count / total) * 100),
-    }));
-  }, [filteredApplications]);
-
   const aiSummaryText = useMemo(() => {
     const amber = jobHealth.filter((j) => j.status === "amber").length;
     const red = jobHealth.filter((j) => j.status === "red").length;
@@ -616,6 +514,125 @@ type PerformanceResponse = {
     }
     return "Pipeline is steady. No major drop-offs detected.";
   }, [dropoffInsights, dropoffData]);
+
+  // Transform data for PipelineActionChecklist
+  const actionChecklistData: PipelineData = useMemo(() => {
+    const now = new Date().getTime();
+    const stuckThresholdDays = 3;
+
+    // Calculate stuck candidates by stage with max days
+    const stuckByStage: PipelineData["stuckByStage"] = {};
+    pipelineStages.forEach((stage) => {
+      const appsInStage = filteredApplications.filter((a) => a.currentStage === stage.id);
+      let maxDays = 0;
+      let count = 0;
+      appsInStage.forEach((a) => {
+        if (a.stageChangedAt) {
+          const days = (now - new Date(a.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24);
+          if (days >= stuckThresholdDays) {
+            count++;
+            maxDays = Math.max(maxDays, Math.floor(days));
+          }
+        }
+      });
+      if (count > 0) {
+        stuckByStage[stage.id] = { count, maxDays, stageName: stage.name };
+      }
+    });
+
+    // Unreviewed applications (applied stage, no action yet)
+    const appliedStage = pipelineStages.find((s) => s.name.toLowerCase() === "applied");
+    const unreviewedApps = appliedStage
+      ? filteredApplications.filter((a) => a.currentStage === appliedStage.id)
+      : [];
+    let oldestUnreviewedHours = 0;
+    unreviewedApps.forEach((a) => {
+      const hours = (now - new Date(a.appliedAt).getTime()) / (1000 * 60 * 60);
+      oldestUnreviewedHours = Math.max(oldestUnreviewedHours, hours);
+    });
+
+    // Pending offers - candidates in "Offer Extended" stage
+    const offerStage = pipelineStages.find(
+      (s) => s.name.toLowerCase().includes("offer") && !s.name.toLowerCase().includes("reject")
+    );
+    const pendingOffers: PipelineData["pendingOffers"] = [];
+    if (offerStage) {
+      filteredApplications
+        .filter((a) => a.currentStage === offerStage.id)
+        .forEach((a) => {
+          if (a.stageChangedAt) {
+            const daysSinceSent = Math.floor(
+              (now - new Date(a.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
+            );
+            pendingOffers.push({
+              applicationId: a.id,
+              candidateName: a.name || `Candidate #${a.id}`,
+              daysSinceSent,
+            });
+          }
+        });
+    }
+
+    // Shortlisted but no interview scheduled
+    const screeningStage = pipelineStages.find((s) => s.name.toLowerCase().includes("screen"));
+    const shortlistedNoInterview = screeningStage
+      ? filteredApplications.filter(
+          (a) => a.currentStage === screeningStage.id && a.status === "shortlisted"
+        ).length
+      : 0;
+
+    // Jobs with low pipeline (< 3 active candidates)
+    const jobsWithLowPipeline: PipelineData["jobsWithLowPipeline"] = [];
+    filteredJobs.forEach((job) => {
+      if (!job.isActive) return;
+      const activeApps = filteredApplications.filter(
+        (a) => a.jobId === job.id && a.status !== "rejected" && a.status !== "hired"
+      );
+      if (activeApps.length < 3) {
+        jobsWithLowPipeline.push({
+          jobId: job.id,
+          title: job.title,
+          activeCount: activeApps.length,
+        });
+      }
+    });
+
+    // JD quality issues (reuse jdSuggestions)
+    const jdIssues: PipelineData["jdIssues"] = jdSuggestions.map((j) => ({
+      jobId: j.jobId,
+      title: j.title,
+      issue: j.tips[0] || "Needs improvement",
+    }));
+
+    // Stale jobs (no activity > 30 days)
+    const staleJobs: PipelineData["staleJobs"] = [];
+    filteredJobs.forEach((job) => {
+      if (!job.isActive) return;
+      const jobApps = filteredApplications.filter((a) => a.jobId === job.id);
+      let lastActivity = new Date(job.createdAt || now).getTime();
+      jobApps.forEach((a) => {
+        const appDate = new Date(a.appliedAt).getTime();
+        const stageDate = a.stageChangedAt ? new Date(a.stageChangedAt).getTime() : 0;
+        lastActivity = Math.max(lastActivity, appDate, stageDate);
+      });
+      const daysSinceActivity = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));
+      if (daysSinceActivity >= 30) {
+        staleJobs.push({ jobId: job.id, title: job.title, daysSinceActivity });
+      }
+    });
+
+    return {
+      stuckByStage,
+      unreviewedCount: unreviewedApps.length,
+      oldestUnreviewedHours,
+      pendingOffers,
+      shortlistedNoInterview,
+      jobsWithLowPipeline,
+      jdIssues,
+      staleJobs,
+      candidatesNeedingUpdate: 0, // Would require email tracking to implement
+    };
+  }, [filteredApplications, filteredJobs, pipelineStages, jdSuggestions]);
 
   // Batched AI insights - one call per day, cached server-side
   const aiPayload = useMemo(() => {
@@ -744,11 +761,6 @@ type PerformanceResponse = {
             </Card>
           </div>
 
-          <div className="space-y-4 bg-slate-50 border border-slate-100 rounded-md px-4 py-3">
-            <h2 className="text-lg font-semibold text-slate-900">Pipeline & time metrics</h2>
-            <p className="text-sm text-slate-500">Charts and summaries respect the selected date range and job filters.</p>
-          </div>
-
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -780,383 +792,11 @@ type PerformanceResponse = {
               generatedAt={aiInsights?.generatedAt}
             />
           </div>
-          <div data-tour="quick-actions">
-            <RecruiterAiInsightsSection
-            jobsNeedingAttention={jobsNeedingAttention.map((job) => ({
-              jobId: job.jobId,
-              title: job.jobTitle,
-              severity: job.status === "red" ? "high" : job.status === "amber" ? "medium" : "low",
-              reason: job.reason || "Needs movement",
-            }))}
-            jdSuggestions={jdSuggestions.map((j) => ({
-              jobId: j.jobId,
-              title: j.title,
-              score: j.score,
-              tips: j.tips,
-            }))}
-            dropoff={dropoffSteps}
-            dropoffSummary={aiSummaryText || dropoffSummary}
-            bottlenecks={stageBottlenecks}
-            preGeneratedActions={aiInsights?.jobs}
-            preGeneratedDropoffExplanation={aiInsights?.dropoffExplanation}
-            aiLoading={aiLoading}
-            onViewJob={(jobId) => setLocation(`/jobs/${jobId}`)}
-            onEditJob={(jobId) => setLocation(`/jobs/${jobId}`)}
-            onViewStage={(stage) => setLocation("/applications")}
-          />
-          </div>
-
-          {/* Hiring efficiency */}
-          <div className="space-y-2 bg-slate-50 border border-slate-100 rounded-md px-4 py-3">
-            <h2 className="text-lg font-semibold text-slate-900">Pipeline & time metrics</h2>
-            <p className="text-sm text-slate-500">How long it takes to fill roles and move candidates through stages.</p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-slate-200 shadow-sm h-full">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-blue-600" />
-                  Time to fill by job
-                </CardTitle>
-                <CardDescription>Closed roles in this period.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Job</TableHead>
-                      <TableHead>Time to Fill</TableHead>
-                      <TableHead>Hires</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(hiringMetrics?.timeToFill.byJob || []).slice(0, 6).map((row) => (
-                      <TableRow key={row.jobId}>
-                        <TableCell className="text-sm text-slate-800">{row.jobTitle}</TableCell>
-                        <TableCell className="text-sm text-slate-700">
-                          {row.averageDays ? `${row.averageDays.toFixed(1)}d` : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-slate-700">{row.hiredCount}</TableCell>
-                      </TableRow>
-                    ))}
-                    {(!hiringMetrics?.timeToFill.byJob || hiringMetrics.timeToFill.byJob.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center text-sm text-slate-500 py-6">
-                          No closed roles in this period — once jobs are filled, they’ll show up here.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-200 shadow-sm h-full">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-slate-700" />
-                  Time in stage breakdown
-                </CardTitle>
-                <CardDescription>Average days per stage for candidates currently in the pipeline.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Stage</TableHead>
-                      <TableHead>Avg days</TableHead>
-                      <TableHead>Transitions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(hiringMetrics?.timeInStage || []).map((row) => (
-                      <TableRow key={row.stageId}>
-                        <TableCell className="text-sm text-slate-800">{row.stageName}</TableCell>
-                        <TableCell className="text-sm text-slate-700">{row.averageDays.toFixed(1)}d</TableCell>
-                        <TableCell className="text-sm text-slate-700">{row.transitionCount}</TableCell>
-                      </TableRow>
-                    ))}
-                    {(!hiringMetrics?.timeInStage || hiringMetrics.timeInStage.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center text-sm text-slate-500 py-6">
-                          No stage transitions in this period.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-slate-900">Performance</h2>
-            <p className="text-sm text-slate-500">Source effectiveness and candidate quality for this period.</p>
-          </div>
-          {/* Source + quality */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-slate-200 shadow-sm h-full">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-slate-700" />
-                  Source performance
-                </CardTitle>
-                <CardDescription>Applications, shortlist, hires by source.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Source</TableHead>
-                      <TableHead>Apps</TableHead>
-                      <TableHead>Shortlist</TableHead>
-                      <TableHead>Hires</TableHead>
-                      <TableHead>Conv%</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sourcePerformance.map((row) => {
-                      const maxApps = Math.max(...sourcePerformance.map((r) => r.apps || 0), 1);
-                      const width = Math.max(8, Math.min(100, Math.round((row.apps / maxApps) * 100)));
-                      return (
-                        <TableRow key={row.source}>
-                          <TableCell className="text-sm text-slate-800">{row.source}</TableCell>
-                          <TableCell className="text-sm text-slate-700">
-                            <div className="flex items-center gap-2">
-                              <div className="h-2 bg-blue-100 rounded-full w-full max-w-[120px]">
-                                <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${width}%` }} />
-                              </div>
-                              <span>{row.apps}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-slate-700">{row.shortlist}</TableCell>
-                          <TableCell className="text-sm text-slate-700">{row.hires}</TableCell>
-                          <TableCell className="text-sm text-slate-700">{row.conversion}%</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {sourcePerformance.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-sm text-slate-500 py-6">
-                          Referrals and direct sourcing performance will appear here when used for this period.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-                <p className="text-xs text-slate-500 px-4 py-3">
-                  Conversion compares hires to total applications; shortlist bars show relative volume by source.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-200 shadow-sm h-full">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Target className="h-4 w-4 text-green-600" />
-                  Candidate quality
-                </CardTitle>
-                <CardDescription>Based on AI fit labels.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(candidateFit.length === 0 || candidateFit.every((c) => c.label === "Unscored")) && (
-                  <p className="text-sm text-slate-500">AI candidate scoring not yet available for this period.</p>
-                )}
-                {candidateFit.length > 0 && !candidateFit.every((c) => c.label === "Unscored") && (
-                  <div className="space-y-2">
-                    {candidateFit
-                      .filter((row) => row.label !== "Unscored")
-                      .map((row) => (
-                        <div key={row.label} className="flex items-center justify-between text-sm">
-                          <span className="text-slate-700">{row.label}</span>
-                          <span className="font-semibold text-slate-900">
-                            {row.count} ({row.percent}%)
-                          </span>
-                        </div>
-                      ))}
-                    <p className="text-xs text-slate-500">
-                      {candidateFit
-                        .filter((c) => c.label !== "Unscored")
-                        .map((c) => `${c.label} ${c.percent}%`)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {user?.role === "admin" && (
-            <>
-              <div className="space-y-2">
-                <h2 className="text-lg font-semibold text-slate-900">Team performance</h2>
-                <p className="text-sm text-slate-500">Responsiveness and throughput for recruiters and hiring managers.</p>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="border-slate-200 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Users className="h-4 w-4 text-slate-700" />
-                      Recruiter Performance
-                    </CardTitle>
-                    <CardDescription>Jobs handled, candidates screened, and action speeds.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Recruiter</TableHead>
-                          <TableHead>Jobs handled</TableHead>
-                          <TableHead>Candidates screened</TableHead>
-                          <TableHead>Avg time to first action</TableHead>
-                          <TableHead>Avg days to move stage</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(performance?.recruiters || []).map((row) => (
-                          <TableRow key={row.id}>
-                            <TableCell className="text-sm text-slate-800">
-                              {row.name}
-                            </TableCell>
-                            <TableCell className="text-sm text-slate-700">{row.jobsHandled}</TableCell>
-                            <TableCell className="text-sm text-slate-700">{row.candidatesScreened}</TableCell>
-                            <TableCell className="text-sm text-slate-700">
-                              {row.avgFirstActionDays != null ? `${row.avgFirstActionDays}d` : "—"}
-                            </TableCell>
-                            <TableCell className="text-sm text-slate-700">
-                              {row.avgStageMoveDays != null ? `${row.avgStageMoveDays}d` : "—"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {(!performance?.recruiters || performance.recruiters.length === 0) && (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center text-sm text-slate-500 py-6">
-                              No recruiter metrics for this range.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-slate-200 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-slate-700" />
-                      Hiring Manager Performance
-                    </CardTitle>
-                    <CardDescription>Jobs owned, feedback latency, waiting count.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Hiring Manager</TableHead>
-                          <TableHead>Jobs owned</TableHead>
-                          <TableHead>Avg feedback</TableHead>
-                          <TableHead>Waiting</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(performance?.hiringManagers || []).map((row) => (
-                          <TableRow key={row.id}>
-                            <TableCell className="text-sm text-slate-800">{row.name}</TableCell>
-                            <TableCell className="text-sm text-slate-700">{row.jobsOwned}</TableCell>
-                            <TableCell className="text-sm text-slate-700">
-                              {row.avgFeedbackDays != null ? `${row.avgFeedbackDays}d` : "—"}
-                            </TableCell>
-                            <TableCell className="text-sm text-slate-700">{row.waitingCount}</TableCell>
-                          </TableRow>
-                        ))}
-                        {(!performance?.hiringManagers || performance.hiringManagers.length === 0) && (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center text-sm text-slate-500 py-6">
-                              No hiring manager feedback data in this period. Once HMs are assigned and start reviewing candidates, their responsiveness will appear here.
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
-
-          {user?.role !== "admin" && (
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900">My performance</h2>
-              <p className="text-sm text-slate-500">Your responsiveness and throughput for your jobs.</p>
-              <Card className="border-slate-200 shadow-sm">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Jobs handled</TableHead>
-                        <TableHead>Candidates screened</TableHead>
-                        <TableHead>Avg time to first action</TableHead>
-                        <TableHead>Avg days to move stage</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {performance?.recruiters
-                        ?.filter((r) => r.id === user?.id)
-                        .map((row) => (
-                          <TableRow key={row.id} className="bg-slate-50">
-                            <TableCell className="text-sm text-slate-800">{row.jobsHandled}</TableCell>
-                            <TableCell className="text-sm text-slate-700">{row.candidatesScreened}</TableCell>
-                            <TableCell className="text-sm text-slate-700">
-                              {row.avgFirstActionDays != null ? `${row.avgFirstActionDays}d` : "—"}
-                            </TableCell>
-                            <TableCell className="text-sm text-slate-700">
-                              {row.avgStageMoveDays != null ? `${row.avgStageMoveDays}d` : "—"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      {(!performance?.recruiters || performance.recruiters.filter((r) => r.id === user?.id).length === 0) && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center text-sm text-slate-500 py-6">
-                            No personal performance metrics for this range.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Quick links */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Button
-              variant="outline"
-              className="h-24 flex items-center justify-between p-6 border-2 hover:border-primary hover:bg-primary/5"
-              onClick={() => setLocation("/applications")}
-            >
-              <div className="flex items-center gap-3">
-                <Users className="h-8 w-8 text-primary" />
-                <div className="text-left">
-                  <div className="font-semibold text-slate-900">View All Applications</div>
-                  <div className="text-sm text-slate-500">{stats.totalApplications} total applications</div>
-                </div>
-              </div>
-            </Button>
-
-            <Button
-              variant="outline"
-              className="h-24 flex items-center justify-between p-6 border-2 hover:border-primary hover:bg-primary/5"
-              onClick={() => setLocation("/my-jobs")}
-            >
-              <div className="flex items-center gap-3">
-                <Briefcase className="h-8 w-8 text-primary" />
-                <div className="text-left">
-                  <div className="font-semibold text-slate-900">Manage My Jobs</div>
-                  <div className="text-sm text-slate-500">{stats.totalJobs} job postings</div>
-                </div>
-              </div>
-            </Button>
+          <div data-tour="pipeline-checklist">
+            <PipelineActionChecklist
+              pipelineData={actionChecklistData}
+              pipelineHealthScore={pipelineHealthScore}
+            />
           </div>
         </div>
       </div>
