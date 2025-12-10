@@ -33,6 +33,7 @@ import {
 import { RecruiterKpiRibbon } from "@/components/recruiter/RecruiterKpiRibbon";
 import { RecruiterAiInsightsSection } from "@/components/recruiter/RecruiterAiInsightsSection";
 import { AiPipelineSummary } from "@/components/recruiter/AiPipelineSummary";
+import { useAuth } from "@/hooks/use-auth";
 
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
@@ -106,6 +107,7 @@ const RANGE_PRESETS: Record<string, number> = {
 };
 
 export default function RecruiterDashboard() {
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [rangePreset, setRangePreset] = useState<keyof typeof RANGE_PRESETS>("30d");
   const [selectedJobId, setSelectedJobId] = useState<number | "all">("all");
@@ -968,101 +970,147 @@ type PerformanceResponse = {
             </Card>
           </div>
 
-          {/* Performance: Recruiters vs Hiring Managers */}
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-slate-900">Team performance</h2>
-            <p className="text-sm text-slate-500">Responsiveness and throughput for recruiters and hiring managers.</p>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Users className="h-4 w-4 text-slate-700" />
-                  Recruiter Performance
-                </CardTitle>
-                <CardDescription>Jobs handled, candidates screened, and action speeds.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Recruiter</TableHead>
-                      <TableHead>Jobs handled</TableHead>
-                      <TableHead>Candidates screened</TableHead>
-                      <TableHead>Avg time to first action</TableHead>
-                      <TableHead>Avg days to move stage</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(performance?.recruiters || []).map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="text-sm text-slate-800">
-                          {row.name}
-                          {/* TODO: highlight current user row when auth context is available */}
-                        </TableCell>
-                        <TableCell className="text-sm text-slate-700">{row.jobsHandled}</TableCell>
-                        <TableCell className="text-sm text-slate-700">{row.candidatesScreened}</TableCell>
-                        <TableCell className="text-sm text-slate-700">
-                          {row.avgFirstActionDays != null ? `${row.avgFirstActionDays}d` : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-slate-700">
-                          {row.avgStageMoveDays != null ? `${row.avgStageMoveDays}d` : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {(!performance?.recruiters || performance.recruiters.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-sm text-slate-500 py-4">
-                          No recruiter metrics for this range.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+          {user?.role === "admin" && (
+            <>
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-slate-900">Team performance</h2>
+                <p className="text-sm text-slate-500">Responsiveness and throughput for recruiters and hiring managers.</p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="border-slate-200 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users className="h-4 w-4 text-slate-700" />
+                      Recruiter Performance
+                    </CardTitle>
+                    <CardDescription>Jobs handled, candidates screened, and action speeds.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Recruiter</TableHead>
+                          <TableHead>Jobs handled</TableHead>
+                          <TableHead>Candidates screened</TableHead>
+                          <TableHead>Avg time to first action</TableHead>
+                          <TableHead>Avg days to move stage</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(performance?.recruiters || []).map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="text-sm text-slate-800">
+                              {row.name}
+                            </TableCell>
+                            <TableCell className="text-sm text-slate-700">{row.jobsHandled}</TableCell>
+                            <TableCell className="text-sm text-slate-700">{row.candidatesScreened}</TableCell>
+                            <TableCell className="text-sm text-slate-700">
+                              {row.avgFirstActionDays != null ? `${row.avgFirstActionDays}d` : "—"}
+                            </TableCell>
+                            <TableCell className="text-sm text-slate-700">
+                              {row.avgStageMoveDays != null ? `${row.avgStageMoveDays}d` : "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {(!performance?.recruiters || performance.recruiters.length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center text-sm text-slate-500 py-6">
+                              No recruiter metrics for this range.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
 
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-slate-700" />
-                  Hiring Manager Performance
-                </CardTitle>
-                <CardDescription>Jobs owned, feedback latency, waiting count.</CardDescription>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Hiring Manager</TableHead>
-                      <TableHead>Jobs owned</TableHead>
-                      <TableHead>Avg feedback</TableHead>
-                      <TableHead>Waiting</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(performance?.hiringManagers || []).map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="text-sm text-slate-800">{row.name}</TableCell>
-                        <TableCell className="text-sm text-slate-700">{row.jobsOwned}</TableCell>
-                        <TableCell className="text-sm text-slate-700">
-                          {row.avgFeedbackDays != null ? `${row.avgFeedbackDays}d` : "—"}
-                        </TableCell>
-                        <TableCell className="text-sm text-slate-700">{row.waitingCount}</TableCell>
-                      </TableRow>
-                    ))}
-                    {(!performance?.hiringManagers || performance.hiringManagers.length === 0) && (
+                <Card className="border-slate-200 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-slate-700" />
+                      Hiring Manager Performance
+                    </CardTitle>
+                    <CardDescription>Jobs owned, feedback latency, waiting count.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Hiring Manager</TableHead>
+                          <TableHead>Jobs owned</TableHead>
+                          <TableHead>Avg feedback</TableHead>
+                          <TableHead>Waiting</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(performance?.hiringManagers || []).map((row) => (
+                          <TableRow key={row.id}>
+                            <TableCell className="text-sm text-slate-800">{row.name}</TableCell>
+                            <TableCell className="text-sm text-slate-700">{row.jobsOwned}</TableCell>
+                            <TableCell className="text-sm text-slate-700">
+                              {row.avgFeedbackDays != null ? `${row.avgFeedbackDays}d` : "—"}
+                            </TableCell>
+                            <TableCell className="text-sm text-slate-700">{row.waitingCount}</TableCell>
+                          </TableRow>
+                        ))}
+                        {(!performance?.hiringManagers || performance.hiringManagers.length === 0) && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-sm text-slate-500 py-6">
+                              No hiring manager feedback data in this period. Once HMs are assigned and start reviewing candidates, their responsiveness will appear here.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+
+          {user?.role !== "admin" && (
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-slate-900">My performance</h2>
+              <p className="text-sm text-slate-500">Your responsiveness and throughput for your jobs.</p>
+              <Card className="border-slate-200 shadow-sm">
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-sm text-slate-500 py-6">
-                          No hiring manager feedback data in this period. Once HMs are assigned and start reviewing candidates, their responsiveness will appear here.
-                        </TableCell>
+                        <TableHead>Jobs handled</TableHead>
+                        <TableHead>Candidates screened</TableHead>
+                        <TableHead>Avg time to first action</TableHead>
+                        <TableHead>Avg days to move stage</TableHead>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </div>
+                    </TableHeader>
+                    <TableBody>
+                      {performance?.recruiters
+                        ?.filter((r) => r.id === user?.id)
+                        .map((row) => (
+                          <TableRow key={row.id} className="bg-slate-50">
+                            <TableCell className="text-sm text-slate-800">{row.jobsHandled}</TableCell>
+                            <TableCell className="text-sm text-slate-700">{row.candidatesScreened}</TableCell>
+                            <TableCell className="text-sm text-slate-700">
+                              {row.avgFirstActionDays != null ? `${row.avgFirstActionDays}d` : "—"}
+                            </TableCell>
+                            <TableCell className="text-sm text-slate-700">
+                              {row.avgStageMoveDays != null ? `${row.avgStageMoveDays}d` : "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      {(!performance?.recruiters || performance.recruiters.filter((r) => r.id === user?.id).length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-sm text-slate-500 py-6">
+                            No personal performance metrics for this range.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Quick links */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
