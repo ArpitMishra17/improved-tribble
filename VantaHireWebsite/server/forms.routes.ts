@@ -122,7 +122,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
   app.post(
     "/api/forms/templates",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     csrf,
     async (req: Request, res: Response) => {
       try {
@@ -166,7 +166,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
   app.post(
     "/api/forms/ai-suggest",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     csrf,
     aiAnalysisRateLimit,
     async (req: Request, res: Response) => {
@@ -248,7 +248,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
   app.get(
     "/api/forms/templates",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const isAdmin = req.user!.role === 'admin';
@@ -282,7 +282,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
   app.get(
     "/api/forms/templates/:id",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const formId = parseInt(req.params.id ?? '', 10);
@@ -317,7 +317,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
   app.patch(
     "/api/forms/templates/:id",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     csrf,
     async (req: Request, res: Response) => {
       try {
@@ -398,7 +398,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
   app.delete(
     "/api/forms/templates/:id",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     csrf,
     async (req: Request, res: Response) => {
       try {
@@ -533,7 +533,7 @@ VantaHire Team`;
   app.get(
     "/api/forms/invitations/quota",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         // Count invitations sent today by this user
@@ -578,7 +578,7 @@ VantaHire Team`;
   app.post(
     "/api/forms/invitations",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     csrf,
     invitationRateLimit,
     async (req: Request, res: Response) => {
@@ -731,7 +731,7 @@ VantaHire Team`;
   app.post(
     "/api/forms/invitations/bulk",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     csrf,
     rateLimit({
       windowMs: 60_000, // 1 minute
@@ -963,7 +963,7 @@ VantaHire Team`;
   app.get(
     "/api/forms/invitations",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const applicationId = parseInt(req.query.applicationId as string, 10);
@@ -1007,7 +1007,7 @@ VantaHire Team`;
   app.post(
     "/api/forms/invitations/:id/remind",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     csrf,
     invitationRateLimit,
     async (req: Request, res: Response) => {
@@ -1367,7 +1367,7 @@ VantaHire Team`;
   app.get(
     "/api/forms/responses",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const applicationId = parseInt(req.query.applicationId as string, 10);
@@ -1427,7 +1427,7 @@ VantaHire Team`;
   app.get(
     "/api/forms/:id/responses",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const formId = parseInt(req.params.id ?? '', 10);
@@ -1492,7 +1492,7 @@ VantaHire Team`;
   app.get(
     "/api/forms/responses/:id",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const responseId = parseInt(req.params.id ?? '', 10);
@@ -1556,7 +1556,7 @@ VantaHire Team`;
   app.get(
     "/api/forms/export",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
         const applicationId = parseInt(req.query.applicationId as string, 10);

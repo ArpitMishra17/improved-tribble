@@ -90,7 +90,7 @@ export default function AdminConsultantsPage() {
   const [formData, setFormData] = useState<ConsultantFormData>(emptyForm);
 
   // Redirect non-admin users
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== "super_admin") {
     return <Redirect to="/auth" />;
   }
 

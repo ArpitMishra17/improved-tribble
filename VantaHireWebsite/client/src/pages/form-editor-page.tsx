@@ -71,7 +71,7 @@ export default function FormEditorPage() {
   ];
 
   // Redirect if not admin or recruiter
-  if (user && !['admin', 'recruiter'].includes(user.role)) {
+  if (user && !['super_admin', 'recruiter'].includes(user.role)) {
     return <Redirect to="/jobs" />;
   }
 

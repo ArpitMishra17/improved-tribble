@@ -161,7 +161,7 @@ export function registerAIRoutes(app: Express): void {
   app.post(
     "/api/ai/generate",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     genericGenerationLimiter,
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
@@ -201,7 +201,7 @@ export function registerAIRoutes(app: Express): void {
   app.post(
     "/api/ai/dashboard-insights",
     requireAuth,
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     genericGenerationLimiter,
     async (req: Request, res: Response): Promise<void> => {
       try {
@@ -885,7 +885,7 @@ export function registerAIRoutes(app: Express): void {
   app.get(
     '/api/admin/ai/redis',
     requireAuth,
-    requireRole(['admin']),
+    requireRole(['super_admin']),
     (_req, res): void => {
       const health = getRedisHealth();
       res.json({

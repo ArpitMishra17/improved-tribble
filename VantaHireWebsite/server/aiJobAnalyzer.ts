@@ -345,6 +345,122 @@ Be objective, specific, and actionable. Focus on job-relevant qualifications. Re
   }
 }
 
+// ============= PIPELINE ACTION ENHANCEMENT =============
+
+export interface PipelineActionEnhancement {
+  itemId: string;
+  description: string;  // AI-generated context/tips
+  impact: string;       // Brief impact statement
+}
+
+export interface PipelineActionsResult {
+  enhancements: PipelineActionEnhancement[];
+  additionalInsights: string[];  // Overall pipeline insights
+  model_version: string;
+  tokensUsed: {
+    input: number;
+    output: number;
+  };
+}
+
+/**
+ * Enhance pipeline action items with AI-generated context
+ *
+ * @param items - Array of action items from the rule engine
+ * @param pipelineStats - Overall pipeline health metrics
+ * @returns Enhanced descriptions and insights
+ */
+export async function enhancePipelineActions(
+  items: Array<{ id: string; title: string; priority: string; category: string }>,
+  pipelineStats: { healthScore: number; totalCandidates: number; openJobs: number }
+): Promise<PipelineActionsResult> {
+  try {
+    const client = getGroqClient();
+
+    const itemsDescription = items.map((item, i) =>
+      `${i + 1}. [${item.priority.toUpperCase()}] ${item.title} (Category: ${item.category})`
+    ).join('\n');
+
+    const prompt = `You are an expert recruiting operations advisor. Analyze these pipeline hygiene action items and provide helpful context.
+
+**Current Pipeline Stats:**
+- Health Score: ${pipelineStats.healthScore}%
+- Total Active Candidates: ${pipelineStats.totalCandidates}
+- Open Jobs: ${pipelineStats.openJobs}
+
+**Action Items to Enhance:**
+${itemsDescription}
+
+For each action item, provide:
+1. **description** (string, 1-2 sentences): Specific, actionable context explaining WHY this matters and a QUICK TIP for addressing it
+2. **impact** (string, 5-10 words): Brief statement of the positive impact of completing this action
+
+Also provide 1-2 **additionalInsights** about the overall pipeline health based on the patterns you see in these items.
+
+Return a JSON object with:
+- **enhancements** (array): For each input item (in order), an object with: itemId (string, use the exact id provided), description (string), impact (string)
+- **additionalInsights** (array of strings, 1-2 items): Brief overall observations
+
+Be specific, practical, and encouraging. Focus on recruiter best practices. Return only valid JSON.`;
+
+    const response = await client.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert recruiting operations advisor who helps recruiters optimize their pipeline. Provide specific, actionable advice in valid JSON format only."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 1500,
+      temperature: 0.5
+    });
+
+    const result = JSON.parse(response.choices[0]?.message.content || "{}");
+    const usage = response.usage;
+
+    // Validate and map enhancements to their item IDs
+    const enhancements: PipelineActionEnhancement[] = [];
+    if (Array.isArray(result.enhancements)) {
+      result.enhancements.forEach((enh: any, index: number) => {
+        const originalItem = items[index];
+        if (originalItem) {
+          enhancements.push({
+            itemId: enh.itemId || originalItem.id,
+            description: enh.description || "",
+            impact: enh.impact || "",
+          });
+        }
+      });
+    }
+
+    return {
+      enhancements,
+      additionalInsights: Array.isArray(result.additionalInsights)
+        ? result.additionalInsights.slice(0, 3)
+        : [],
+      model_version: "llama-3.3-70b-versatile",
+      tokensUsed: {
+        input: usage?.prompt_tokens || 0,
+        output: usage?.completion_tokens || 0
+      }
+    };
+
+  } catch (error) {
+    console.error('Groq API error during pipeline action enhancement:', error);
+    if (error instanceof Error) {
+      throw new Error(`AI pipeline enhancement unavailable: ${error.message}`);
+    }
+    throw new Error('AI pipeline enhancement failed');
+  }
+}
+
+// ============= FORM FIELD SUGGESTIONS =============
+
 export interface FormFieldSuggestion {
   label: string;
   description?: string;

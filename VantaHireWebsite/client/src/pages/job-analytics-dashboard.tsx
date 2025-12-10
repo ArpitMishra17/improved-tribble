@@ -170,7 +170,7 @@ export default function JobAnalyticsDashboard() {
    const [clientFilter, setClientFilter] = useState("all");
 
   // Redirect if not authorized
-  if (!user || (user.role !== 'admin' && user.role !== 'recruiter')) {
+  if (!user || (user.role !== 'super_admin' && user.role !== 'recruiter')) {
     return <Redirect to="/auth" />;
   }
 
@@ -188,7 +188,7 @@ export default function JobAnalyticsDashboard() {
       if (!res.ok) throw new Error('Failed to fetch job health');
       return res.json();
     },
-    enabled: !!user && ['admin', 'recruiter'].includes(user.role),
+    enabled: !!user && ['super_admin', 'recruiter'].includes(user.role),
   });
 
   // Helper to get health data for a job

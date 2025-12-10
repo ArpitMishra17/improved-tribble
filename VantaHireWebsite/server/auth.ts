@@ -123,7 +123,7 @@ export function setupAuth(app: Express) {
       }
 
       // Security: Only allow candidate or recruiter roles via public registration
-      // Admin and superadmin accounts must be created manually by existing admins
+      // super_admin accounts must be created manually by existing super admins
       const allowedRoles = ['candidate', 'recruiter'];
       if (!allowedRoles.includes(role)) {
         res.status(403).json({ error: "Invalid role. Public registration only allows 'candidate' or 'recruiter' roles." });

@@ -17,7 +17,7 @@ type AuthContextType = {
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
-type ExpectedRole = 'candidate' | 'recruiter' | 'admin';
+type ExpectedRole = 'candidate' | 'recruiter' | 'super_admin';
 type LoginData = Pick<InsertUser, "username" | "password"> & {
   expectedRole?: ExpectedRole | ExpectedRole[];
 };

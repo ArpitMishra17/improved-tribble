@@ -55,7 +55,7 @@ export default function AdminFormsPage() {
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if not admin or recruiter
-  if (user && !['admin', 'recruiter'].includes(user.role)) {
+  if (user && !['super_admin', 'recruiter'].includes(user.role)) {
     return <Redirect to="/jobs" />;
   }
 
@@ -63,7 +63,7 @@ export default function AdminFormsPage() {
   const { data: templatesData, isLoading } = useQuery({
     queryKey: formsQueryKeys.templates(),
     queryFn: formsApi.listTemplates,
-    enabled: !!user && ['admin', 'recruiter'].includes(user.role),
+    enabled: !!user && ['super_admin', 'recruiter'].includes(user.role),
   });
 
   // Delete mutation

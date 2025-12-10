@@ -40,11 +40,11 @@ export async function createAdminUser() {
       password: hashedPassword,
       firstName: 'System',
       lastName: 'Administrator',
-      role: 'admin'
+      role: 'super_admin'
     });
 
     // Security: Never log passwords (even in development)
-    console.log('✅ Admin user created/verified successfully');
+    console.log('✅ Super Admin user created/verified successfully');
     if (wasGenerated && process.env.NODE_ENV !== 'production') {
       console.log('⚠️  Auto-generated admin password - set ADMIN_PASSWORD env variable for custom password');
     }
@@ -103,15 +103,15 @@ export async function syncAdminPasswordIfEnv() {
       return;
     }
 
-    // Create admin if missing
+    // Create super admin if missing
     await storage.createUser({
       username: 'admin',
       password: hashedPassword,
       firstName: 'System',
       lastName: 'Administrator',
-      role: 'admin'
+      role: 'super_admin'
     });
-    console.log('✓ Admin created from ADMIN_PASSWORD');
+    console.log('✓ Super Admin created from ADMIN_PASSWORD');
   } catch (error) {
     console.error('Error syncing admin password:', error);
   }

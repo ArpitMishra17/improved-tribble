@@ -18,6 +18,7 @@ import {
   analyzeJobDescription,
   generateJobScore,
   calculateOptimizationSuggestions,
+  enhancePipelineActions,
   isAIEnabled,
 } from './aiJobAnalyzer';
 import { aiAnalysisRateLimit, jobPostingRateLimit } from './rateLimit';
@@ -35,7 +36,7 @@ export function registerJobsRoutes(
   // ============= JOB CRUD ROUTES =============
 
   // Create a new job posting (recruiters/admins only)
-  app.post("/api/jobs", jobPostingRateLimit, csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/jobs", jobPostingRateLimit, csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const jobData = insertJobSchema.parse(req.body);
       const job = await storage.createJob({
@@ -128,7 +129,7 @@ export function registerJobsRoutes(
   });
 
   // Get audit log for a job
-  app.get("/api/jobs/:id/audit-log", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/jobs/:id/audit-log", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -157,7 +158,7 @@ export function registerJobsRoutes(
   });
 
   // Get jobs posted by current user (recruiters only)
-  app.get("/api/my-jobs", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/my-jobs", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const jobs = await storage.getJobsByUser(req.user!.id);
       res.json(jobs);
@@ -168,7 +169,7 @@ export function registerJobsRoutes(
   });
 
   // Update job status (activate/deactivate)
-  app.patch("/api/jobs/:id/status", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/jobs/:id/status", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -208,7 +209,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/hiring-metrics
    * Get comprehensive hiring metrics: time-to-fill, time-in-stage, conversion rates
    */
-  app.get("/api/analytics/hiring-metrics", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/hiring-metrics", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { startDate, endDate, jobId } = req.query;
 
@@ -256,7 +257,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/job-health
    * Returns health summaries for all jobs for the current user.
    */
-  app.get("/api/analytics/job-health", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/job-health", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
       const jobHealth = await storage.getJobHealthSummary(userId);
@@ -272,7 +273,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/nudges
    * Returns jobs needing attention and stale candidate counts for the current user.
    */
-  app.get("/api/analytics/nudges", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/nudges", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
       const nudges = await storage.getAnalyticsNudges(userId);
@@ -288,7 +289,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/clients
    * Returns aggregated metrics per client (roles, applications, placements)
    */
-  app.get("/api/analytics/clients", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/clients", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
       const metrics = await storage.getClientAnalytics(userId);
@@ -313,7 +314,7 @@ export function registerJobsRoutes(
   });
 
   // Get analytics for a specific job
-  app.get("/api/analytics/jobs/:id", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/jobs/:id", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -349,7 +350,7 @@ export function registerJobsRoutes(
   });
 
   // Export analytics data as CSV
-  app.get("/api/analytics/export", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/export", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { format = 'json', dateRange = '30' } = req.query;
       const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
@@ -427,7 +428,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/dropoff
    * Returns stage counts and conversion rates for the selected window.
    */
-  app.get("/api/analytics/dropoff", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/dropoff", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { startDate, endDate, jobId } = req.query;
 
@@ -506,7 +507,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/source-performance
    * Applications, shortlist/interview, hires grouped by source.
    */
-  app.get("/api/analytics/source-performance", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/source-performance", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { startDate, endDate, jobId } = req.query;
       let parsedStart: Date | undefined;
@@ -571,7 +572,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/hm-feedback
    * Approximate Hiring Manager feedback latency from review stage entry to next movement.
    */
-  app.get("/api/analytics/hm-feedback", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/hm-feedback", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { startDate, endDate, jobId, reviewStageIds, nextStageIds, waitBuckets } = req.query;
       let parsedStart: Date | undefined;
@@ -712,7 +713,7 @@ export function registerJobsRoutes(
    * GET /api/analytics/performance
    * Recruiter & hiring manager performance metrics.
    */
-  app.get("/api/analytics/performance", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/analytics/performance", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { startDate, endDate, jobId } = req.query;
       let parsedStart: Date | undefined;
@@ -965,7 +966,7 @@ export function registerJobsRoutes(
 
   // AI-powered job description analysis
   // Note: CSRF removed - endpoint is auth-protected, role-protected, rate-limited, and read-only
-  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/ai/analyze-job-description", aiAnalysisRateLimit, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
@@ -1010,7 +1011,7 @@ export function registerJobsRoutes(
   });
 
   // AI-powered job scoring
-  app.post("/api/ai/score-job", aiAnalysisRateLimit, csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/ai/score-job", aiAnalysisRateLimit, csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {
@@ -1062,6 +1063,68 @@ export function registerJobsRoutes(
       return;
     } catch (error) {
       console.error('AI scoring error:', error);
+      next(error);
+    }
+  });
+
+  // AI-enhanced pipeline action suggestions
+  app.post("/api/ai/enhance-pipeline-actions", aiAnalysisRateLimit, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      // Check if AI features are enabled
+      if (!isAIEnabled()) {
+        res.status(503).json({
+          error: 'AI features are not configured',
+          message: 'AI API key is not set. AI-powered enhancement is currently unavailable.'
+        });
+        return;
+      }
+
+      const { items, pipelineStats } = req.body;
+
+      // Validate input
+      if (!Array.isArray(items) || items.length === 0) {
+        res.status(400).json({ error: 'Items array is required' });
+        return;
+      }
+
+      if (!pipelineStats || typeof pipelineStats.healthScore !== 'number') {
+        res.status(400).json({ error: 'Pipeline stats with healthScore is required' });
+        return;
+      }
+
+      // Limit items to prevent abuse
+      if (items.length > 20) {
+        res.status(400).json({ error: 'Maximum 20 items allowed per request' });
+        return;
+      }
+
+      // Validate item structure
+      const validItems = items.map((item: any) => ({
+        id: String(item.id || ''),
+        title: String(item.title || '').slice(0, 200),
+        priority: String(item.priority || 'important'),
+        category: String(item.category || 'pipeline'),
+      }));
+
+      console.log(`AI pipeline enhancement requested by user ${req.user!.id} for ${validItems.length} items`);
+
+      const result = await enhancePipelineActions(validItems, {
+        healthScore: Math.max(0, Math.min(100, pipelineStats.healthScore)),
+        totalCandidates: pipelineStats.totalCandidates || 0,
+        openJobs: pipelineStats.openJobs || 0,
+      });
+
+      res.json({
+        ...result,
+        timestamp: new Date().toISOString()
+      });
+      return;
+    } catch (error) {
+      console.error('AI pipeline enhancement error:', error);
+      if (error instanceof Error && error.message.includes('AI pipeline enhancement unavailable')) {
+        res.status(502).json({ error: 'AI service temporarily unavailable' });
+        return;
+      }
       next(error);
     }
   });

@@ -32,7 +32,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   // Type guard to help TypeScript narrow the user type
   const isRecruiter = user?.role === 'recruiter';
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.role === 'super_admin';
   const isCandidate = user?.role === 'candidate';
   const isHiringManager = user?.role === 'hiring_manager';
   const displayName = user?.firstName || user?.username || 'User';

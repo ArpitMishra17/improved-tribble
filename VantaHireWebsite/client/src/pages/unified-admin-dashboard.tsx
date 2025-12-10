@@ -189,34 +189,34 @@ export default function UnifiedAdminDashboard() {
   }, []);
 
   // Redirect if not admin
-  if (user && user.role !== 'admin') {
+  if (user && user.role !== 'super_admin') {
     return <Redirect to="/jobs" />;
   }
 
   // Queries
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
-    enabled: !!user && user.role === 'admin',
+    enabled: !!user && user.role === 'super_admin',
   });
 
   const { data: jobs } = useQuery({
     queryKey: ["/api/admin/jobs/all"],
-    enabled: !!user && user.role === 'admin',
+    enabled: !!user && user.role === 'super_admin',
   });
 
   const { data: applications } = useQuery({
     queryKey: ["/api/admin/applications/all"],
-    enabled: !!user && user.role === 'admin',
+    enabled: !!user && user.role === 'super_admin',
   });
 
   const { data: pipelineStages = [] } = useQuery<PipelineStage[]>({
     queryKey: ["/api/pipeline/stages"],
-    enabled: !!user && user.role === 'admin',
+    enabled: !!user && user.role === 'super_admin',
   });
 
   const { data: users } = useQuery({
     queryKey: ["/api/admin/users"],
-    enabled: !!user && user.role === 'admin',
+    enabled: !!user && user.role === 'super_admin',
   });
 
   // Automation settings query
@@ -227,7 +227,7 @@ export default function UnifiedAdminDashboard() {
       if (!response.ok) throw new Error("Failed to fetch automation settings");
       return response.json();
     },
-    enabled: !!user && user.role === 'admin',
+    enabled: !!user && user.role === 'super_admin',
   });
 
   // Mutations
@@ -1027,7 +1027,7 @@ export default function UnifiedAdminDashboard() {
                             <p className="text-slate-400 text-xs mt-1">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge className={
-                                user.role === 'admin' ? 'bg-red-50 text-red-700 border-red-200' :
+                                user.role === 'super_admin' ? 'bg-red-50 text-red-700 border-red-200' :
                                 user.role === 'recruiter' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                 'bg-green-50 text-green-700 border-green-200'
                               }>

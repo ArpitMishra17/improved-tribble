@@ -48,11 +48,11 @@ export function getFixture<K extends keyof TestFixtures>(
 export interface TestUser {
   username: string;
   password: string;
-  role: 'admin' | 'recruiter' | 'candidate';
+  role: 'super_admin' | 'recruiter' | 'candidate';
 }
 
 export const TEST_USERS: Record<string, TestUser> = {
-  admin: { username: 'admin', password: 'admin123', role: 'admin' },
+  admin: { username: 'admin', password: 'admin123', role: 'super_admin' },
   recruiter: { username: 'recruiter', password: 'recruiter123', role: 'recruiter' },
 };
 
@@ -135,7 +135,9 @@ export async function isLoggedInAs(page: Page, role: 'admin' | 'recruiter'): Pro
     if (!response.ok()) return false;
 
     const user = await response.json();
-    return user.role === role;
+    // 'admin' maps to super_admin role
+    const expectedRole = role === 'admin' ? 'super_admin' : role;
+    return user.role === expectedRole;
   } catch {
     return false;
   }

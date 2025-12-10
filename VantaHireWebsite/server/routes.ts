@@ -214,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Get all contact submissions (admin access)
-  app.get("/api/contact", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/contact", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const submissions = await storage.getAllContactSubmissions();
       res.json(submissions);
@@ -225,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test email notification (for admin use)
-  app.get("/api/test-email", requireRole(['admin']), async (req: Request, res: Response): Promise<void> => {
+  app.get("/api/test-email", requireRole(['super_admin']), async (req: Request, res: Response): Promise<void> => {
     try {
       const emailService = await getEmailService();
       
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * Query params:
    *   - role: string (optional, filter by specific role: 'hiring_manager', 'recruiter', etc.)
    */
-  app.get("/api/users", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/users", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { role } = req.query;
 

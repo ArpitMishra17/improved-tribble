@@ -25,7 +25,7 @@ export default function JobPostPage() {
   }
 
   // Check role permissions
-  if (!['recruiter', 'admin'].includes(user.role)) {
+  if (!['recruiter', 'super_admin'].includes(user.role)) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16">

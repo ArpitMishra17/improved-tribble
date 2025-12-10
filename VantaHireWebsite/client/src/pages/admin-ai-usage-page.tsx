@@ -71,7 +71,7 @@ export default function AdminAIUsagePage() {
   const [kindFilter, setKindFilter] = useState("all");
 
   // Redirect non-admin users
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== "super_admin") {
     return <Redirect to="/auth" />;
   }
 

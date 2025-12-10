@@ -20,7 +20,7 @@ export default function FloatingActionButton() {
 
   // Determine primary and secondary actions based on role and current page
   const getActions = (): { primary: FABAction; secondary?: FABAction[] } => {
-    const isRecruiterOrAdmin = user.role === 'recruiter' || user.role === 'admin';
+    const isRecruiterOrAdmin = user.role === 'recruiter' || user.role === 'super_admin';
     const isCandidate = user.role === 'candidate';
 
     // Application management page (recruiters)

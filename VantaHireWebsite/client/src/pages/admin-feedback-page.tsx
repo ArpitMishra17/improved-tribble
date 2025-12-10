@@ -60,7 +60,7 @@ export default function AdminFeedbackPage() {
   const [dateRange, setDateRange] = useState("30");
 
   // Redirect non-admin users
-  if (!user || user.role !== "admin") {
+  if (!user || user.role !== "super_admin") {
     return <Redirect to="/auth" />;
   }
 

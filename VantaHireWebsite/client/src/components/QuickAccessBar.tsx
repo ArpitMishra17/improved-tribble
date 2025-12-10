@@ -22,7 +22,7 @@ export default function QuickAccessBar() {
 
   // Role-based navigation items
   const getNavItems = () => {
-    if (user.role === 'recruiter' || user.role === 'admin') {
+    if (user.role === 'recruiter' || user.role === 'super_admin') {
       return [
         {
           label: "Dashboard",
@@ -86,7 +86,7 @@ export default function QuickAccessBar() {
   const isActive = (path: string) => location === path;
 
   // Admin-only settings link
-  const showAdminSettings = user.role === 'admin';
+  const showAdminSettings = user.role === 'super_admin';
 
   return (
     <div className="sticky top-0 z-50 bg-gradient-to-r from-slate-900/95 via-purple-900/95 to-slate-900/95 backdrop-blur-lg border-b border-white/10">

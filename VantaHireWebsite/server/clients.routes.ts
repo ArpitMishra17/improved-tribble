@@ -36,7 +36,7 @@ export function registerClientsRoutes(
   // ============= CLIENT MANAGEMENT ROUTES =============
 
   // Get all clients (recruiter/admin)
-  app.get("/api/clients", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/clients", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const search = typeof req.query.q === 'string' ? req.query.q.trim() : '';
       const clients = await storage.getClients();
@@ -56,7 +56,7 @@ export function registerClientsRoutes(
   });
 
   // Create a new client
-  app.post("/api/clients", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/clients", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const body = insertClientSchema.parse(req.body as InsertClient);
       const client = await storage.createClient({
@@ -81,7 +81,7 @@ export function registerClientsRoutes(
   });
 
   // Update an existing client
-  app.patch("/api/clients/:id", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/clients/:id", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -127,7 +127,7 @@ export function registerClientsRoutes(
    * Create a new client shortlist for sharing candidates
    * Requires: recruiter or admin role
    */
-  app.post("/api/client-shortlists", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/client-shortlists", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const body = insertClientShortlistSchema.parse(req.body);
 
@@ -332,7 +332,7 @@ export function registerClientsRoutes(
    * GET /api/jobs/:id/client-shortlists
    * Returns all client shortlists for a given job (recruiter/admin)
    */
-  app.get("/api/jobs/:id/client-shortlists", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/jobs/:id/client-shortlists", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {

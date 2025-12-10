@@ -264,7 +264,7 @@ New job application received:
   // Recruiter adds candidate on behalf (MVP: Add Candidate feature)
   app.post(
     "/api/jobs/:id/applications/recruiter-add",
-    requireRole(['recruiter', 'admin']),
+    requireRole(['recruiter', 'super_admin']),
     recruiterAddRateLimit,
     csrfProtection,
     upload.single('resume'),
@@ -561,7 +561,7 @@ New job application received:
   );
 
   // Get applications for a specific job (recruiters only)
-  app.get("/api/jobs/:id/applications", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/jobs/:id/applications", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -583,7 +583,7 @@ New job application received:
   });
 
   // Get AI-suggested similar candidates from other jobs
-  app.get("/api/jobs/:id/ai-similar-candidates", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/jobs/:id/ai-similar-candidates", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -917,7 +917,7 @@ New job application received:
   // ============= APPLICATION NOTES, RATING, EMAIL HISTORY =============
 
   // Get email history for an application
-  app.get("/api/applications/:id/email-history", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/applications/:id/email-history", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -1133,7 +1133,7 @@ New job application received:
   // ============= APPLICATION FEEDBACK =============
 
   // Get feedback for an application
-  app.get("/api/applications/:id/feedback", requireRole(['recruiter', 'admin', 'hiring_manager']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/applications/:id/feedback", requireRole(['recruiter', 'super_admin', 'hiring_manager']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -1185,7 +1185,7 @@ New job application received:
   });
 
   // Add feedback to an application
-  app.post("/api/applications/:id/feedback", csrfProtection, requireRole(['recruiter', 'admin', 'hiring_manager']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/applications/:id/feedback", csrfProtection, requireRole(['recruiter', 'super_admin', 'hiring_manager']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -1246,7 +1246,7 @@ New job application received:
   // ============= APPLICATION STATUS MANAGEMENT =============
 
   // Update single application status (recruiters/admins only)
-  app.patch("/api/applications/:id/status", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/applications/:id/status", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -1297,7 +1297,7 @@ New job application received:
   });
 
   // Bulk update application statuses (recruiters/admins only)
-  app.patch("/api/applications/bulk", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/applications/bulk", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { applicationIds, status, notes } = req.body;
 
@@ -1351,7 +1351,7 @@ New job application received:
   });
 
   // Mark application as viewed (automatically updates status to 'reviewed')
-  app.patch("/api/applications/:id/view", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/applications/:id/view", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -1394,7 +1394,7 @@ New job application received:
   });
 
   // Mark application as downloaded (when resume is downloaded)
-  app.patch("/api/applications/:id/download", csrfProtection, requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/applications/:id/download", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -1502,7 +1502,7 @@ New job application received:
   });
 
   // Get applications received for recruiter's jobs
-  app.get("/api/my-applications-received", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/my-applications-received", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const applicationsList = await storage.getRecruiterApplications(req.user!.id);
       res.json(applicationsList);
@@ -1513,7 +1513,7 @@ New job application received:
   });
 
   // Get global candidates view (aggregated by email)
-  app.get("/api/candidates", requireRole(['recruiter', 'admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/candidates", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { q: search, minRating, tags } = req.query;
 

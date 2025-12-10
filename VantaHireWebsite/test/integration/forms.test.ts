@@ -59,7 +59,7 @@ beforeAll(async () => {
   const [admin] = await db.insert(users).values({
     username: 'admin-test@example.com',
     password: '$scrypt$N=32768,r=8,p=1$hash',
-    role: 'admin',
+    role: 'super_admin',
     firstName: 'Test',
     lastName: 'Admin',
   }).returning();

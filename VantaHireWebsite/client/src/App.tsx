@@ -62,30 +62,30 @@ function Router() {
       <Route path="/cookie-policy" component={CookiePolicyPage} />
       <Route path="/brand" component={BrandAssetsPage} />
       <Route path="/jobs" component={JobsPage} />
-      <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/jobs/:id/edit" component={JobEditPage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/jobs/:id/pipeline" component={JobPipelinePage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/jobs/:id/analytics" component={JobAnalyticsPage} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/jobs/:id/edit" component={JobEditPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/jobs/:id/pipeline" component={JobPipelinePage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/jobs/:id/analytics" component={JobAnalyticsPage} requiredRole={['recruiter', 'super_admin']} />
       <Route path="/jobs/:id" component={JobDetailsPage} />
       <ProtectedRoute path="/my-dashboard" component={CandidateDashboard} requiredRole={['candidate']} />
-      <ProtectedRoute path="/recruiter-dashboard" component={RecruiterDashboard} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/recruiter-dashboard" component={RecruiterDashboard} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/hiring-manager" component={HiringManagerDashboard} requiredRole={['hiring_manager']} />
-      <ProtectedRoute path="/applications" component={ApplicationsPage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/candidates" component={CandidatesPage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/my-jobs" component={MyJobsPage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/clients" component={ClientsPage} requiredRole={['recruiter', 'admin']} />
-      <ProtectedRoute path="/admin" component={UnifiedAdminDashboard} requiredRole={['admin']} />
-      <ProtectedRoute path="/admin/super" component={AdminSuperDashboard} requiredRole={['admin']} />
-      <ProtectedRoute path="/admin/testing" component={AdminTestingPage} requiredRole={['admin']} />
-      <ProtectedRoute path="/admin/forms/editor/:id?" component={FormEditorPage} requiredRole={['admin', 'recruiter']} />
-      <ProtectedRoute path="/admin/forms/responses" component={AdminFormResponsesPage} requiredRole={['admin']} />
-      <ProtectedRoute path="/admin/forms" component={AdminFormsPage} requiredRole={['admin', 'recruiter']} />
-      <ProtectedRoute path="/admin/email-templates" component={AdminEmailTemplatesPage} requiredRole={['admin', 'recruiter']} />
-      <ProtectedRoute path="/admin/consultants" component={AdminConsultantsPage} requiredRole={['admin']} />
-      <ProtectedRoute path="/admin/ai-usage" component={AdminAIUsagePage} requiredRole={['admin']} />
-      <ProtectedRoute path="/admin/feedback" component={AdminFeedbackPage} requiredRole={['admin']} />
-      <ProtectedRoute path="/analytics" component={JobAnalyticsDashboard} requiredRole={['recruiter', 'admin']} />
+      <ProtectedRoute path="/applications" component={ApplicationsPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/candidates" component={CandidatesPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/my-jobs" component={MyJobsPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/clients" component={ClientsPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/admin" component={UnifiedAdminDashboard} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin/super" component={AdminSuperDashboard} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin/testing" component={AdminTestingPage} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin/forms/editor/:id?" component={FormEditorPage} requiredRole={['super_admin', 'recruiter']} />
+      <ProtectedRoute path="/admin/forms/responses" component={AdminFormResponsesPage} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin/forms" component={AdminFormsPage} requiredRole={['super_admin', 'recruiter']} />
+      <ProtectedRoute path="/admin/email-templates" component={AdminEmailTemplatesPage} requiredRole={['super_admin', 'recruiter']} />
+      <ProtectedRoute path="/admin/consultants" component={AdminConsultantsPage} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin/ai-usage" component={AdminAIUsagePage} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin/feedback" component={AdminFeedbackPage} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/analytics" component={JobAnalyticsDashboard} requiredRole={['recruiter', 'super_admin']} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

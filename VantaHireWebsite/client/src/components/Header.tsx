@@ -129,7 +129,7 @@ const Header = () => {
           </Link>
 
           {/* Admin links for admin users */}
-          {user && user.role === 'admin' && (
+          {user && user.role === 'super_admin' && (
             <>
               <Link href="/admin" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
                 <span className="relative z-10">Admin</span>
@@ -145,7 +145,7 @@ const Header = () => {
           )}
 
           {/* Analytics link for recruiters and admins */}
-          {user && (user.role === 'recruiter' || user.role === 'admin') && (
+          {user && (user.role === 'recruiter' || user.role === 'super_admin') && (
             <Link href="/analytics" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
               <span className="relative z-10">Analytics</span>
               <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
@@ -319,7 +319,7 @@ const Header = () => {
           </Link>
 
           {/* Mobile Admin link */}
-          {user && user.role === 'admin' && (
+          {user && user.role === 'super_admin' && (
             <Link 
               href="/admin"
               className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"

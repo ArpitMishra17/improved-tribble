@@ -137,7 +137,7 @@ export default function ApplicationManagementPage() {
   }, [location]);
 
   // Redirect if not recruiter or admin
-  if (!user || !['recruiter', 'admin'].includes(user.role)) {
+  if (!user || !['recruiter', 'super_admin'].includes(user.role)) {
     return <Redirect to="/auth" />;
   }
 

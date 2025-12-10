@@ -37,7 +37,7 @@ export function registerAdminRoutes(
   // ============= ADMIN JOB MANAGEMENT =============
 
   // Get jobs by status for admin review
-  app.get("/api/admin/jobs", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/jobs", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { status = 'pending', page = 1, limit = 10 } = req.query;
 
@@ -63,7 +63,7 @@ export function registerAdminRoutes(
   });
 
   // Review a job (approve/decline)
-  app.patch("/api/admin/jobs/:id/review", csrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/admin/jobs/:id/review", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -98,7 +98,7 @@ export function registerAdminRoutes(
   });
 
   // Delete job (admin only)
-  app.delete("/api/admin/jobs/:id", csrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.delete("/api/admin/jobs/:id", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -127,7 +127,7 @@ export function registerAdminRoutes(
   });
 
   // Get all jobs with details for admin
-  app.get("/api/admin/jobs/all", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/jobs/all", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const jobs = await storage.getAllJobsWithDetails();
       res.json(jobs);
@@ -140,7 +140,7 @@ export function registerAdminRoutes(
   // ============= ADMIN STATS & DASHBOARD =============
 
   // Get admin statistics
-  app.get("/api/admin/stats", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/stats", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const stats = await storage.getAdminStats();
       res.json(stats);
@@ -151,7 +151,7 @@ export function registerAdminRoutes(
   });
 
   // Get all applications with details for admin
-  app.get("/api/admin/applications/all", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/applications/all", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const applications = await storage.getAllApplicationsWithDetails();
       res.json(applications);
@@ -164,7 +164,7 @@ export function registerAdminRoutes(
   // ============= ADMIN USER MANAGEMENT =============
 
   // Get all users for admin
-  app.get("/api/admin/users", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/users", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const users = await storage.getAllUsersWithDetails();
       res.json(users);
@@ -175,7 +175,7 @@ export function registerAdminRoutes(
   });
 
   // Update user role (admin only)
-  app.patch("/api/admin/users/:id/role", csrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/admin/users/:id/role", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -190,8 +190,8 @@ export function registerAdminRoutes(
         return;
       }
 
-      if (!['candidate', 'recruiter', 'admin'].includes(role)) {
-        res.status(400).json({ error: "Invalid role. Must be candidate, recruiter, or admin" });
+      if (!['candidate', 'recruiter', 'super_admin', 'hiring_manager'].includes(role)) {
+        res.status(400).json({ error: "Invalid role. Must be candidate, recruiter, super_admin, or hiring_manager" });
         return;
       }
 
@@ -212,7 +212,7 @@ export function registerAdminRoutes(
   // ============= ADMIN AUTOMATION SETTINGS =============
 
   // Automation settings - Get all settings
-  app.get("/api/admin/automation-settings", requireRole(['admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/automation-settings", requireRole(['super_admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const settings = await storage.getAutomationSettings();
       res.json(settings);
@@ -221,7 +221,7 @@ export function registerAdminRoutes(
   });
 
   // Automation settings - Update a specific setting
-  app.patch("/api/admin/automation-settings/:key", csrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/admin/automation-settings/:key", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const keyParam = req.params.key;
       if (!keyParam) {
@@ -262,7 +262,7 @@ export function registerAdminRoutes(
   // ============= ADMIN AI USAGE =============
 
   // Get AI usage statistics
-  app.get("/api/admin/ai/usage", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/ai/usage", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { startDate, endDate, userId, kind } = req.query;
 
@@ -361,7 +361,7 @@ export function registerAdminRoutes(
   // ============= ADMIN CONSULTANT MANAGEMENT =============
 
   // Admin: Get all consultants (including inactive)
-  app.get("/api/admin/consultants", requireRole(['admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/consultants", requireRole(['super_admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const consultants = await storage.getConsultants();
       res.json(consultants);
@@ -372,7 +372,7 @@ export function registerAdminRoutes(
   });
 
   // Admin: Create a new consultant
-  app.post("/api/admin/consultants", csrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/admin/consultants", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const consultantData = req.body;
       const consultant = await storage.createConsultant(consultantData);
@@ -384,7 +384,7 @@ export function registerAdminRoutes(
   });
 
   // Admin: Update a consultant
-  app.patch("/api/admin/consultants/:id", csrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/admin/consultants/:id", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -411,7 +411,7 @@ export function registerAdminRoutes(
   });
 
   // Admin: Delete a consultant
-  app.delete("/api/admin/consultants/:id", csrfProtection, requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.delete("/api/admin/consultants/:id", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -440,7 +440,7 @@ export function registerAdminRoutes(
   // ============= ADMIN FORM RESPONSES =============
 
   // Get all form responses (admin only)
-  app.get("/api/admin/forms/responses", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/forms/responses", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { page = '1', limit = '20', formId, status, search } = req.query;
       const pageNum = Math.max(1, parseInt(page as string) || 1);
@@ -545,7 +545,7 @@ export function registerAdminRoutes(
   });
 
   // Export form responses to CSV (admin only)
-  app.get("/api/admin/forms/responses/export", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/forms/responses/export", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { formId, search } = req.query;
       const conditions: any[] = [];
@@ -620,7 +620,7 @@ export function registerAdminRoutes(
   // ============= ADMIN FEEDBACK ANALYTICS =============
 
   // Get feedback analytics (admin only)
-  app.get("/api/admin/feedback/analytics", requireRole(['admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/admin/feedback/analytics", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { startDate, endDate } = req.query;
       const conditions: any[] = [];

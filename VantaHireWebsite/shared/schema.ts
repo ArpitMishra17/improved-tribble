@@ -9,7 +9,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   firstName: text("first_name"),
   lastName: text("last_name"),
-  role: text("role").notNull().default("candidate"), // admin, recruiter, candidate, hiring_manager
+  role: text("role").notNull().default("candidate"), // super_admin, recruiter, candidate, hiring_manager
   // AI features
   aiContentFreeUsed: boolean("ai_content_free_used").default(false),
   aiOnboardedAt: timestamp("ai_onboarded_at"),

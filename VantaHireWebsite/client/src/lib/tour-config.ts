@@ -1,6 +1,6 @@
 import { Step } from "react-joyride";
 
-export type UserRole = "admin" | "recruiter" | "candidate" | "hiring_manager";
+export type UserRole = "super_admin" | "recruiter" | "candidate" | "hiring_manager";
 
 export interface TourStep extends Step {
   route?: string; // Navigate to this route before showing step
@@ -22,7 +22,7 @@ export const tourConfigs: TourConfig[] = [
     id: "dashboard-overview",
     title: "Dashboard Overview",
     description: "Learn about your recruiter dashboard",
-    roles: ["admin", "recruiter"],
+    roles: ["super_admin", "recruiter"],
     steps: [
       {
         target: '[data-tour="dashboard-metrics"]',
@@ -55,7 +55,7 @@ export const tourConfigs: TourConfig[] = [
     id: "applications-management",
     title: "Managing Applications",
     description: "Learn to review and manage candidate applications",
-    roles: ["admin", "recruiter"],
+    roles: ["super_admin", "recruiter"],
     steps: [
       {
         target: '[data-tour="applications-filters"]',
@@ -82,7 +82,7 @@ export const tourConfigs: TourConfig[] = [
     id: "job-management",
     title: "Job Management",
     description: "Create and manage job postings",
-    roles: ["admin", "recruiter"],
+    roles: ["super_admin", "recruiter"],
     steps: [
       {
         target: '[data-tour="post-job-button"]',
@@ -109,7 +109,7 @@ export const tourConfigs: TourConfig[] = [
     id: "forms-builder",
     title: "Forms Builder",
     description: "Create custom application forms",
-    roles: ["admin", "recruiter"],
+    roles: ["super_admin", "recruiter"],
     steps: [
       {
         target: '[data-tour="create-form-button"]',
@@ -130,7 +130,7 @@ export const tourConfigs: TourConfig[] = [
     id: "client-management",
     title: "Client Management",
     description: "Manage client relationships",
-    roles: ["admin", "recruiter"],
+    roles: ["super_admin", "recruiter"],
     steps: [
       {
         target: '[data-tour="add-client-button"]',
@@ -151,7 +151,7 @@ export const tourConfigs: TourConfig[] = [
     id: "email-templates",
     title: "Email Templates",
     description: "Set up automated email communications",
-    roles: ["admin", "recruiter"],
+    roles: ["super_admin", "recruiter"],
     steps: [
       {
         target: '[data-tour="email-templates-list"]',
@@ -172,7 +172,7 @@ export const tourConfigs: TourConfig[] = [
     id: "admin-features",
     title: "Admin Features",
     description: "Advanced administrative controls",
-    roles: ["admin"],
+    roles: ["super_admin"],
     steps: [
       {
         target: '[data-tour="admin-control-center"]',

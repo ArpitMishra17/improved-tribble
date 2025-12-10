@@ -34,7 +34,7 @@ export default function RecruiterAuth() {
     if (!user) return;
     if (user.role === "recruiter") {
       setLocation("/recruiter-dashboard");
-    } else if (user.role === "admin") {
+    } else if (user.role === "super_admin") {
       setLocation("/admin");
     }
   }, [user, setLocation]);
@@ -42,7 +42,7 @@ export default function RecruiterAuth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     // Allow recruiters and admins to use the recruiter portal
-    loginMutation.mutate({ ...loginData, expectedRole: ['recruiter', 'admin'] });
+    loginMutation.mutate({ ...loginData, expectedRole: ['recruiter', 'super_admin'] });
   };
 
   const handleRegister = async (e: React.FormEvent) => {

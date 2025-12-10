@@ -253,7 +253,7 @@ export function registerTestRunnerRoutes(
   // Run specific test suite
   app.post(
     "/api/admin/run-tests",
-    requireRole(['admin']),
+    requireRole(['super_admin']),
     csrf, // CSRF protection for consistency with other mutating endpoints
     testRunnerRateLimit,
     async (req: Request, res: Response, next: NextFunction) => {
@@ -288,7 +288,7 @@ export function registerTestRunnerRoutes(
   // Get test suite status (lightweight - just checks if tests exist)
   app.get(
     "/api/admin/test-suites",
-    requireRole(['admin']),
+    requireRole(['super_admin']),
     async (_req: Request, res: Response) => {
       try {
         res.json({

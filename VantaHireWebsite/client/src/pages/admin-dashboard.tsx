@@ -28,13 +28,13 @@ export default function AdminDashboard() {
   }, []);
 
   // Redirect if not admin
-  if (user && user.role !== 'admin') {
+  if (user && user.role !== 'super_admin') {
     return <Redirect to="/jobs" />;
   }
 
   const { data: stats, isLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
-    enabled: !!user && user.role === 'admin',
+    enabled: !!user && user.role === 'super_admin',
   });
 
   const statCards = [

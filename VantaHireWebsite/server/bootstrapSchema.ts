@@ -638,6 +638,12 @@ export async function ensureAtsSchema(): Promise<void> {
     END $$;
   `);
 
+  // Migration: Rename admin role to super_admin (idempotent)
+  console.log('  Migrating admin role to super_admin...');
+  await db.execute(sql`
+    UPDATE users SET role = 'super_admin' WHERE role = 'admin';
+  `);
+
   console.log('✅ ATS schema ready');
 }
 

@@ -26,7 +26,7 @@ import { Mail, Plus, Loader2 } from "lucide-react";
 export default function AdminEmailTemplatesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "super_admin";
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [name, setName] = useState("");
   const [templateType, setTemplateType] = useState<string>("");
@@ -167,7 +167,7 @@ export default function AdminEmailTemplatesPage() {
           <CardHeader>
             <CardTitle className="text-slate-900">Templates</CardTitle>
             <CardDescription className="text-slate-500">
-              {user?.role === "admin"
+              {user?.role === "super_admin"
                 ? "All email templates (system defaults and custom templates)"
                 : "Email templates available for your ATS workflows"}
             </CardDescription>
