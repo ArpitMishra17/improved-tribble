@@ -32,6 +32,7 @@ test-brevo-smtp.js
 # Screenshots
 *.png
 !client/public/*.png
+!client/public/brand/*.png
 !client/src/assets/*.png
 screen/
 Screenshot*
