@@ -458,88 +458,124 @@
     }
 
     /* ----------------------------------------
-       Form Styles (Example Structure)
-       Replace with Mautic form embed
+       Mautic Form Overrides
+       Style the dynamically injected Mautic form
        ---------------------------------------- */
     .mautic-form-wrapper {
       /* Wrapper for Mautic form embed */
     }
 
-    /* Example form styles - will apply to Mautic form */
-    .form-group {
+    /* Mautic form row spacing */
+    .mauticform-row {
       margin-bottom: var(--spacing-md);
     }
 
-    .form-group label {
+    /* Labels - dark text for visibility on white background */
+    .mauticform-label {
       display: block;
       font-size: 0.875rem;
       font-weight: 500;
-      color: var(--color-text);
+      color: var(--color-text) !important;
       margin-bottom: var(--spacing-xs);
     }
 
-    .form-group label .required {
-      color: #ef4444;
+    /* Required asterisk */
+    .mauticform-required {
+      color: #ef4444 !important;
     }
 
-    .form-group input[type="text"],
-    .form-group input[type="email"],
-    .form-group input[type="tel"] {
-      width: 100%;
-      padding: 0.875rem 1rem;
-      font-size: 16px; /* Prevents iOS zoom on focus */
-      font-family: inherit;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      background: var(--color-white);
-      color: var(--color-text);
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-      -webkit-appearance: none; /* Remove iOS default styling */
-      appearance: none;
+    /* Text inputs */
+    .mauticform-input,
+    .mauticform-text input,
+    .mauticform-email input,
+    .mauticform-tel input,
+    .mauticform input[type="text"],
+    .mauticform input[type="email"],
+    .mauticform input[type="tel"] {
+      width: 100% !important;
+      padding: 0.875rem 1rem !important;
+      font-size: 16px !important;
+      font-family: inherit !important;
+      border: 1px solid var(--color-border) !important;
+      border-radius: var(--radius-md) !important;
+      background: var(--color-white) !important;
+      color: var(--color-text) !important;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      box-sizing: border-box !important;
     }
 
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba(123, 56, 251, 0.1);
+    .mauticform-input:focus,
+    .mauticform input:focus {
+      outline: none !important;
+      border-color: var(--color-primary) !important;
+      box-shadow: 0 0 0 3px rgba(123, 56, 251, 0.1) !important;
     }
 
-    .form-group input::placeholder {
-      color: var(--color-text-muted);
+    .mauticform-input::placeholder,
+    .mauticform input::placeholder {
+      color: var(--color-text-muted) !important;
     }
 
-    .form-group .help-text {
+    /* Error messages */
+    .mauticform-errormsg {
       font-size: 0.75rem;
-      color: var(--color-text-muted);
+      color: #ef4444 !important;
       margin-top: 4px;
     }
 
-    .form-submit {
-      width: 100%;
-      padding: 1rem 1.5rem;
-      min-height: 48px; /* Touch-friendly minimum */
-      font-size: 1rem;
-      font-weight: 600;
-      font-family: inherit;
-      color: var(--color-white);
-      background: linear-gradient(135deg, #7B38FB, #5B21B6);
-      border: none;
+    /* Submit button - VantaHire purple gradient */
+    .mauticform-button,
+    .mauticform button[type="submit"],
+    .mauticform input[type="submit"] {
+      width: 100% !important;
+      padding: 1rem 1.5rem !important;
+      min-height: 48px !important;
+      font-size: 1rem !important;
+      font-weight: 600 !important;
+      font-family: inherit !important;
+      color: var(--color-white) !important;
+      background: linear-gradient(135deg, #7B38FB, #5B21B6) !important;
+      border: none !important;
+      border-radius: var(--radius-md) !important;
+      cursor: pointer !important;
+      transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+      -webkit-appearance: none !important;
+      appearance: none !important;
+      touch-action: manipulation !important;
+      margin-top: var(--spacing-sm) !important;
+    }
+
+    .mauticform-button:hover,
+    .mauticform button[type="submit"]:hover,
+    .mauticform input[type="submit"]:hover {
+      background: linear-gradient(135deg, #8B48FF, #6B31C6) !important;
+      transform: translateY(-1px) !important;
+      box-shadow: var(--shadow-lg) !important;
+    }
+
+    .mauticform-button:active,
+    .mauticform button[type="submit"]:active,
+    .mauticform input[type="submit"]:active {
+      transform: translateY(0) !important;
+    }
+
+    /* Success message styling */
+    .mauticform-message,
+    .mauticform-post-success {
+      padding: var(--spacing-md);
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
       border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      -webkit-appearance: none;
-      appearance: none;
-      touch-action: manipulation; /* Prevents double-tap zoom */
+      color: var(--color-success);
+      text-align: center;
+      font-weight: 500;
     }
 
-    .form-submit:hover {
-      background: linear-gradient(135deg, #8B48FF, #6B31C6);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-lg);
-    }
-
-    .form-submit:active {
-      transform: translateY(0);
+    /* Hide hidden fields */
+    .mauticform-hidden {
+      display: none !important;
     }
 
     .form-privacy {
