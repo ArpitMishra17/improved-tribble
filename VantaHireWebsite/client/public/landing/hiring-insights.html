@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Get free, data-backed hiring insights for Indian tech teams based on 9,168+ job postings.">
+  <title>Hiring Insights Report | VantaHire</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png">
+
+  <!-- Fonts - Same as main VantaHire app -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ========================================
+       CSS Variables & Reset
+       VantaHire Brand Colors
+       ======================================== */
+    :root {
+      --color-primary: #7B38FB;        /* Purple Primary */
+      --color-primary-dark: #5B21B6;   /* Purple Dark */
+      --color-primary-light: #9B5AFF;  /* Lighter purple */
+      --color-accent: #F59E0B;         /* Gold/Amber */
+      --color-accent-pink: #FF5BA8;    /* Pink Accent */
+      --color-text: #1f2937;
+      --color-text-light: #6b7280;
+      --color-text-muted: #9ca3af;
+      --color-bg: #f8fafc;
+      --color-bg-alt: #f1f5f9;
+      --color-bg-dark: #0D0D1A;        /* Dark Background */
+      --color-bg-dark-secondary: #141428; /* Secondary Dark BG */
+      --color-white: #ffffff;
+      --color-border: #e2e8f0;
+      --color-success: #10b981;
+
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'Space Mono', 'SF Mono', Monaco, 'Cascadia Code', monospace;
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+
+      --max-width: 1140px;
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --spacing-xl: 3rem;
+      --spacing-2xl: 4rem;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--color-white);
+      background-color: var(--color-bg-dark);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    a {
+      color: var(--color-primary);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    a:hover {
+      color: var(--color-primary-dark);
+      text-decoration: underline;
+    }
+
+    /* ========================================
+       Layout & Container
+       ======================================== */
+    .container {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--spacing-sm);
+    }
+
+    main {
+      flex: 1;
+    }
+
+    section {
+      padding: var(--spacing-xl) 0;
+    }
+
+    /* ========================================
+       Header / Logo
+       ======================================== */
+    .header {
+      background: var(--color-bg-dark-secondary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: var(--spacing-sm) 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header .container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: 0.025em;
+      text-decoration: none;
+    }
+
+    .logo:hover {
+      opacity: 0.8;
+      text-decoration: none;
+    }
+
+    .logo-text {
+      background: linear-gradient(to right, #a78bfa, #f472b6, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .logo-img {
+      height: 32px;
+      width: auto;
+      object-fit: cover;
+      object-position: center top;
+      clip-path: inset(0 0 15% 0);
+    }
+
+    /* ========================================
+       Hero Section - Two Column Layout
+       ======================================== */
+    .hero {
+      background: linear-gradient(135deg, var(--color-bg-dark) 0%, var(--color-bg-dark-secondary) 100%);
+      padding: var(--spacing-lg) 0;
+    }
+
+    .hero .container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-lg);
+      align-items: start;
+    }
+
+    .hero-content {
+      text-align: center;
+    }
+
+    .hero-form-wrapper {
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* Tablet and up */
+    @media (min-width: 768px) {
+      .hero {
+        padding: var(--spacing-xl) 0;
+      }
+
+      .hero .container {
+        gap: var(--spacing-xl);
+      }
+
+      .hero-form-wrapper {
+        max-width: 420px;
+        margin: 0 auto;
+      }
+    }
+
+    /* Desktop - Two column layout */
+    @media (min-width: 960px) {
+      .hero {
+        min-height: calc(100vh - 60px);
+        display: flex;
+        align-items: center;
+      }
+
+      .hero .container {
+        grid-template-columns: 1fr 420px;
+        gap: var(--spacing-2xl);
+        align-items: center;
+      }
+
+      .hero-content {
+        text-align: left;
+      }
+
+      .hero-subtitle {
+        margin-left: 0;
+        margin-right: 0;
+      }
+
+      .hero-bullets {
+        justify-content: flex-start !important;
+        max-width: 100% !important;
+      }
+
+      .hero-form-wrapper {
+        margin: 0;
+      }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      background: rgba(123, 56, 251, 0.1);
+      color: var(--color-primary);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: 50px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .hero-badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--color-success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .hero h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: var(--spacing-md);
+      color: var(--color-white);
+    }
+
+    @media (min-width: 480px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+    }
+
+    .hero h1 .highlight {
+      background: linear-gradient(135deg, #7B38FB, #F59E0B);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 1.125rem;
+      color: rgba(255, 255, 255, 0.8);
+      max-width: 600px;
+      margin: 0 auto var(--spacing-lg);
+    }
+
+    .hero-stats {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      background: rgba(123, 56, 251, 0.2);
+      border: 1px solid rgba(123, 56, 251, 0.3);
+      padding: var(--spacing-xs) var(--spacing-md);
+      border-radius: var(--radius-lg);
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .hero-stats strong {
+      color: var(--color-accent);
+      font-size: 1rem;
+    }
+
+    .hero-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      text-align: left;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .hero-bullets li {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .hero-bullets li::before {
+      content: "✓";
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--color-success);
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    /* ========================================
+       Value Section
+       ======================================== */
+    .value-section {
+      background: var(--color-bg-dark-secondary);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .value-section .container {
+      display: grid;
+      gap: var(--spacing-lg);
+    }
+
+    .value-intro {
+      text-align: center;
+    }
+
+    .value-intro h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .value-intro p {
+      color: rgba(255, 255, 255, 0.7);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .value-cards {
+      display: grid;
+      gap: var(--spacing-md);
+    }
+
+    .value-card {
+      background: var(--color-bg-dark);
+      padding: var(--spacing-md);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .value-card-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #7B38FB, #F59E0B);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .value-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .value-card h3 {
+      color: var(--color-white);
+    }
+
+    .value-card p {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* ========================================
+       Form Section (now inline in hero)
+       ======================================== */
+    .form-container {
+      background: var(--color-white);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      padding: var(--spacing-lg);
+      border: 1px solid var(--color-border);
+    }
+
+    .form-header {
+      text-align: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .form-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .form-header p {
+      color: var(--color-text-light);
+      font-size: 0.9375rem;
+    }
+
+    .report-label {
+      background: linear-gradient(135deg, rgba(123, 56, 251, 0.1), rgba(245, 158, 11, 0.1));
+      border: 1px solid rgba(123, 56, 251, 0.2);
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--spacing-lg);
+      text-align: center;
+    }
+
+    .report-label strong {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+
+    .report-label #report-label {
+      color: var(--color-primary);
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    /* ----------------------------------------
+       Form Styles (Example Structure)
+       Replace with Mautic form embed
+       ---------------------------------------- */
+    .mautic-form-wrapper {
+      /* Wrapper for Mautic form embed */
+    }
+
+    /* Example form styles - will apply to Mautic form */
+    .form-group {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--color-text);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .form-group label .required {
+      color: #ef4444;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="tel"] {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      font-size: 16px; /* Prevents iOS zoom on focus */
+      font-family: inherit;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-white);
+      color: var(--color-text);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      -webkit-appearance: none; /* Remove iOS default styling */
+      appearance: none;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(123, 56, 251, 0.1);
+    }
+
+    .form-group input::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    .form-group .help-text {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    .form-submit {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      min-height: 48px; /* Touch-friendly minimum */
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      color: var(--color-white);
+      background: linear-gradient(135deg, #7B38FB, #5B21B6);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      -webkit-appearance: none;
+      appearance: none;
+      touch-action: manipulation; /* Prevents double-tap zoom */
+    }
+
+    .form-submit:hover {
+      background: linear-gradient(135deg, #8B48FF, #6B31C6);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .form-submit:active {
+      transform: translateY(0);
+    }
+
+    .form-privacy {
+      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      text-align: center;
+      margin-top: var(--spacing-md);
+    }
+
+    .form-privacy a {
+      color: var(--color-text-light);
+    }
+
+    /* ========================================
+       Trust Section
+       ======================================== */
+    .trust-section {
+      background: var(--color-bg-dark-secondary);
+      text-align: center;
+      padding: var(--spacing-xl) 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .trust-section p {
+      color: rgba(255, 255, 255, 0.7);
+      max-width: 600px;
+      margin: 0 auto var(--spacing-md);
+    }
+
+    .trust-section p strong {
+      color: var(--color-white);
+    }
+
+    .trust-badges {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--spacing-md);
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.875rem;
+    }
+
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      background: rgba(123, 56, 251, 0.15);
+      border: 1px solid rgba(123, 56, 251, 0.2);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--radius-md);
+    }
+
+    /* ========================================
+       Footer
+       ======================================== */
+    .footer {
+      background: var(--color-bg-dark);
+      color: var(--color-bg);
+      padding: var(--spacing-lg) 0;
+      margin-top: auto;
+    }
+
+    .footer .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--spacing-sm);
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: var(--spacing-md);
+    }
+
+    .footer-links a {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.875rem;
+    }
+
+    .footer-links a:hover {
+      color: var(--color-white);
+      text-decoration: none;
+    }
+
+    .footer-copyright {
+      font-size: 0.8125rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* ========================================
+       Responsive Breakpoints
+       ======================================== */
+    @media (min-width: 640px) {
+      .container {
+        padding: 0 var(--spacing-lg);
+      }
+
+      .hero h1 {
+        font-size: 2.25rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.125rem;
+      }
+
+      .value-cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .form-container {
+        padding: var(--spacing-lg);
+      }
+    }
+
+    @media (min-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+
+      .value-cards {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .footer .container {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .hero h1 {
+        font-size: 2.75rem;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .hero h1 {
+        font-size: 3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ========================================
+       Header
+       ======================================== -->
+  <header class="header">
+    <div class="container">
+      <a href="https://vantahire.com" class="logo">
+        <img src="/brand/vantahire-logo.png" alt="VantaHire" class="logo-img">
+        <span class="logo-text">VantaHire</span>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- ========================================
+         Hero Section
+         ======================================== -->
+    <section class="hero">
+      <div class="container">
+        <!-- Left Column: Hero Content -->
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            Free Research Report
+          </div>
+
+          <h1>
+            Unlock Data-Backed<br>
+            <span class="highlight">Hiring Insights</span> for<br>
+            Indian Tech Teams
+          </h1>
+
+          <p class="hero-subtitle">
+            Get our free, research-based hiring report based on real data from Indian job postings.
+          </p>
+
+          <div class="hero-stats">
+            <strong>9,168+</strong> job postings analyzed
+          </div>
+
+          <ul class="hero-bullets">
+            <li>Onsite vs hybrid vs remote – what companies really offer</li>
+            <li>Which experience bands (3–5 years, etc.) are in highest demand</li>
+            <li>Top skills Indian companies are hiring for right now</li>
+            <li>Reality of AI/ML hiring vs hype</li>
+          </ul>
+        </div>
+
+        <!-- Right Column: Form -->
+        <div class="hero-form-wrapper">
+          <div class="form-container">
+          <div class="form-header">
+            <h2>Get the Report in Your Inbox</h2>
+            <p>Share your details and we'll email you the specific hiring insight report you requested.</p>
+          </div>
+
+          <!-- Report Label - Dynamically updated by JS -->
+          <div class="report-label">
+            <strong>Report Selected</strong>
+            <span id="report-label">Hiring Insights Report</span>
+          </div>
+
+          <!-- Mautic Form Embed -->
+          <div class="mautic-form-wrapper">
+            <script type="text/javascript" src="https://mautic.evalmatch.app/form/generate.js?id=1"></script>
+          </div>
+
+          <p class="form-privacy">
+            By submitting, you agree to our
+            <a href="/privacy">Privacy Policy</a>.
+            We'll only use your email to send the report and occasional hiring insights.
+          </p>
+          </div><!-- /.form-container -->
+        </div><!-- /.hero-form-wrapper -->
+      </div><!-- /.container -->
+    </section><!-- /.hero -->
+
+    <!-- ========================================
+         Value Section - Below the fold
+         ======================================== -->
+    <section class="value-section">
+      <div class="container">
+        <div class="value-intro">
+          <h2>Data-Backed Insights, Not Opinions</h2>
+          <p>
+            Our reports are based on rigorous analysis of real job postings across India's tech ecosystem.
+            No guesswork, no surveys – just actual market data.
+          </p>
+        </div>
+
+        <div class="value-cards">
+          <div class="value-card">
+            <div class="value-card-icon">👤</div>
+            <h3>HR Leaders</h3>
+            <p>Benchmark your hiring practices against market reality</p>
+          </div>
+
+          <div class="value-card">
+            <div class="value-card-icon">🎯</div>
+            <h3>Talent Acquisition</h3>
+            <p>Understand candidate expectations and competition</p>
+          </div>
+
+          <div class="value-card">
+            <div class="value-card-icon">💻</div>
+            <h3>CTOs & Tech Leaders</h3>
+            <p>Plan team growth with accurate market intelligence</p>
+          </div>
+
+          <div class="value-card">
+            <div class="value-card-icon">🚀</div>
+            <h3>Founders</h3>
+            <p>Make informed decisions on comp and hiring strategy</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================
+         Trust Section
+         ======================================== -->
+    <section class="trust-section">
+      <div class="container">
+        <p>
+          <strong>AI + Human Expertise. Faster, Fairer Hiring.</strong><br>
+          VantaHire combines AI-powered candidate matching with specialist recruiters to help startups and enterprises scale faster.
+        </p>
+
+        <div class="trust-badges">
+          <div class="trust-badge">
+            📊 Data-Driven
+          </div>
+          <div class="trust-badge">
+            🔒 Privacy-First
+          </div>
+          <div class="trust-badge">
+            🇮🇳 India-Focused
+          </div>
+          <div class="trust-badge">
+            ⚡ AI-Powered
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================
+       Footer
+       ======================================== -->
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-copyright">
+        &copy; 2025 VantaHire. All rights reserved.
+      </p>
+
+      <div class="footer-links">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/contact">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================
+       JavaScript
+       ======================================== -->
+  <script>
+    (function() {
+      'use strict';
+
+      // ----------------------------------------
+      // Report ID to Name Mapping
+      // ----------------------------------------
+      const reportNames = {
+        onsite: "Onsite vs Hybrid vs Remote Hiring Insights",
+        seniority: "Seniority Distribution in Indian Tech Hiring",
+        experience: "Experience Band Demand (3–5 Years, etc.)",
+        salary: "Salary Benchmarks for Indian Tech Roles",
+        ai: "AI Hiring Reality Check (Only ~5% of Roles)",
+        multiskill: "Multi-Skilled Engineer Demand Trends",
+        generalist: "Generalist Developer Hiring Trends",
+        roleskills: "Role → Skill Expectation Mapping"
+      };
+
+      const defaultReportName = "Hiring Insights Report";
+
+      // ----------------------------------------
+      // Parse URL Query Parameters
+      // ----------------------------------------
+      function getQueryParams() {
+        const params = {};
+        const searchParams = new URLSearchParams(window.location.search);
+
+        searchParams.forEach(function(value, key) {
+          params[key] = value;
+        });
+
+        return params;
+      }
+
+      // ----------------------------------------
+      // Fill hidden fields in Mautic form
+      // ----------------------------------------
+      function fillHiddenFields() {
+        const params = getQueryParams();
+
+        // Get report_id (default to "generic" if not present)
+        const reportId = params.report_id || params.reportId || 'generic';
+
+        // Get utm_source (empty string if not present)
+        const utmSource = params.utm_source || params.utmSource || '';
+
+        // Update hidden form fields using querySelector with name attributes
+        // (Mautic generates fields dynamically without predictable IDs)
+        const reportIdField = document.querySelector('input[name="report_id"]');
+        const utmSourceField = document.querySelector('input[name="utm_source"]');
+
+        if (reportIdField) {
+          reportIdField.value = reportId;
+        }
+
+        if (utmSourceField) {
+          utmSourceField.value = utmSource;
+        }
+
+        // Update the report label display
+        const reportLabel = document.getElementById('report-label');
+        if (reportLabel) {
+          // Look up the report name, or use default
+          const reportName = reportNames[reportId] || defaultReportName;
+          reportLabel.textContent = reportName;
+        }
+
+        // Log for debugging (remove in production)
+        console.log('[VantaHire Landing] Hidden fields filled:', {
+          report_id: reportId,
+          utm_source: utmSource,
+          reportIdFieldFound: !!reportIdField,
+          utmSourceFieldFound: !!utmSourceField
+        });
+      }
+
+      // ----------------------------------------
+      // Initialize on DOM Ready
+      // ----------------------------------------
+      function init() {
+        // Wait for Mautic form to load (it's injected asynchronously)
+        // Try multiple times in case the form takes longer to load
+        setTimeout(fillHiddenFields, 500);
+        setTimeout(fillHiddenFields, 1000);
+        setTimeout(fillHiddenFields, 2000);
+      }
+
+      // Run on DOM ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+</body>
+</html>
