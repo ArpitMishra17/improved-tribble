@@ -142,6 +142,7 @@ export function generateJobPostingSchema(job: {
   description: string;
   location: string;
   type: string | null;
+  company?: string | null;
   createdAt: Date | string;
   deadline?: Date | string | null;
   expiresAt?: Date | string | null;
@@ -172,6 +173,9 @@ export function generateJobPostingSchema(job: {
     ? `${baseUrl}/jobs/${job.id}-${job.slug}`
     : `${baseUrl}/jobs/${job.id}`;
 
+  // Use company name from job if available, otherwise VantaHire
+  const companyName = job.company || 'VantaHire';
+
   const jobPosting: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
@@ -180,13 +184,12 @@ export function generateJobPostingSchema(job: {
     datePosted,
     hiringOrganization: {
       '@type': 'Organization',
-      name: 'VantaHire',
-      sameAs: 'https://www.linkedin.com/company/vantahire/',
+      name: companyName,
       logo: `${baseUrl}/logo.png`,
     },
     identifier: {
       '@type': 'PropertyValue',
-      name: 'VantaHire',
+      name: companyName,
       value: job.id.toString(),
     },
     directApply: true,

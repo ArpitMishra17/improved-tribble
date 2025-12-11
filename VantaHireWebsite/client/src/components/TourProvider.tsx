@@ -29,7 +29,18 @@ const TourContext = createContext<TourContextType | null>(null);
 export function useTour() {
   const context = useContext(TourContext);
   if (!context) {
-    throw new Error("useTour must be used within a TourProvider");
+    // Return a safe default instead of throwing during error boundary recovery
+    return {
+      isRunning: false,
+      currentTourId: null,
+      completedTours: [],
+      startTour: () => {},
+      stopTour: () => {},
+      resetTours: () => {},
+      availableTours: [],
+      hasSeenFirstVisitTour: true,
+      dismissFirstVisitTour: () => {},
+    };
   }
   return context;
 }

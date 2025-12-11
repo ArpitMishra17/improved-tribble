@@ -196,24 +196,28 @@ export default function JobAnalyticsDashboard() {
     return jobHealthData.find(h => h.jobId === jobId);
   };
 
-  // Filter jobs based on search and status
-  const filteredJobs = jobsWithAnalytics?.filter(job => {
-    const matchesSearch = !searchTerm || 
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "active" && job.isActive) ||
-      (statusFilter === "inactive" && !job.isActive) ||
-      job.status === statusFilter;
-    
-    const matchesClient =
-      clientFilter === "all" ||
-      (clientFilter === "no-client" && !job.clientId) ||
-      (clientFilter === String(job.clientId));
+  // Filter jobs based on search and status, with deduplication
+  const filteredJobs = Array.from(
+    new Map(
+      (jobsWithAnalytics?.filter(job => {
+        const matchesSearch = !searchTerm ||
+          job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          job.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch && matchesStatus && matchesClient;
-  }) || [];
+        const matchesStatus = statusFilter === "all" ||
+          (statusFilter === "active" && job.isActive) ||
+          (statusFilter === "inactive" && !job.isActive) ||
+          job.status === statusFilter;
+
+        const matchesClient =
+          clientFilter === "all" ||
+          (clientFilter === "no-client" && !job.clientId) ||
+          (clientFilter === String(job.clientId));
+
+        return matchesSearch && matchesStatus && matchesClient;
+      }) || []).map(job => [job.id, job])
+    ).values()
+  );
 
   // Calculate aggregate statistics
   const totalViews = filteredJobs.reduce((sum, job) => sum + job.analytics.views, 0);

@@ -12,7 +12,7 @@
  */
 
 import type { Express, Request, Response, NextFunction } from 'express';
-import { sql, eq, and, desc } from 'drizzle-orm';
+import { sql, eq, and, desc, gte, inArray } from 'drizzle-orm';
 import { db } from './db';
 import { storage } from './storage';
 import { requireRole } from './auth';
@@ -24,6 +24,13 @@ import {
   forms,
   applications,
   users,
+  emailAuditLog,
+  automationEvents,
+  automationSettings,
+  applicationStageHistory,
+  pipelineStages,
+  jobs,
+  clients,
 } from '@shared/schema';
 import type { CsrfMiddleware } from './types/routes';
 
@@ -233,12 +240,11 @@ export function registerAdminRoutes(
 
       // Whitelist valid automation setting keys to prevent arbitrary key injection
       const validKeys = [
-        'email_on_application_received',
-        'email_on_status_change',
-        'email_on_interview_scheduled',
-        'email_on_offer_sent',
-        'email_on_rejection',
-        'auto_acknowledge_applications',
+        'auto_send_application_received',
+        'auto_send_status_update',
+        'auto_send_interview_invite',
+        'auto_send_offer_letter',
+        'auto_send_rejection',
         'notify_recruiter_new_application',
         'reminder_interview_upcoming',
       ];
@@ -699,6 +705,527 @@ export function registerAdminRoutes(
       return;
     } catch (error) {
       console.error('[Admin Feedback] Error fetching analytics:', error);
+      next(error);
+    }
+  });
+
+  // ============= OPERATIONS COMMAND CENTER =============
+
+  /**
+   * GET /api/admin/ops/summary
+   * Merged endpoint for Operations Command Center dashboard
+   * Returns: SLA metrics, automation activity, ops health
+   */
+  app.get("/api/admin/ops/summary", requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { range = '7d', clientId } = req.query;
+
+      // Calculate date range
+      const now = new Date();
+      let startDate = new Date();
+      switch (range) {
+        case '24h': startDate.setHours(startDate.getHours() - 24); break;
+        case '7d': startDate.setDate(startDate.getDate() - 7); break;
+        case '30d': startDate.setDate(startDate.getDate() - 30); break;
+        case '90d': startDate.setDate(startDate.getDate() - 90); break;
+        default: startDate.setDate(startDate.getDate() - 7);
+      }
+
+      // Build client filter condition if provided
+      const clientFilter = clientId ? eq(jobs.clientId, parseInt(clientId as string)) : undefined;
+
+      // ============= SLA METRICS =============
+
+      // Time to first touch: Average time from application to first stage change
+      // Scoped to applications within the selected date range
+      const applicationsInRange = await db
+        .select({
+          id: applications.id,
+          appliedAt: applications.appliedAt,
+          jobId: applications.jobId,
+        })
+        .from(applications)
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(
+          clientFilter
+            ? and(gte(applications.appliedAt, startDate), clientFilter)
+            : gte(applications.appliedAt, startDate)
+        );
+
+      const applicationIdsInRange = applicationsInRange.map((a: { id: number }) => a.id);
+
+      // Get first touch times only for applications in range (avoids full table scan)
+      const firstTouchQuery = applicationIdsInRange.length > 0
+        ? await db
+            .select({
+              applicationId: applicationStageHistory.applicationId,
+              firstTouchAt: sql<Date>`MIN(${applicationStageHistory.changedAt})`.as('firstTouchAt'),
+            })
+            .from(applicationStageHistory)
+            .where(inArray(applicationStageHistory.applicationId, applicationIdsInRange))
+            .groupBy(applicationStageHistory.applicationId)
+        : [];
+
+      // Use applicationsInRange for touch time calculation
+      const applicationsWithTouch = applicationsInRange;
+
+      // Calculate average time to first touch (in hours)
+      let totalFirstTouchTime = 0;
+      let firstTouchCount = 0;
+      type FirstTouchRow = { applicationId: number; firstTouchAt: Date };
+      const firstTouchMap = new Map(firstTouchQuery.map((f: FirstTouchRow) => [f.applicationId, f.firstTouchAt]));
+
+      for (const app of applicationsWithTouch) {
+        const firstTouch = firstTouchMap.get(app.id);
+        if (firstTouch && app.appliedAt) {
+          const firstTouchDate = firstTouch instanceof Date ? firstTouch : new Date(firstTouch as unknown as string);
+          const appliedDate = app.appliedAt instanceof Date ? app.appliedAt : new Date(app.appliedAt as unknown as string);
+          const touchTime = (firstTouchDate.getTime() - appliedDate.getTime()) / (1000 * 60 * 60);
+          if (touchTime > 0 && touchTime < 720) { // Cap at 30 days
+            totalFirstTouchTime += touchTime;
+            firstTouchCount++;
+          }
+        }
+      }
+      const avgTimeToFirstTouchHours = firstTouchCount > 0 ? totalFirstTouchTime / firstTouchCount : 0;
+
+      // Overdue applications (no touch > 48 hours)
+      const overdueThreshold = new Date();
+      overdueThreshold.setHours(overdueThreshold.getHours() - 48);
+
+      const overdueAppsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(applications)
+        .leftJoin(applicationStageHistory, eq(applications.id, applicationStageHistory.applicationId))
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(and(
+          sql`${applications.appliedAt} < ${overdueThreshold}`,
+          sql`${applicationStageHistory.id} IS NULL`,
+          eq(applications.status, 'submitted'),
+          clientFilter
+        ));
+      const overdueApplications = overdueAppsResult[0]?.count || 0;
+
+      // Overdue interviews (scheduled but no feedback > 5 days)
+      const interviewFeedbackThreshold = new Date();
+      interviewFeedbackThreshold.setDate(interviewFeedbackThreshold.getDate() - 5);
+
+      const overdueInterviewsResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(applications)
+        .leftJoin(applicationFeedback, eq(applications.id, applicationFeedback.applicationId))
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(and(
+          sql`${applications.interviewDate} IS NOT NULL`,
+          sql`${applications.interviewDate} < ${interviewFeedbackThreshold}`,
+          sql`${applicationFeedback.id} IS NULL`,
+          clientFilter
+        ));
+      const overdueInterviews = overdueInterviewsResult[0]?.count || 0;
+
+      // Applications in pipeline (active status)
+      const inPipelineResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(applications)
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(and(
+          sql`${applications.status} NOT IN ('rejected', 'hired', 'withdrawn')`,
+          clientFilter
+        ));
+      const inPipeline = inPipelineResult[0]?.count || 0;
+
+      // Offers out (applications with offer stage)
+      const offerStage = await db
+        .select({ id: pipelineStages.id })
+        .from(pipelineStages)
+        .where(sql`LOWER(${pipelineStages.name}) LIKE '%offer%'`)
+        .limit(1);
+
+      let offersOut = 0;
+      if (offerStage.length > 0) {
+        const offersResult = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(applications)
+          .innerJoin(jobs, eq(applications.jobId, jobs.id))
+          .where(and(
+            eq(applications.currentStage, offerStage[0].id),
+            sql`${applications.stageChangedAt} >= ${startDate}`,
+            clientFilter
+          ));
+        offersOut = offersResult[0]?.count || 0;
+      }
+
+      // Hires in period
+      const hiresResult = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(applications)
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(and(
+          eq(applications.status, 'hired'),
+          sql`${applications.updatedAt} >= ${startDate}`,
+          clientFilter
+        ));
+      const hires = hiresResult[0]?.count || 0;
+
+      // ============= AUTOMATION ACTIVITY =============
+
+      // Get recent automation events
+      const recentAutomationEvents = await db
+        .select({
+          id: automationEvents.id,
+          automationKey: automationEvents.automationKey,
+          targetType: automationEvents.targetType,
+          targetId: automationEvents.targetId,
+          outcome: automationEvents.outcome,
+          errorMessage: automationEvents.errorMessage,
+          triggeredAt: automationEvents.triggeredAt,
+          triggeredByName: users.firstName,
+        })
+        .from(automationEvents)
+        .leftJoin(users, eq(automationEvents.triggeredBy, users.id))
+        .where(sql`${automationEvents.triggeredAt} >= ${startDate}`)
+        .orderBy(desc(automationEvents.triggeredAt))
+        .limit(50);
+
+      // Automation event summary
+      const automationSummaryResult = await db
+        .select({
+          outcome: automationEvents.outcome,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(automationEvents)
+        .where(sql`${automationEvents.triggeredAt} >= ${startDate}`)
+        .groupBy(automationEvents.outcome);
+
+      const automationSummary = {
+        success: 0,
+        failed: 0,
+        skipped: 0,
+      };
+      type AutomationSummaryRow = { outcome: string; count: number };
+      automationSummaryResult.forEach((r: AutomationSummaryRow) => {
+        if (r.outcome === 'success') automationSummary.success = r.count;
+        else if (r.outcome === 'failed') automationSummary.failed = r.count;
+        else if (r.outcome === 'skipped') automationSummary.skipped = r.count;
+      });
+
+      // Get current automation settings
+      const settings = await db
+        .select({
+          key: automationSettings.settingKey,
+          value: automationSettings.settingValue,
+          description: automationSettings.description,
+        })
+        .from(automationSettings);
+
+      // ============= OPS HEALTH =============
+
+      // Email stats
+      const emailStatsResult = await db
+        .select({
+          status: emailAuditLog.status,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(emailAuditLog)
+        .where(sql`${emailAuditLog.sentAt} >= ${startDate}`)
+        .groupBy(emailAuditLog.status);
+
+      const emailStats = {
+        sent: 0,
+        failed: 0,
+      };
+      type EmailStatsRow = { status: string; count: number };
+      emailStatsResult.forEach((r: EmailStatsRow) => {
+        if (r.status === 'success') emailStats.sent = r.count;
+        else if (r.status === 'failed') emailStats.failed = r.count;
+      });
+
+      // Recent email failures
+      const recentEmailFailures = await db
+        .select({
+          id: emailAuditLog.id,
+          recipientEmail: emailAuditLog.recipientEmail,
+          subject: emailAuditLog.subject,
+          errorMessage: emailAuditLog.errorMessage,
+          sentAt: emailAuditLog.sentAt,
+        })
+        .from(emailAuditLog)
+        .where(and(
+          eq(emailAuditLog.status, 'failed'),
+          sql`${emailAuditLog.sentAt} >= ${startDate}`
+        ))
+        .orderBy(desc(emailAuditLog.sentAt))
+        .limit(10);
+
+      // Rejection reason breakdown (for quality insights)
+      const rejectionReasonResult = await db
+        .select({
+          reason: applications.rejectionReason,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(applications)
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(and(
+          eq(applications.status, 'rejected'),
+          sql`${applications.updatedAt} >= ${startDate}`,
+          sql`${applications.rejectionReason} IS NOT NULL`,
+          clientFilter
+        ))
+        .groupBy(applications.rejectionReason);
+
+      const rejectionReasons: Record<string, number> = {};
+      type RejectionReasonRow = { reason: string | null; count: number };
+      rejectionReasonResult.forEach((r: RejectionReasonRow) => {
+        if (r.reason) rejectionReasons[r.reason] = r.count;
+      });
+
+      // ============= PIPELINE FUNNEL =============
+
+      // Get all pipeline stages ordered
+      const allStages = await db
+        .select({
+          id: pipelineStages.id,
+          name: pipelineStages.name,
+          order: pipelineStages.order,
+          color: pipelineStages.color,
+        })
+        .from(pipelineStages)
+        .orderBy(pipelineStages.order);
+
+      // Get application counts per stage (within date range)
+      const stageCountsQuery = await db
+        .select({
+          stageId: applications.currentStage,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(applications)
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(and(
+          sql`${applications.appliedAt} >= ${startDate}`,
+          clientFilter
+        ))
+        .groupBy(applications.currentStage);
+
+      type StageCountRow = { stageId: number | null; count: number };
+      const stageCountMap = new Map(stageCountsQuery.map((s: StageCountRow) => [s.stageId, s.count]));
+
+      // Get counts for terminal statuses (hired, rejected, withdrawn) - these don't have stages
+      const terminalStatusesQuery = await db
+        .select({
+          status: applications.status,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(applications)
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(and(
+          sql`${applications.appliedAt} >= ${startDate}`,
+          sql`${applications.status} IN ('hired', 'rejected', 'withdrawn')`,
+          clientFilter
+        ))
+        .groupBy(applications.status);
+
+      type TerminalStatusRow = { status: string; count: number };
+      const terminalCounts: Record<string, number> = {};
+      terminalStatusesQuery.forEach((r: TerminalStatusRow) => {
+        terminalCounts[r.status] = r.count;
+      });
+
+      // Build funnel data with stages + terminal statuses
+      type FunnelStage = { id: number; name: string; order: number; color: string; count: number; type: 'stage' | 'terminal' };
+      type StageRow = { id: number; name: string; order: number; color: string | null };
+      const funnelData: FunnelStage[] = allStages.map((stage: StageRow) => ({
+        id: stage.id,
+        name: stage.name,
+        order: stage.order,
+        color: stage.color || '#3b82f6',
+        count: stageCountMap.get(stage.id) || 0,
+        type: 'stage' as const,
+      }));
+
+      // Add terminal statuses at the end
+      if (terminalCounts.hired) {
+        funnelData.push({
+          id: -1,
+          name: 'Hired',
+          order: 999,
+          color: '#22c55e',
+          count: terminalCounts.hired,
+          type: 'terminal' as const,
+        });
+      }
+      if (terminalCounts.rejected) {
+        funnelData.push({
+          id: -2,
+          name: 'Rejected',
+          order: 1000,
+          color: '#ef4444',
+          count: terminalCounts.rejected,
+          type: 'terminal' as const,
+        });
+      }
+      if (terminalCounts.withdrawn) {
+        funnelData.push({
+          id: -3,
+          name: 'Withdrawn',
+          order: 1001,
+          color: '#94a3b8',
+          count: terminalCounts.withdrawn,
+          type: 'terminal' as const,
+        });
+      }
+
+      // Calculate total applications for percentage calculation
+      const totalApplications = funnelData.reduce((sum: number, stage: FunnelStage) => sum + stage.count, 0);
+
+      // ============= CLIENT SUMMARIES =============
+
+      // Get all clients with their metrics
+      const allClients = await db
+        .select({
+          id: clients.id,
+          name: clients.name,
+          domain: clients.domain,
+        })
+        .from(clients)
+        .orderBy(clients.name);
+
+      // Get job counts per client
+      const clientJobCounts = await db
+        .select({
+          clientId: jobs.clientId,
+          activeJobs: sql<number>`count(*) FILTER (WHERE ${jobs.isActive} = true)::int`,
+          totalJobs: sql<number>`count(*)::int`,
+        })
+        .from(jobs)
+        .where(sql`${jobs.clientId} IS NOT NULL`)
+        .groupBy(jobs.clientId);
+
+      type ClientJobCountRow = { clientId: number | null; activeJobs: number; totalJobs: number };
+      const clientJobMap = new Map<number | null, { activeJobs: number; totalJobs: number }>(
+        clientJobCounts.map((c: ClientJobCountRow) => [c.clientId, { activeJobs: c.activeJobs, totalJobs: c.totalJobs }])
+      );
+
+      // Get application metrics per client (via jobs)
+      const clientAppMetrics = await db
+        .select({
+          clientId: jobs.clientId,
+          inPipeline: sql<number>`count(*) FILTER (WHERE ${applications.status} NOT IN ('rejected', 'hired', 'withdrawn'))::int`,
+          hired: sql<number>`count(*) FILTER (WHERE ${applications.status} = 'hired' AND ${applications.updatedAt} >= ${startDate})::int`,
+          rejected: sql<number>`count(*) FILTER (WHERE ${applications.status} = 'rejected' AND ${applications.updatedAt} >= ${startDate})::int`,
+        })
+        .from(applications)
+        .innerJoin(jobs, eq(applications.jobId, jobs.id))
+        .where(sql`${jobs.clientId} IS NOT NULL`)
+        .groupBy(jobs.clientId);
+
+      type ClientAppMetricRow = { clientId: number | null; inPipeline: number; hired: number; rejected: number };
+      const clientAppMap = new Map<number | null, { inPipeline: number; hired: number; rejected: number }>(
+        clientAppMetrics.map((c: ClientAppMetricRow) => [c.clientId, { inPipeline: c.inPipeline, hired: c.hired, rejected: c.rejected }])
+      );
+
+      // Build client summaries
+      type ClientRow = { id: number; name: string; domain: string | null };
+      const clientSummaries = allClients.map((client: ClientRow) => {
+        const jobStats = clientJobMap.get(client.id) || { activeJobs: 0, totalJobs: 0 };
+        const appStats = clientAppMap.get(client.id) || { inPipeline: 0, hired: 0, rejected: 0 };
+        return {
+          id: client.id,
+          name: client.name,
+          domain: client.domain,
+          activeJobs: jobStats.activeJobs,
+          totalJobs: jobStats.totalJobs,
+          inPipeline: appStats.inPipeline,
+          hired: appStats.hired,
+          rejected: appStats.rejected,
+        };
+      });
+
+      // ============= RESPONSE =============
+
+      res.json({
+        range,
+        generatedAt: now.toISOString(),
+
+        // KPI summary
+        kpis: {
+          hires,
+          offersOut,
+          inPipeline,
+          slaWarnings: overdueApplications + overdueInterviews,
+        },
+
+        // SLA metrics
+        sla: {
+          avgTimeToFirstTouchHours: Math.round(avgTimeToFirstTouchHours * 10) / 10,
+          overdueApplications,
+          overdueInterviews,
+        },
+
+        // Automation
+        automation: {
+          settings,
+          summary: automationSummary,
+          recentEvents: recentAutomationEvents,
+        },
+
+        // Ops health
+        health: {
+          email: {
+            ...emailStats,
+            recentFailures: recentEmailFailures,
+          },
+          systemStatus: 'healthy', // Could add actual health checks
+        },
+
+        // Quality insights
+        quality: {
+          rejectionReasons,
+        },
+
+        // Pipeline funnel
+        funnel: {
+          stages: funnelData,
+          totalApplications,
+        },
+
+        // Client summaries (for consulting mode)
+        clients: clientSummaries,
+      });
+      return;
+    } catch (error) {
+      console.error('[Admin Ops] Error fetching summary:', error);
+      next(error);
+    }
+  });
+
+  /**
+   * POST /api/admin/ops/automation-event
+   * Log an automation event (for internal use by automation triggers)
+   * Protected: requires super_admin role and CSRF token
+   */
+  app.post("/api/admin/ops/automation-event", csrfProtection, requireRole(['super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { automationKey, targetType, targetId, outcome, errorMessage, metadata, triggeredBy } = req.body;
+
+      if (!automationKey || !targetType || !targetId) {
+        res.status(400).json({ error: 'Missing required fields: automationKey, targetType, targetId' });
+        return;
+      }
+
+      const [event] = await db.insert(automationEvents).values({
+        automationKey,
+        targetType,
+        targetId,
+        outcome: outcome || 'success',
+        errorMessage,
+        metadata,
+        triggeredBy,
+      }).returning();
+
+      res.status(201).json(event);
+      return;
+    } catch (error) {
+      console.error('[Admin Ops] Error logging automation event:', error);
       next(error);
     }
   });

@@ -102,6 +102,7 @@ export const applications = pgTable("applications", {
   resumeFilename: text("resume_filename"), // Original filename for proper downloads
   coverLetter: text("cover_letter"),
   status: text("status").default("submitted").notNull(),
+  rejectionReason: text("rejection_reason"), // 'skills_mismatch', 'experience_gap', 'salary_expectations', 'culture_fit', 'withdrew', 'no_show', 'position_filled', 'other'
   notes: text("notes"),
   lastViewedAt: timestamp("last_viewed_at"),
   downloadedAt: timestamp("downloaded_at"),
@@ -145,6 +146,7 @@ export const applications = pgTable("applications", {
   emailIdx: index("applications_email_idx").on(table.email),
   userIdIdx: index("applications_user_id_idx").on(table.userId),
   statusIdx: index("applications_status_idx").on(table.status),
+  rejectionReasonIdx: index("applications_rejection_reason_idx").on(table.rejectionReason),
 }));
 
 export const jobAnalytics = pgTable("job_analytics", {
@@ -247,6 +249,24 @@ export const automationSettings = pgTable("automation_settings", {
   updatedBy: integer("updated_by").references(() => users.id),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+// ATS: Automation events log (tracks when automations fire)
+export const automationEvents = pgTable("automation_events", {
+  id: serial("id").primaryKey(),
+  automationKey: text("automation_key").notNull(), // e.g., 'auto_acknowledge', 'auto_stage_move', 'reminder_email'
+  targetType: text("target_type").notNull(), // 'application', 'job', 'user'
+  targetId: integer("target_id").notNull(), // ID of the target entity
+  outcome: text("outcome").notNull().default("success"), // 'success', 'failed', 'skipped'
+  errorMessage: text("error_message"), // Error details if failed
+  metadata: jsonb("metadata"), // { emailId, recipientEmail, templateId, etc. }
+  triggeredAt: timestamp("triggered_at").defaultNow().notNull(),
+  triggeredBy: integer("triggered_by").references(() => users.id), // null for system-triggered
+}, (table) => ({
+  automationKeyIdx: index("automation_events_key_idx").on(table.automationKey),
+  targetTypeIdx: index("automation_events_target_type_idx").on(table.targetType),
+  triggeredAtIdx: index("automation_events_triggered_at_idx").on(table.triggeredAt),
+  outcomeIdx: index("automation_events_outcome_idx").on(table.outcome),
+}));
 
 // Consultant Profiles
 export const consultants = pgTable("consultants", {
@@ -538,6 +558,13 @@ export const emailAuditLogRelations = relations(emailAuditLog, ({ one }) => ({
 export const automationSettingsRelations = relations(automationSettings, ({ one }) => ({
   updatedByUser: one(users, {
     fields: [automationSettings.updatedBy],
+    references: [users.id],
+  }),
+}));
+
+export const automationEventsRelations = relations(automationEvents, ({ one }) => ({
+  triggeredByUser: one(users, {
+    fields: [automationEvents.triggeredBy],
     references: [users.id],
   }),
 }));
@@ -989,3 +1016,30 @@ export type InsertCandidateResume = z.infer<typeof insertCandidateResumeSchema>;
 
 export type UserAiUsage = typeof userAiUsage.$inferSelect;
 export type InsertUserAiUsage = z.infer<typeof insertUserAiUsageSchema>;
+
+// Rejection reasons enum for analytics
+export const rejectionReasons = [
+  'skills_mismatch',
+  'experience_gap',
+  'salary_expectations',
+  'culture_fit',
+  'withdrew',
+  'no_show',
+  'position_filled',
+  'other'
+] as const;
+export type RejectionReason = typeof rejectionReasons[number];
+
+// Automation Events: Insert schemas and types
+export const insertAutomationEventSchema = z.object({
+  automationKey: z.string().min(1).max(100),
+  targetType: z.enum(['application', 'job', 'user']),
+  targetId: z.number().int().positive(),
+  outcome: z.enum(['success', 'failed', 'skipped']).default('success'),
+  errorMessage: z.string().max(1000).optional(),
+  metadata: z.record(z.any()).optional(),
+  triggeredBy: z.number().int().positive().optional(),
+});
+
+export type AutomationEvent = typeof automationEvents.$inferSelect;
+export type InsertAutomationEvent = z.infer<typeof insertAutomationEventSchema>;

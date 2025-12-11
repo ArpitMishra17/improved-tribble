@@ -83,6 +83,26 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
                    job.location?.toLowerCase().includes('work from home') ||
                    job.location?.toLowerCase().includes('wfh');
 
+  // Try to detect country from location string
+  const detectCountry = (loc: string): string => {
+    const locLower = loc.toLowerCase();
+    if (locLower.includes('india') || locLower.includes('bangalore') || locLower.includes('mumbai') ||
+        locLower.includes('delhi') || locLower.includes('chennai') || locLower.includes('hyderabad') ||
+        locLower.includes('pune') || locLower.includes('kolkata') || locLower.includes('gurgaon') ||
+        locLower.includes('noida')) return 'IN';
+    if (locLower.includes('singapore')) return 'SG';
+    if (locLower.includes('malaysia') || locLower.includes('kuala lumpur')) return 'MY';
+    if (locLower.includes('philippines') || locLower.includes('manila')) return 'PH';
+    if (locLower.includes('indonesia') || locLower.includes('jakarta')) return 'ID';
+    if (locLower.includes('vietnam') || locLower.includes('ho chi minh')) return 'VN';
+    if (locLower.includes('thailand') || locLower.includes('bangkok')) return 'TH';
+    if (locLower.includes('australia') || locLower.includes('sydney') || locLower.includes('melbourne')) return 'AU';
+    if (locLower.includes('usa') || locLower.includes('united states') || locLower.includes('new york') ||
+        locLower.includes('san francisco') || locLower.includes('california')) return 'US';
+    if (locLower.includes('uk') || locLower.includes('united kingdom') || locLower.includes('london')) return 'GB';
+    return 'IN'; // Default to India
+  };
+
   const location = isRemote
     ? { jobLocationType: 'TELECOMMUTE' }
     : {
@@ -91,7 +111,7 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
           address: {
             '@type': 'PostalAddress',
             addressLocality: job.location?.split('/')[0]?.trim() || job.location,
-            addressCountry: 'IN',
+            addressCountry: detectCountry(job.location || ''),
           },
         },
       };
@@ -101,6 +121,10 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
     ? `${baseUrl}/jobs/${job.id}-${job.slug}`
     : `${baseUrl}/jobs/${job.id}`;
 
+  // Use company name from job if available, otherwise VantaHire
+  // Note: company is added via relations in some queries, not always present
+  const companyName = (job as any).company || 'VantaHire';
+
   const jobPosting: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
@@ -109,13 +133,12 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
     datePosted: new Date(job.createdAt).toISOString(),
     hiringOrganization: {
       '@type': 'Organization',
-      name: 'VantaHire',
-      sameAs: 'https://www.linkedin.com/company/vantahire/',
+      name: companyName,
       logo: `${baseUrl}/logo.png`,
     },
     identifier: {
       '@type': 'PropertyValue',
-      name: 'VantaHire',
+      name: companyName,
       value: job.id.toString(),
     },
     directApply: true,

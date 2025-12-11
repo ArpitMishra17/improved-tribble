@@ -45,7 +45,7 @@ export function registerCommunicationsRoutes(
   // ============= EMAIL TEMPLATE ROUTES =============
 
   // Get all email templates
-  app.get("/api/email-templates", requireRole(['recruiter','admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/email-templates", requireRole(['recruiter', 'super_admin']), async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const list = await storage.getEmailTemplates();
       res.json(list);
@@ -54,7 +54,7 @@ export function registerCommunicationsRoutes(
   });
 
   // Create email template
-  app.post("/api/email-templates", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/email-templates", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const body = insertEmailTemplateSchema.parse(req.body as InsertEmailTemplate);
       const tpl = await storage.createEmailTemplate({ ...body, createdBy: req.user!.id });
@@ -70,7 +70,7 @@ export function registerCommunicationsRoutes(
   });
 
   // Update email template (admin-only approval for default flag)
-  app.patch("/api/email-templates/:id", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/email-templates/:id", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -126,7 +126,7 @@ export function registerCommunicationsRoutes(
   // ============= EMAIL SENDING ROUTES =============
 
   // Send email using template
-  app.post("/api/applications/:id/send-email", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/applications/:id/send-email", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -162,7 +162,7 @@ export function registerCommunicationsRoutes(
   // ============= AI EMAIL DRAFT ROUTES =============
 
   // Generate AI-drafted email from template
-  app.post("/api/email/draft", aiAnalysisRateLimit, csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/email/draft", aiAnalysisRateLimit, csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Check if AI features are enabled
       if (!isAIEnabled()) {

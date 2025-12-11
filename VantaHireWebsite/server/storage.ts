@@ -95,6 +95,7 @@ export interface IStorage {
     status?: string;
   }): Promise<{ jobs: Job[]; total: number }>;
   updateJobStatus(id: number, isActive: boolean, reason?: string, performedBy?: number): Promise<Job | undefined>;
+  updateJob(id: number, updates: Partial<Pick<Job, 'title' | 'description' | 'location' | 'type' | 'skills'>>): Promise<Job | undefined>;
   logJobAction(data: { jobId: number; action: string; performedBy: number; reason?: string; metadata?: any }): Promise<JobAuditLog>;
   getJobsByUser(userId: number): Promise<(Job & { applicationCount: number; hiringManager?: { id: number; firstName: string | null; lastName: string | null; username: string } })[]>;
   reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined>;
@@ -616,6 +617,22 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
+
+    return job || undefined;
+  }
+
+  async updateJob(id: number, updates: Partial<Pick<Job, 'title' | 'description' | 'location' | 'type' | 'skills'>>): Promise<Job | undefined> {
+    const currentJob = await this.getJob(id);
+    if (!currentJob) return undefined;
+
+    const [job] = await db
+      .update(jobs)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(jobs.id, id))
+      .returning();
 
     return job || undefined;
   }

@@ -12,12 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
-import { 
-  Users, 
-  Briefcase, 
-  FileText, 
-  Settings, 
+import { Redirect, Link } from "wouter";
+import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
+import {
+  Users,
+  Briefcase,
+  FileText,
+  Settings,
   Eye,
   Trash2,
   Search,
@@ -33,7 +35,15 @@ import {
   Shield,
   Activity,
   Crown,
-  BarChart3
+  BarChart3,
+  RefreshCw,
+  Mail,
+  Send,
+  Zap,
+  Building2,
+  TrendingUp,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { PipelineStage } from "@shared/schema";
@@ -170,8 +180,87 @@ interface UserDetails {
   applicationCount?: number;
 }
 
+// Operations Command Center types
+interface FunnelStage {
+  id: number;
+  name: string;
+  order: number;
+  color: string;
+  count: number;
+  type: 'stage' | 'terminal';
+}
+
+interface ClientSummary {
+  id: number;
+  name: string;
+  domain: string | null;
+  activeJobs: number;
+  totalJobs: number;
+  inPipeline: number;
+  hired: number;
+  rejected: number;
+}
+
+interface OpsSummary {
+  range: string;
+  generatedAt: string;
+  kpis: {
+    hires: number;
+    offersOut: number;
+    inPipeline: number;
+    slaWarnings: number;
+  };
+  sla: {
+    avgTimeToFirstTouchHours: number;
+    overdueApplications: number;
+    overdueInterviews: number;
+  };
+  automation: {
+    settings: Array<{ key: string; value: boolean; description: string | null }>;
+    summary: { success: number; failed: number; skipped: number };
+    recentEvents: Array<{
+      id: number;
+      automationKey: string;
+      targetType: string;
+      targetId: number;
+      outcome: string;
+      errorMessage: string | null;
+      triggeredAt: string;
+      triggeredByName: string | null;
+    }>;
+  };
+  health: {
+    email: {
+      sent: number;
+      failed: number;
+      recentFailures: Array<{
+        id: number;
+        recipientEmail: string;
+        subject: string;
+        errorMessage: string | null;
+        sentAt: string;
+      }>;
+    };
+    systemStatus: string;
+  };
+  quality: {
+    rejectionReasons: Record<string, number>;
+  };
+  funnel: {
+    stages: FunnelStage[];
+    totalApplications: number;
+  };
+  clients: ClientSummary[];
+}
+
+interface Client {
+  id: number;
+  name: string;
+}
+
 export default function AdminSuperDashboard() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedJob, setSelectedJob] = useState<JobWithDetails | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<ApplicationWithDetails | null>(null);
   const [jobFilter, setJobFilter] = useState("all");
@@ -179,6 +268,10 @@ export default function AdminSuperDashboard() {
   const [applicationStageFilter, setApplicationStageFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Ops Command Center state
+  const [opsRange, setOpsRange] = useState("7d");
+  const [opsClientId, setOpsClientId] = useState<string>("all");
 
   // Fetch admin statistics
   const { data: stats } = useQuery<AdminStats>({
@@ -249,6 +342,38 @@ export default function AdminSuperDashboard() {
       if (!res.ok) throw new Error("Failed to fetch team performance");
       return res.json();
     },
+  });
+
+  // Fetch ops summary (Operations Command Center data)
+  const {
+    data: opsSummary,
+    isLoading: opsLoading,
+    refetch: refetchOps,
+    isRefetching: opsRefetching,
+  } = useQuery<OpsSummary>({
+    queryKey: ["/api/admin/ops/summary", opsRange, opsClientId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ range: opsRange });
+      if (opsClientId !== "all") params.append("clientId", opsClientId);
+      const res = await fetch(`/api/admin/ops/summary?${params}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch ops summary");
+      return res.json();
+    },
+    enabled: !!user && user.role === "super_admin",
+    refetchInterval: 60000, // Auto-refresh every minute
+  });
+
+  // Fetch clients for ops filter
+  const { data: opsClients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+    queryFn: async () => {
+      const res = await fetch("/api/clients", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user && user.role === "super_admin",
   });
 
   // Update job status mutation
@@ -350,6 +475,25 @@ export default function AdminSuperDashboard() {
     },
   });
 
+  // Update automation setting mutation
+  const updateAutomationSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/admin/automation-settings/${key}`, { value });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ops/summary"] });
+      toast({ title: "Automation setting updated" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update automation setting",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Filter functions
   const filteredJobs = jobs?.filter(job => {
     const matchesFilter = jobFilter === "all" || 
@@ -412,6 +556,32 @@ export default function AdminSuperDashboard() {
     return colors[role as keyof typeof colors] || colors.candidate;
   };
 
+  // Ops helper functions
+  const formatRejectionReason = (reason: string) => {
+    return reason
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const formatAutomationKey = (key: string) => {
+    return key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const getOutcomeBadge = (outcome: string) => {
+    switch (outcome) {
+      case "success":
+        return <Badge className="bg-green-100 text-green-800">Success</Badge>;
+      case "failed":
+        return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
+      case "skipped":
+        return <Badge className="bg-yellow-100 text-yellow-800">Skipped</Badge>;
+      default:
+        return <Badge variant="outline">{outcome}</Badge>;
+    }
+  };
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto p-6 space-y-8">
@@ -430,12 +600,6 @@ export default function AdminSuperDashboard() {
           {/* Quick Actions */}
           <div className="flex gap-4 mt-6">
             <Button
-              onClick={() => window.location.href = '/admin/testing'}
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Testing Dashboard
-            </Button>
-            <Button
               onClick={() => window.location.href = '/analytics'}
               variant="outline"
             >
@@ -446,7 +610,7 @@ export default function AdminSuperDashboard() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-tour="admin-stats">
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-slate-500">Total Jobs</CardTitle>
@@ -497,42 +661,604 @@ export default function AdminSuperDashboard() {
         </div>
 
         {/* Main Tabs */}
-        <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="pending" className="relative">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Pending Approval
+        <Tabs defaultValue="operations" className="space-y-6">
+          <TabsList className="flex flex-wrap gap-1 h-auto p-1" data-tour="admin-tabs">
+            <TabsTrigger value="operations" className="flex items-center gap-1.5">
+              <Activity className="h-4 w-4" />
+              Operations
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="relative flex items-center gap-1.5">
+              <AlertCircle className="h-4 w-4" />
+              Pending
               {stats?.pendingJobs && stats.pendingJobs > 0 && (
-                <Badge className="ml-2 bg-orange-500 text-white text-xs px-1.5 py-0.5">
+                <Badge className="ml-1 bg-orange-500 text-white text-xs px-1.5 py-0.5">
                   {stats.pendingJobs}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="jobs">
-              <Briefcase className="h-4 w-4 mr-2" />
+            <TabsTrigger value="jobs" className="flex items-center gap-1.5">
+              <Briefcase className="h-4 w-4" />
               Jobs
             </TabsTrigger>
-            <TabsTrigger value="applications">
-              <FileText className="h-4 w-4 mr-2" />
+            <TabsTrigger value="applications" className="flex items-center gap-1.5">
+              <FileText className="h-4 w-4" />
               Applications
             </TabsTrigger>
-            <TabsTrigger value="users">
-              <Users className="h-4 w-4 mr-2" />
+            <TabsTrigger value="users" className="flex items-center gap-1.5">
+              <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="analytics">
-              <BarChart3 className="h-4 w-4 mr-2" />
+            <TabsTrigger value="analytics" className="flex items-center gap-1.5">
+              <BarChart3 className="h-4 w-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="logs">
-              <Settings className="h-4 w-4 mr-2" />
-              System Logs
+            <TabsTrigger value="logs" className="flex items-center gap-1.5">
+              <Settings className="h-4 w-4" />
+              Logs
             </TabsTrigger>
           </TabsList>
 
+          {/* Operations Tab (Command Center) */}
+          <TabsContent value="operations" className="space-y-6">
+            {/* Ops Filters */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Select value={opsRange} onValueChange={setOpsRange}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue placeholder="Time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">Last 24h</SelectItem>
+                    <SelectItem value="7d">Last 7 days</SelectItem>
+                    <SelectItem value="30d">Last 30 days</SelectItem>
+                    <SelectItem value="90d">Last 90 days</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {opsClients.length > 0 && (
+                  <Select value={opsClientId} onValueChange={setOpsClientId}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="All clients" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Clients</SelectItem>
+                      {opsClients.map((client) => (
+                        <SelectItem key={client.id} value={String(client.id)}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => refetchOps()}
+                  disabled={opsRefetching}
+                >
+                  <RefreshCw className={`w-4 h-4 ${opsRefetching ? "animate-spin" : ""}`} />
+                </Button>
+              </div>
+            </div>
+
+            {opsLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              </div>
+            ) : opsSummary ? (
+              <>
+                {/* Ops KPI Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-tour="ops-kpis">
+                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-green-700 font-medium">Hires</p>
+                          <p className="text-3xl font-bold text-green-900">{opsSummary?.kpis?.hires ?? 0}</p>
+                        </div>
+                        <div className="p-3 bg-green-200 rounded-full">
+                          <CheckCircle className="w-6 h-6 text-green-700" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-blue-700 font-medium">Offers Out</p>
+                          <p className="text-3xl font-bold text-blue-900">{opsSummary?.kpis?.offersOut ?? 0}</p>
+                        </div>
+                        <div className="p-3 bg-blue-200 rounded-full">
+                          <Send className="w-6 h-6 text-blue-700" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-purple-700 font-medium">In Pipeline</p>
+                          <p className="text-3xl font-bold text-purple-900">{opsSummary?.kpis?.inPipeline ?? 0}</p>
+                        </div>
+                        <div className="p-3 bg-purple-200 rounded-full">
+                          <Users className="w-6 h-6 text-purple-700" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className={`bg-gradient-to-br ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "from-red-50 to-red-100 border-red-200" : "from-slate-50 to-slate-100 border-slate-200"}`}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className={`text-sm font-medium ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-red-700" : "text-slate-700"}`}>SLA Warnings</p>
+                          <p className={`text-3xl font-bold ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-red-900" : "text-slate-900"}`}>{opsSummary?.kpis?.slaWarnings ?? 0}</p>
+                        </div>
+                        <div className={`p-3 rounded-full ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "bg-red-200" : "bg-slate-200"}`}>
+                          <AlertTriangle className={`w-6 h-6 ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-red-700" : "text-slate-700"}`} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Ops Sub-tabs */}
+                <Tabs defaultValue="funnel" className="space-y-4">
+                  <TabsList className="bg-slate-100" data-tour="ops-subtabs">
+                    <TabsTrigger value="funnel" className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      Pipeline
+                    </TabsTrigger>
+                    <TabsTrigger value="sla" className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      SLA
+                    </TabsTrigger>
+                    <TabsTrigger value="automation" className="flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      Automation
+                    </TabsTrigger>
+                    <TabsTrigger value="health" className="flex items-center gap-2">
+                      <Activity className="w-4 h-4" />
+                      Health
+                    </TabsTrigger>
+                    <TabsTrigger value="quality" className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4" />
+                      Quality
+                    </TabsTrigger>
+                    {opsSummary?.clients?.length > 0 && (
+                      <TabsTrigger value="clients" className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4" />
+                        Clients
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+
+                  {/* Pipeline Funnel */}
+                  <TabsContent value="funnel">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          Pipeline Conversion Funnel
+                        </CardTitle>
+                        <CardDescription>
+                          Application distribution ({opsSummary?.funnel?.totalApplications ?? 0} total)
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {(opsSummary?.funnel?.stages?.length ?? 0) > 0 ? (
+                          <div className="space-y-3">
+                            {(opsSummary?.funnel?.stages ?? [])
+                              .filter(stage => stage.type === 'stage')
+                              .map((stage) => {
+                                const stages = opsSummary?.funnel?.stages ?? [];
+                                const maxCount = Math.max(...stages.filter(s => s.type === 'stage').map(s => s.count), 1);
+                                const widthPercent = Math.max((stage.count / maxCount) * 100, 8);
+                                const totalApps = opsSummary?.funnel?.totalApplications ?? 0;
+                                const percentage = totalApps > 0
+                                  ? Math.round((stage.count / totalApps) * 100)
+                                  : 0;
+
+                                return (
+                                  <div key={stage.id} className="relative">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-24 text-sm font-medium text-slate-700 truncate">
+                                        {stage.name}
+                                      </div>
+                                      <div className="flex-1 relative h-10">
+                                        <div
+                                          className="absolute inset-y-0 left-0 rounded-r-lg flex items-center justify-end pr-3 transition-all duration-500"
+                                          style={{
+                                            width: `${widthPercent}%`,
+                                            backgroundColor: stage.color,
+                                            minWidth: '60px',
+                                          }}
+                                        >
+                                          <span className="text-white font-bold text-sm">
+                                            {stage.count}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="w-12 text-right text-sm text-slate-500">
+                                        {percentage}%
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                            {(opsSummary?.funnel?.stages ?? []).some(s => s.type === 'terminal') && (
+                              <>
+                                <div className="border-t pt-3 mt-4">
+                                  <p className="text-xs text-slate-500 mb-3 font-medium uppercase tracking-wider">
+                                    Final Outcomes
+                                  </p>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                  {(opsSummary?.funnel?.stages ?? [])
+                                    .filter(stage => stage.type === 'terminal')
+                                    .map(stage => {
+                                      const totalApps = opsSummary?.funnel?.totalApplications ?? 0;
+                                      const percentage = totalApps > 0
+                                        ? Math.round((stage.count / totalApps) * 100)
+                                        : 0;
+                                      return (
+                                        <div
+                                          key={stage.id}
+                                          className="p-4 rounded-lg text-center"
+                                          style={{ backgroundColor: `${stage.color}15` }}
+                                        >
+                                          <p className="text-2xl font-bold" style={{ color: stage.color }}>
+                                            {stage.count}
+                                          </p>
+                                          <p className="text-sm text-slate-600">{stage.name}</p>
+                                          <p className="text-xs text-slate-400">{percentage}%</p>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-slate-500">
+                            <TrendingUp className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                            <p>No pipeline stages configured</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* SLA Tab */}
+                  <TabsContent value="sla">
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-blue-600" />
+                            Avg Time to First Touch
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-3xl font-bold text-slate-900">
+                            {(opsSummary?.sla?.avgTimeToFirstTouchHours ?? 0).toFixed(1)}h
+                          </p>
+                          <p className="text-sm text-slate-500">Hours from application to first review</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className={(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "border-red-200 bg-red-50/50" : ""}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <AlertTriangle className={`w-4 h-4 ${(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "text-red-600" : "text-slate-600"}`} />
+                            Overdue Applications
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className={`text-3xl font-bold ${(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "text-red-900" : "text-slate-900"}`}>
+                            {opsSummary?.sla?.overdueApplications ?? 0}
+                          </p>
+                          <p className="text-sm text-slate-500">No response after 48 hours</p>
+                        </CardContent>
+                      </Card>
+
+                      <Card className={(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "border-orange-200 bg-orange-50/50" : ""}>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Clock className={`w-4 h-4 ${(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "text-orange-600" : "text-slate-600"}`} />
+                            Pending Feedback
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className={`text-3xl font-bold ${(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "text-orange-900" : "text-slate-900"}`}>
+                            {opsSummary?.sla?.overdueInterviews ?? 0}
+                          </p>
+                          <p className="text-sm text-slate-500">Interviews without feedback &gt;5 days</p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Automation Tab */}
+                  <TabsContent value="automation">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Settings className="w-4 h-4" />
+                            Automation Settings
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {(opsSummary?.automation?.settings?.length ?? 0) > 0 ? (
+                              (opsSummary?.automation?.settings ?? []).map((setting) => (
+                                <div key={setting.key} className="flex items-center justify-between py-2 border-b last:border-0">
+                                  <div className="flex-1 pr-4">
+                                    <p className="text-sm font-medium text-slate-900">
+                                      {formatAutomationKey(setting.key)}
+                                    </p>
+                                    {setting.description && (
+                                      <p className="text-xs text-slate-500">{setting.description}</p>
+                                    )}
+                                  </div>
+                                  <Switch
+                                    checked={setting.value}
+                                    onCheckedChange={(checked) => {
+                                      updateAutomationSettingMutation.mutate({
+                                        key: setting.key,
+                                        value: checked,
+                                      });
+                                    }}
+                                    disabled={updateAutomationSettingMutation.isPending}
+                                  />
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-slate-500">No automation settings configured</p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Zap className="w-4 h-4" />
+                            Automation Activity
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div className="text-center p-3 bg-green-50 rounded-lg">
+                              <p className="text-2xl font-bold text-green-700">{opsSummary?.automation?.summary?.success ?? 0}</p>
+                              <p className="text-xs text-green-600">Success</p>
+                            </div>
+                            <div className="text-center p-3 bg-red-50 rounded-lg">
+                              <p className="text-2xl font-bold text-red-700">{opsSummary?.automation?.summary?.failed ?? 0}</p>
+                              <p className="text-xs text-red-600">Failed</p>
+                            </div>
+                            <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                              <p className="text-2xl font-bold text-yellow-700">{opsSummary?.automation?.summary?.skipped ?? 0}</p>
+                              <p className="text-xs text-yellow-600">Skipped</p>
+                            </div>
+                          </div>
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {(opsSummary?.automation?.recentEvents?.length ?? 0) > 0 ? (
+                              (opsSummary?.automation?.recentEvents ?? []).slice(0, 5).map((event) => (
+                                <div key={event.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
+                                  <div>
+                                    <p className="font-medium text-slate-900">{formatAutomationKey(event.automationKey)}</p>
+                                    <p className="text-xs text-slate-500">
+                                      {event.targetType} #{event.targetId} • {new Date(event.triggeredAt).toLocaleString()}
+                                    </p>
+                                  </div>
+                                  {getOutcomeBadge(event.outcome)}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-slate-500 text-center py-4">No automation events recorded</p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Health Tab */}
+                  <TabsContent value="health">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Mail className="w-4 h-4" />
+                            Email Delivery
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center gap-4 mb-4">
+                            <div className="flex-1 p-3 bg-green-50 rounded-lg text-center">
+                              <p className="text-2xl font-bold text-green-700">{opsSummary?.health?.email?.sent ?? 0}</p>
+                              <p className="text-xs text-green-600">Sent</p>
+                            </div>
+                            <div className="flex-1 p-3 bg-red-50 rounded-lg text-center">
+                              <p className="text-2xl font-bold text-red-700">{opsSummary?.health?.email?.failed ?? 0}</p>
+                              <p className="text-xs text-red-600">Failed</p>
+                            </div>
+                            <div className="flex-1 p-3 bg-blue-50 rounded-lg text-center">
+                              <p className="text-2xl font-bold text-blue-700">
+                                {(() => {
+                                  const sent = opsSummary?.health?.email?.sent ?? 0;
+                                  const failed = opsSummary?.health?.email?.failed ?? 0;
+                                  return sent + failed > 0
+                                    ? Math.round((sent / (sent + failed)) * 100)
+                                    : 100;
+                                })()}%
+                              </p>
+                              <p className="text-xs text-blue-600">Success Rate</p>
+                            </div>
+                          </div>
+                          {(opsSummary?.health?.email?.recentFailures?.length ?? 0) > 0 && (
+                            <div className="border-t pt-3">
+                              <p className="text-sm font-medium text-red-700 mb-2">Recent Failures</p>
+                              <div className="space-y-2 max-h-32 overflow-y-auto">
+                                {(opsSummary?.health?.email?.recentFailures ?? []).map((failure) => (
+                                  <div key={failure.id} className="text-xs p-2 bg-red-50 rounded">
+                                    <p className="font-medium text-red-800 truncate">{failure.recipientEmail}</p>
+                                    <p className="text-red-600 truncate">{failure.errorMessage || "Unknown error"}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Activity className="w-4 h-4" />
+                            System Status
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                <span className="font-medium text-green-800">System Status</span>
+                              </div>
+                              <Badge className="bg-green-100 text-green-800">Healthy</Badge>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                              <span className="text-sm text-slate-600">Last Updated</span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {new Date(opsSummary.generatedAt).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Quality Tab */}
+                  <TabsContent value="quality">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <BarChart3 className="w-4 h-4" />
+                          Rejection Reasons
+                        </CardTitle>
+                        <CardDescription>Why candidates are being rejected</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {Object.keys(opsSummary?.quality?.rejectionReasons ?? {}).length > 0 ? (
+                          <div className="space-y-3">
+                            {Object.entries(opsSummary?.quality?.rejectionReasons ?? {})
+                              .sort(([, a], [, b]) => b - a)
+                              .map(([reason, count]) => {
+                                const total = Object.values(opsSummary?.quality?.rejectionReasons ?? {}).reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((count / total) * 100);
+                                return (
+                                  <div key={reason} className="space-y-1">
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="font-medium text-slate-700">{formatRejectionReason(reason)}</span>
+                                      <span className="text-slate-500">{count} ({percentage}%)</span>
+                                    </div>
+                                    <Progress value={percentage} className="h-2" />
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-slate-500">
+                            <XCircle className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                            <p>No rejection data available</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Clients Tab */}
+                  {opsSummary?.clients?.length > 0 && (
+                    <TabsContent value="clients">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            Client Overview
+                          </CardTitle>
+                          <CardDescription>
+                            Performance metrics by client ({opsSummary?.clients?.length ?? 0} clients)
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            {(opsSummary?.clients ?? []).map(client => (
+                              <Card key={client.id} className="bg-slate-50 border-slate-200 hover:border-primary/50 transition-colors">
+                                <CardContent className="pt-4">
+                                  <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                      <h3 className="font-semibold text-slate-900">{client.name}</h3>
+                                      {client.domain && (
+                                        <p className="text-xs text-slate-500">{client.domain}</p>
+                                      )}
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {client.activeJobs} active
+                                    </Badge>
+                                  </div>
+
+                                  <div className="grid grid-cols-3 gap-2 text-center">
+                                    <div className="p-2 bg-blue-50 rounded">
+                                      <p className="text-lg font-bold text-blue-700">{client.inPipeline}</p>
+                                      <p className="text-xs text-blue-600">In Pipeline</p>
+                                    </div>
+                                    <div className="p-2 bg-green-50 rounded">
+                                      <p className="text-lg font-bold text-green-700">{client.hired}</p>
+                                      <p className="text-xs text-green-600">Hired</p>
+                                    </div>
+                                    <div className="p-2 bg-slate-100 rounded">
+                                      <p className="text-lg font-bold text-slate-700">{client.rejected}</p>
+                                      <p className="text-xs text-slate-600">Rejected</p>
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-slate-500">
+                                    <span>{client.totalJobs} total jobs</span>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
+                </Tabs>
+              </>
+            ) : (
+              <div className="text-center py-20 text-slate-500">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                <p>Failed to load operations data</p>
+                <Button variant="outline" className="mt-4" onClick={() => refetchOps()}>
+                  Retry
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
           {/* Pending Approval Tab */}
           <TabsContent value="pending" className="space-y-6">
-            <Card className="shadow-sm border-orange-200">
+            <Card className="shadow-sm border-orange-200" data-tour="pending-jobs">
               <CardHeader className="bg-orange-50">
                 <div className="flex justify-between items-center">
                   <div>
@@ -927,7 +1653,7 @@ export default function AdminSuperDashboard() {
 
           {/* Users Management Tab */}
           <TabsContent value="users" className="space-y-6">
-            <Card className="shadow-sm">
+            <Card className="shadow-sm" data-tour="user-management">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                   <div>

@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,13 +13,10 @@ import CandidateAuth from "@/pages/candidate-auth";
 import JobsPage from "@/pages/jobs-page";
 import JobDetailsPage from "@/pages/job-details-page";
 import JobPostPage from "@/pages/job-post-page";
-import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSuperDashboard from "@/pages/admin-super-dashboard";
-import AdminTestingPage from "@/pages/admin-testing-page";
 import AdminFormsPage from "@/pages/admin-forms-page";
 import AdminEmailTemplatesPage from "@/pages/admin-email-templates-page";
 import FormEditorPage from "@/pages/form-editor-page";
-import UnifiedAdminDashboard from "@/pages/unified-admin-dashboard";
 import AdminFormResponsesPage from "@/pages/admin-form-responses-page";
 import AdminConsultantsPage from "@/pages/admin-consultants-page";
 import AdminAIUsagePage from "@/pages/admin-ai-usage-page";
@@ -75,9 +72,10 @@ function Router() {
       <ProtectedRoute path="/candidates" component={CandidatesPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/my-jobs" component={MyJobsPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/clients" component={ClientsPage} requiredRole={['recruiter', 'super_admin']} />
-      <ProtectedRoute path="/admin" component={UnifiedAdminDashboard} requiredRole={['super_admin']} />
-      <ProtectedRoute path="/admin/super" component={AdminSuperDashboard} requiredRole={['super_admin']} />
-      <ProtectedRoute path="/admin/testing" component={AdminTestingPage} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin" component={AdminSuperDashboard} requiredRole={['super_admin']} />
+      <Route path="/admin/legacy">{() => <Redirect to="/admin" />}</Route>
+      <Route path="/admin/super">{() => <Redirect to="/admin" />}</Route>
+      <Route path="/admin/dashboard">{() => <Redirect to="/admin" />}</Route>
       <ProtectedRoute path="/admin/forms/editor/:id?" component={FormEditorPage} requiredRole={['super_admin', 'recruiter']} />
       <ProtectedRoute path="/admin/forms/responses" component={AdminFormResponsesPage} requiredRole={['super_admin']} />
       <ProtectedRoute path="/admin/forms" component={AdminFormsPage} requiredRole={['super_admin', 'recruiter']} />

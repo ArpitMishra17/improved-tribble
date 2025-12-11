@@ -4,11 +4,10 @@ import { useAIFeatures } from "@/hooks/use-ai-features";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Menu, X, User, LogOut, Briefcase, Plus, ChevronDown, Settings, BarChart3, Shield, TestTube, Sparkles } from "lucide-react";
+import { Menu, X, User, LogOut, Briefcase, Plus, ChevronDown, BarChart3, Shield, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
 import QuickAccessBar from "@/components/QuickAccessBar";
-import FloatingActionButton from "@/components/FloatingActionButton";
 import type { User as SelectUser } from "@shared/schema";
 import vantahireLogo from "@/assets/vantahire-logo.png";
 import {
@@ -255,15 +254,7 @@ const Layout = ({ children }: LayoutProps) => {
                     <>
                       <DropdownMenuItem onClick={() => setLocation("/admin")} className="cursor-pointer">
                         <Shield className="h-4 w-4 mr-2" />
-                        Admin Control Center
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation("/admin/super")} className="cursor-pointer">
-                        <Settings className="h-4 w-4 mr-2" />
-                        Super Admin Dashboard
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setLocation("/admin/testing")} className="cursor-pointer">
-                        <TestTube className="h-4 w-4 mr-2" />
-                        Testing Dashboard
+                        Admin Dashboard
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setLocation("/analytics")} className="cursor-pointer">
                         <BarChart3 className="h-4 w-4 mr-2" />
@@ -597,9 +588,6 @@ const Layout = ({ children }: LayoutProps) => {
       <main className={user ? "pt-20" : "pt-20"}>
         {children}
       </main>
-
-      {/* Floating Action Button */}
-      {user && <FloatingActionButton />}
 
       {/* Footer */}
       <Footer minimal={atsContext} />

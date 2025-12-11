@@ -644,6 +644,64 @@ export async function ensureAtsSchema(): Promise<void> {
     UPDATE users SET role = 'super_admin' WHERE role = 'admin';
   `);
 
+  // Operations Command Center: Add rejection_reason column to applications
+  console.log('  Adding rejection_reason column to applications table...');
+  await db.execute(sql`
+    ALTER TABLE applications ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS applications_rejection_reason_idx ON applications(rejection_reason);
+  `);
+
+  // Operations Command Center: Create automation_events table for tracking automation activity
+  console.log('  Creating automation_events table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS automation_events (
+      id SERIAL PRIMARY KEY,
+      automation_key TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id INTEGER NOT NULL,
+      outcome TEXT NOT NULL DEFAULT 'success',
+      error_message TEXT,
+      metadata JSONB,
+      triggered_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      triggered_by INTEGER REFERENCES users(id)
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS automation_events_key_idx ON automation_events(automation_key);
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS automation_events_target_type_idx ON automation_events(target_type);
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS automation_events_triggered_at_idx ON automation_events(triggered_at);
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS automation_events_outcome_idx ON automation_events(outcome);
+  `);
+
+  // Seed default automation settings if they don't exist
+  console.log('  Seeding default automation settings...');
+  const defaultSettings = [
+    { key: 'auto_send_application_received', description: 'Automatically send confirmation when a candidate submits an application' },
+    { key: 'auto_send_status_update', description: 'Notify candidates when their application moves to a new stage' },
+    { key: 'auto_send_interview_invite', description: 'Automatically send interview invitations when scheduled' },
+    { key: 'auto_send_offer_letter', description: 'Send offer email when candidate reaches Offer stage' },
+    { key: 'auto_send_rejection', description: 'Send rejection email when candidate is rejected' },
+    { key: 'notify_recruiter_new_application', description: 'Email recruiters when a new application is submitted for their job' },
+    { key: 'reminder_interview_upcoming', description: 'Send reminder emails before scheduled interviews' },
+  ];
+
+  for (const setting of defaultSettings) {
+    await db.execute(sql`
+      INSERT INTO automation_settings (setting_key, setting_value, description)
+      VALUES (${setting.key}, false, ${setting.description})
+      ON CONFLICT (setting_key) DO NOTHING
+    `);
+  }
+
   console.log('✅ ATS schema ready');
 }
 

@@ -210,30 +210,57 @@ export function registerApplicationsRoutes(
         sendApplicationReceivedEmail(application.id).catch(err => console.error('Application received email error:', err));
       }
 
-      // Send notification email to recruiter
+      // Send notification email to recruiter (if enabled)
       try {
-        const emailService = await getEmailService();
-        if (emailService) {
-          const recruiterNotification = {
-            id: application.id,
-            name: `New Application for ${job.title}`,
-            email: application.email,
-            phone: application.phone,
-            company: `Applied for: ${job.title}`,
-            location: job.location,
-            message: `
-New job application received:
-- Applicant: ${application.name}
-- Email: ${application.email}
-- Phone: ${application.phone}
-- Job: ${job.title}
-- Resume: ${BASE_URL}/api/applications/${application.id}/resume
-- Cover Letter: ${application.coverLetter || 'Not provided'}
-            `,
-            submittedAt: application.appliedAt
-          };
+        const shouldNotifyRecruiter = await storage.isAutomationEnabled('notify_recruiter_new_application');
+        if (shouldNotifyRecruiter) {
+          const emailService = await getEmailService();
+          if (emailService) {
+            // Get the recruiter's email from job.postedBy (username is the email)
+            const recruiter = await storage.getUser(job.postedBy);
+            if (recruiter?.username) {
+              const applicationUrl = `${BASE_URL}/jobs/${job.id}/applications`;
+              const resumeUrl = `${BASE_URL}/api/applications/${application.id}/resume`;
 
-          await emailService.sendContactNotification(recruiterNotification);
+              await emailService.sendEmail({
+                to: recruiter.username,
+                subject: `New Application: ${application.name} applied for ${job.title}`,
+                html: `
+                  <h2>New Application Received</h2>
+                  <p>A new candidate has applied for your job posting.</p>
+
+                  <h3>Candidate Details</h3>
+                  <ul>
+                    <li><strong>Name:</strong> ${application.name}</li>
+                    <li><strong>Email:</strong> ${application.email}</li>
+                    <li><strong>Phone:</strong> ${application.phone || 'Not provided'}</li>
+                  </ul>
+
+                  <h3>Job Details</h3>
+                  <ul>
+                    <li><strong>Position:</strong> ${job.title}</li>
+                    <li><strong>Location:</strong> ${job.location}</li>
+                  </ul>
+
+                  ${application.coverLetter ? `<h3>Cover Letter</h3><p>${application.coverLetter}</p>` : ''}
+
+                  <p style="margin-top: 20px;">
+                    <a href="${applicationUrl}" style="background-color: #7B38FB; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                      View Application
+                    </a>
+                    &nbsp;&nbsp;
+                    <a href="${resumeUrl}" style="background-color: #6b7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                      Download Resume
+                    </a>
+                  </p>
+
+                  <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
+                    This is an automated notification from VantaHire ATS.
+                  </p>
+                `,
+              });
+            }
+          }
         }
       } catch (emailError) {
         console.error('Failed to send recruiter notification:', emailError);
@@ -424,7 +451,7 @@ New job application received:
   app.patch(
     "/api/applications/bulk/interview",
     csrfProtection,
-    requireRole(['recruiter','admin']),
+    requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response, next: NextFunction): Promise<void> => {
       try {
         const bodySchema = z.object({
@@ -716,7 +743,7 @@ New job application received:
   });
 
   // Create pipeline stage (recruiters/admin)
-  app.post("/api/pipeline/stages", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/pipeline/stages", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const body = insertPipelineStageSchema.parse(req.body);
       const stage = await storage.createPipelineStage({ ...body, createdBy: req.user!.id });
@@ -732,7 +759,7 @@ New job application received:
   });
 
   // Move application to a new stage
-  app.patch("/api/applications/:id/stage", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/applications/:id/stage", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -784,7 +811,7 @@ New job application received:
   });
 
   // Get application stage history
-  app.get("/api/applications/:id/history", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/applications/:id/history", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -805,7 +832,7 @@ New job application received:
   // ============= INTERVIEW MANAGEMENT ROUTES =============
 
   // Download interview calendar invite (ICS file)
-  app.get("/api/applications/:id/interview/ics", requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/applications/:id/interview/ics", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -874,7 +901,7 @@ New job application received:
   });
 
   // Schedule interview
-  app.patch("/api/applications/:id/interview", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/applications/:id/interview", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -961,7 +988,7 @@ New job application received:
   });
 
   // Add recruiter note
-  app.post("/api/applications/:id/notes", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/applications/:id/notes", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -985,7 +1012,7 @@ New job application received:
   });
 
   // Set rating
-  app.patch("/api/applications/:id/rating", csrfProtection, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.patch("/api/applications/:id/rating", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {
@@ -1011,7 +1038,7 @@ New job application received:
   // ============= AI SUMMARY =============
 
   // Generate AI candidate summary
-  app.post("/api/applications/:id/ai-summary", aiAnalysisRateLimit, requireRole(['recruiter','admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/applications/:id/ai-summary", aiAnalysisRateLimit, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const idParam = req.params.id;
       if (!idParam) {

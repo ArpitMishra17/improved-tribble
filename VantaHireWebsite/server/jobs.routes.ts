@@ -128,6 +128,96 @@ export function registerJobsRoutes(
     }
   });
 
+  // Update a job (recruiters can only edit their own jobs)
+  app.patch("/api/jobs/:id", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing ID parameter' });
+        return;
+      }
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
+        res.status(400).json({ error: 'Invalid ID parameter' });
+        return;
+      }
+
+      // Get existing job to check ownership
+      const existingJob = await storage.getJob(jobId);
+      if (!existingJob) {
+        res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      // Non-admins can only edit their own jobs
+      if (req.user!.role !== 'super_admin' && existingJob.postedBy !== req.user!.id) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
+      }
+
+      // Validate and extract allowed fields
+      const { title, description, location, type, skills } = req.body;
+      const updates: Partial<{ title: string; description: string; location: string; type: string; skills: string[] }> = {};
+
+      if (title !== undefined) {
+        if (typeof title !== 'string' || title.trim().length === 0) {
+          res.status(400).json({ error: 'Title must be a non-empty string' });
+          return;
+        }
+        updates.title = title.trim();
+      }
+
+      if (description !== undefined) {
+        if (typeof description !== 'string') {
+          res.status(400).json({ error: 'Description must be a string' });
+          return;
+        }
+        updates.description = description;
+      }
+
+      if (location !== undefined) {
+        if (typeof location !== 'string' || location.trim().length === 0) {
+          res.status(400).json({ error: 'Location must be a non-empty string' });
+          return;
+        }
+        updates.location = location.trim();
+      }
+
+      if (type !== undefined) {
+        const validTypes = ['full-time', 'part-time', 'contract', 'internship'];
+        if (!validTypes.includes(type)) {
+          res.status(400).json({ error: 'Invalid job type' });
+          return;
+        }
+        updates.type = type;
+      }
+
+      if (skills !== undefined) {
+        if (!Array.isArray(skills)) {
+          res.status(400).json({ error: 'Skills must be an array' });
+          return;
+        }
+        updates.skills = skills.filter((s): s is string => typeof s === 'string').map(s => s.trim()).filter(Boolean);
+      }
+
+      if (Object.keys(updates).length === 0) {
+        res.status(400).json({ error: 'No valid fields to update' });
+        return;
+      }
+
+      const job = await storage.updateJob(jobId, updates);
+      if (!job) {
+        res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      res.json(job);
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Get audit log for a job
   app.get("/api/jobs/:id/audit-log", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

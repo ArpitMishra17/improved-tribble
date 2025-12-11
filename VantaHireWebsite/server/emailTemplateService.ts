@@ -4,10 +4,40 @@
  */
 
 import { db } from './db';
-import { emailTemplates, applications, emailAuditLog } from '../shared/schema';
+import { emailTemplates, applications, emailAuditLog, automationEvents } from '../shared/schema';
 import { eq, asc } from 'drizzle-orm';
 import { getEmailService } from './simpleEmailService';
 import type { EmailTemplate } from '../shared/schema';
+
+/**
+ * Log an automation event for the Operations Command Center
+ */
+export async function logAutomationEvent(
+  automationKey: string,
+  targetType: 'application' | 'job' | 'user',
+  targetId: number,
+  outcome: 'success' | 'failed' | 'skipped' = 'success',
+  options?: {
+    errorMessage?: string;
+    metadata?: Record<string, any>;
+    triggeredBy?: number;
+  }
+): Promise<void> {
+  try {
+    await db.insert(automationEvents).values({
+      automationKey,
+      targetType,
+      targetId,
+      outcome,
+      errorMessage: options?.errorMessage || null,
+      metadata: options?.metadata || null,
+      triggeredBy: options?.triggeredBy || null,
+    });
+  } catch (error) {
+    console.error('[AutomationEvent] Failed to log event:', error);
+    // Don't throw - logging should not break the main flow
+  }
+}
 
 export interface TemplateVariables {
   candidate_name?: string;
@@ -165,14 +195,27 @@ export async function sendInterviewInvitation(
   });
 
   if (!template) {
+    await logAutomationEvent('email.interview_invite', 'application', applicationId, 'failed', {
+      errorMessage: 'Interview invitation template not found',
+    });
     throw new Error('Interview invitation template not found. Run seed script.');
   }
 
-  await sendTemplatedEmail(applicationId, template.id, {
-    interview_date: interviewDetails.date,
-    interview_time: interviewDetails.time,
-    interview_location: interviewDetails.location,
-  });
+  try {
+    await sendTemplatedEmail(applicationId, template.id, {
+      interview_date: interviewDetails.date,
+      interview_time: interviewDetails.time,
+      interview_location: interviewDetails.location,
+    });
+    await logAutomationEvent('email.interview_invite', 'application', applicationId, 'success', {
+      metadata: { templateId: template.id, ...interviewDetails },
+    });
+  } catch (error: any) {
+    await logAutomationEvent('email.interview_invite', 'application', applicationId, 'failed', {
+      errorMessage: error?.message || 'Unknown error',
+    });
+    throw error;
+  }
 }
 
 /**
@@ -188,12 +231,26 @@ export async function sendStatusUpdateEmail(
 
   if (!template) {
     console.warn('Status update template not found, skipping email');
+    await logAutomationEvent('email.status_update', 'application', applicationId, 'skipped', {
+      errorMessage: 'Status update template not found',
+      metadata: { newStatus },
+    });
     return;
   }
 
-  await sendTemplatedEmail(applicationId, template.id, {
-    new_status: newStatus,
-  });
+  try {
+    await sendTemplatedEmail(applicationId, template.id, {
+      new_status: newStatus,
+    });
+    await logAutomationEvent('email.status_update', 'application', applicationId, 'success', {
+      metadata: { templateId: template.id, newStatus },
+    });
+  } catch (error: any) {
+    await logAutomationEvent('email.status_update', 'application', applicationId, 'failed', {
+      errorMessage: error?.message || 'Unknown error',
+      metadata: { newStatus },
+    });
+  }
 }
 
 /**
@@ -208,10 +265,22 @@ export async function sendApplicationReceivedEmail(
 
   if (!template) {
     console.warn('Application received template not found, skipping email');
+    await logAutomationEvent('email.application_received', 'application', applicationId, 'skipped', {
+      errorMessage: 'Application received template not found',
+    });
     return;
   }
 
-  await sendTemplatedEmail(applicationId, template.id);
+  try {
+    await sendTemplatedEmail(applicationId, template.id);
+    await logAutomationEvent('email.application_received', 'application', applicationId, 'success', {
+      metadata: { templateId: template.id },
+    });
+  } catch (error: any) {
+    await logAutomationEvent('email.application_received', 'application', applicationId, 'failed', {
+      errorMessage: error?.message || 'Unknown error',
+    });
+  }
 }
 
 /**
@@ -226,10 +295,22 @@ export async function sendOfferEmail(
 
   if (!template) {
     console.warn('Offer template not found, skipping email');
+    await logAutomationEvent('email.offer_extended', 'application', applicationId, 'skipped', {
+      errorMessage: 'Offer template not found',
+    });
     return;
   }
 
-  await sendTemplatedEmail(applicationId, template.id);
+  try {
+    await sendTemplatedEmail(applicationId, template.id);
+    await logAutomationEvent('email.offer_extended', 'application', applicationId, 'success', {
+      metadata: { templateId: template.id },
+    });
+  } catch (error: any) {
+    await logAutomationEvent('email.offer_extended', 'application', applicationId, 'failed', {
+      errorMessage: error?.message || 'Unknown error',
+    });
+  }
 }
 
 /**
@@ -244,10 +325,22 @@ export async function sendRejectionEmail(
 
   if (!template) {
     console.warn('Rejection template not found, skipping email');
+    await logAutomationEvent('email.rejection', 'application', applicationId, 'skipped', {
+      errorMessage: 'Rejection template not found',
+    });
     return;
   }
 
-  await sendTemplatedEmail(applicationId, template.id);
+  try {
+    await sendTemplatedEmail(applicationId, template.id);
+    await logAutomationEvent('email.rejection', 'application', applicationId, 'success', {
+      metadata: { templateId: template.id },
+    });
+  } catch (error: any) {
+    await logAutomationEvent('email.rejection', 'application', applicationId, 'failed', {
+      errorMessage: error?.message || 'Unknown error',
+    });
+  }
 }
 
 /**

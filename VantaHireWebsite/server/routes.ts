@@ -38,12 +38,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Mautic form embed requires inline scripts and external script
         scriptSrc: isDevelopment
           ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://assets.apollo.io", "https://mautic.evalmatch.app"]
-          : ["'self'", "'unsafe-inline'", "https://assets.apollo.io", "https://mautic.evalmatch.app"],
+          : ["'self'", "https://assets.apollo.io", "https://mautic.evalmatch.app"],
         // style: allow inline attributes for UI libraries (Radix/Popper). Some components also inject small <style> tags,
         // so allow inline element styles with 'unsafe-inline' to prevent layout breakage.
         styleSrc: isDevelopment
           ? ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"]
-          : ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"],
+          : ["'self'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"],
         // CSP Level 3: refine style policy in production
         ...(isDevelopment
           ? {}
@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Allow style attributes (inline) needed for popovers/portals positioning
             // while keeping external styles limited to self + Google Fonts
               "style-src-attr": ["'unsafe-inline'"],
-              "style-src-elem": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"],
+              "style-src-elem": ["'self'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"],
             }),
         imgSrc: ["'self'", "data:", "https:"],
         // connectSrc: Restrict WebSocket connections in production
