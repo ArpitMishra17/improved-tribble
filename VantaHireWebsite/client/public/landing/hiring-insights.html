@@ -847,102 +847,83 @@
   </footer>
 
   <!-- ========================================
-       JavaScript
+       JavaScript - Mautic Form Integration
        ======================================== -->
   <script>
-    (function() {
-      'use strict';
+  (function () {
+    'use strict';
 
-      // ----------------------------------------
-      // Report ID to Name Mapping
-      // ----------------------------------------
-      const reportNames = {
-        onsite: "Onsite vs Hybrid vs Remote Hiring Insights",
-        seniority: "Seniority Distribution in Indian Tech Hiring",
-        experience: "Experience Band Demand (3–5 Years, etc.)",
-        salary: "Salary Benchmarks for Indian Tech Roles",
-        ai: "AI Hiring Reality Check (Only ~5% of Roles)",
-        multiskill: "Multi-Skilled Engineer Demand Trends",
-        generalist: "Generalist Developer Hiring Trends",
-        roleskills: "Role → Skill Expectation Mapping"
-      };
+    // 1) report_id -> label mapping
+    const reportNames = {
+      onsite:      "Onsite vs Hybrid vs Remote Hiring Insights",
+      seniority:   "Seniority Distribution in Indian Tech Hiring",
+      experience:  "Experience Band Demand (3–5 Years, etc.)",
+      salary:      "Salary Benchmarks for Indian Tech Roles",
+      ai:          "AI Hiring Reality Check",
+      multiskill:  "Multi-Skilled Engineer Demand Trends",
+      generalist:  "Generalist Developer Hiring Trends",
+      roleskills:  "Role → Skill Expectations Report",
+      tech_salary: "Tech Salary Benchmarks in India"
+    };
 
-      const defaultReportName = "Hiring Insights Report";
+    // 2) report_id -> PDF URL (update paths when PDFs are ready)
+    const reportDownloads = {
+      onsite:      "/reports/onsite_hybrid_remote.pdf",
+      seniority:   "/reports/seniority_distribution.pdf",
+      experience:  "/reports/experience_bands.pdf",
+      salary:      "/reports/salary_benchmarks.pdf",
+      ai:          "/reports/ai_hiring_reality.pdf",
+      multiskill:  "/reports/multiskill_engineers.pdf",
+      generalist:  "/reports/generalist_developers.pdf",
+      roleskills:  "/reports/role_skill_mapping.pdf",
+      tech_salary: "/reports/tech_salary_benchmarks.pdf",
+      generic:     "/reports/vantahire_insights.pdf"
+    };
 
-      // ----------------------------------------
-      // Parse URL Query Parameters
-      // ----------------------------------------
-      function getQueryParams() {
-        const params = {};
-        const searchParams = new URLSearchParams(window.location.search);
+    const params    = new URLSearchParams(window.location.search);
+    const reportId  = params.get('report_id')  || params.get('reportId')  || 'generic';
+    const utmSource = params.get('utm_source') || params.get('utmSource') || '';
 
-        searchParams.forEach(function(value, key) {
-          params[key] = value;
-        });
+    function wireUpFormOnce() {
+      // These IDs/names come from the Mautic form structure
+      const wrapper     = document.getElementById('mauticform_wrapper_vantahireinsights');
+      const reportField = document.querySelector('input[name="mauticform[hidden]"]');
+      const utmField    = document.querySelector('input[name="mauticform[hidden1]"]');
 
-        return params;
+      if (!wrapper || !reportField || !utmField) return false;
+
+      // Fill hidden fields so Mautic stores them into custom contact fields
+      reportField.value = reportId;
+      utmField.value    = utmSource;
+
+      // Update visual label on page
+      const labelEl = document.getElementById('report-label');
+      if (labelEl) {
+        labelEl.textContent = reportNames[reportId] || "Hiring Insights Report";
       }
 
-      // ----------------------------------------
-      // Fill hidden fields in Mautic form
-      // ----------------------------------------
-      function fillHiddenFields() {
-        const params = getQueryParams();
-
-        // Get report_id (default to "generic" if not present)
-        const reportId = params.report_id || params.reportId || 'generic';
-
-        // Get utm_source (empty string if not present)
-        const utmSource = params.utm_source || params.utmSource || '';
-
-        // Update hidden form fields using querySelector with name attributes
-        // (Mautic generates fields dynamically without predictable IDs)
-        const reportIdField = document.querySelector('input[name="report_id"]');
-        const utmSourceField = document.querySelector('input[name="utm_source"]');
-
-        if (reportIdField) {
-          reportIdField.value = reportId;
+      // Watch for successful submission and redirect to PDF
+      const observer = new MutationObserver(function () {
+        if (wrapper.classList.contains('mauticform-success')) {
+          const pdfUrl = reportDownloads[reportId] || reportDownloads.generic;
+          window.location.href = pdfUrl;
         }
+      });
+      observer.observe(wrapper, { attributes: true, attributeFilter: ['class'] });
 
-        if (utmSourceField) {
-          utmSourceField.value = utmSource;
-        }
+      console.log('[VantaHire Landing] Form wired up:', { reportId, utmSource });
+      return true;
+    }
 
-        // Update the report label display
-        const reportLabel = document.getElementById('report-label');
-        if (reportLabel) {
-          // Look up the report name, or use default
-          const reportName = reportNames[reportId] || defaultReportName;
-          reportLabel.textContent = reportName;
-        }
-
-        // Log for debugging (remove in production)
-        console.log('[VantaHire Landing] Hidden fields filled:', {
-          report_id: reportId,
-          utm_source: utmSource,
-          reportIdFieldFound: !!reportIdField,
-          utmSourceFieldFound: !!utmSourceField
-        });
+    // generate.js injects the form asynchronously, so poll until it's there
+    let tries = 0;
+    const timer = setInterval(function () {
+      if (wireUpFormOnce() || ++tries > 30) {
+        clearInterval(timer);
       }
+    }, 200);
 
-      // ----------------------------------------
-      // Initialize on DOM Ready
-      // ----------------------------------------
-      function init() {
-        // Wait for Mautic form to load (it's injected asynchronously)
-        // Try multiple times in case the form takes longer to load
-        setTimeout(fillHiddenFields, 500);
-        setTimeout(fillHiddenFields, 1000);
-        setTimeout(fillHiddenFields, 2000);
-      }
-
-      // Run on DOM ready
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-      } else {
-        init();
-      }
-    })();
+  })();
   </script>
 </body>
 </html>
