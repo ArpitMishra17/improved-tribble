@@ -63,9 +63,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "https://fonts.gstatic.com",
           "https://r2cdn.perplexity.ai",
         ],
-        objectSrc: ["'none'"],
+        objectSrc: ["'self'"],
         mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+        frameSrc: ["'self'"],
       },
     },
   }));

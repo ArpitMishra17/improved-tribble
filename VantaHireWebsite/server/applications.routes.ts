@@ -671,18 +671,34 @@ New job application received:
         return;
       }
 
-      let downloadUrl: string;
+      // Stream PDF through server to allow iframe embedding (avoids GCS X-Frame-Options)
       if (url.startsWith('gs://')) {
-        downloadUrl = await getSignedDownloadUrl(url, appRecord.resumeFilename);
+        try {
+          const buffer = await downloadFromGCS(url);
+          const filename = appRecord.resumeFilename || 'resume.pdf';
+          const ext = filename.split('.').pop()?.toLowerCase() || 'pdf';
+          const contentType = ext === 'pdf' ? 'application/pdf' : 'application/octet-stream';
+
+          // Allow embedding in iframes from same origin
+          res.removeHeader('X-Frame-Options');
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+          res.setHeader('Content-Length', buffer.length);
+          res.send(buffer);
+          return;
+        } catch (gcsError) {
+          console.error('[Resume] GCS download failed:', gcsError);
+          res.status(500).json({ error: 'Failed to retrieve resume' });
+          return;
+        }
       } else if (/^https?:\/\//i.test(url)) {
-        downloadUrl = url;
+        // External URL - redirect (can't proxy arbitrary URLs)
+        res.redirect(302, url);
+        return;
       } else {
         res.status(404).json({ error: 'Resume not available' });
         return;
       }
-
-      res.redirect(302, downloadUrl);
-      return;
     } catch (error) {
       next(error);
     }
