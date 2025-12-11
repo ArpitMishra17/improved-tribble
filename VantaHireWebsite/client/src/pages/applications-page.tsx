@@ -65,12 +65,13 @@ export default function ApplicationsPage() {
     }
   };
 
+  // Read stage filter from URL on mount and when URL changes
   useEffect(() => {
-    const search = location?.split("?")[1] || "";
-    if (!search) return;
-    const params = new URLSearchParams(search);
+    const params = new URLSearchParams(window.location.search);
     const stageParam = params.get("stage");
-    if (stageParam) setStageFilter(stageParam);
+    if (stageParam) {
+      setStageFilter(stageParam);
+    }
   }, [location]);
 
   // Fetch pipeline stages for stage filter

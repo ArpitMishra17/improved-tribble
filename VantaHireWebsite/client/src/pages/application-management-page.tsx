@@ -128,12 +128,13 @@ export default function ApplicationManagementPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Read stage filter from URL on mount and when URL changes
   useEffect(() => {
-    const search = location?.split("?")[1] || "";
-    if (!search) return;
-    const params = new URLSearchParams(search);
+    const params = new URLSearchParams(window.location.search);
     const stageParam = params.get("stage");
-    if (stageParam) setStageFilter(stageParam);
+    if (stageParam) {
+      setStageFilter(stageParam);
+    }
   }, [location]);
 
   // Redirect if not recruiter or admin
