@@ -35,7 +35,7 @@ export default function AdminEmailTemplatesPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
   // Redirect if not admin or recruiter
-  if (user && !["admin", "recruiter"].includes(user.role)) {
+  if (user && !["super_admin", "recruiter"].includes(user.role)) {
     return <Redirect to="/jobs" />;
   }
 
@@ -54,7 +54,7 @@ export default function AdminEmailTemplatesPage() {
       }
       return res.json();
     },
-    enabled: !!user && ["admin", "recruiter"].includes(user.role),
+    enabled: !!user && ["super_admin", "recruiter"].includes(user.role),
   });
 
   const createTemplateMutation = useMutation({
@@ -154,7 +154,7 @@ export default function AdminEmailTemplatesPage() {
               View and create reusable email templates for candidates.
             </p>
           </div>
-          {(user && ["admin", "recruiter"].includes(user.role)) && (
+          {(user && ["super_admin", "recruiter"].includes(user.role)) && (
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Create Template

@@ -74,7 +74,7 @@ export default function JobDetailsPage() {
   });
 
   // Check if current user is recruiter/admin (for showing admin features)
-  const isRecruiterOrAdmin = user?.role === 'recruiter' || user?.role === 'admin';
+  const isRecruiterOrAdmin = user?.role === 'recruiter' || user?.role === 'super_admin';
 
   // Fetch audit log for job (recruiters/admins only)
   const { data: auditLog = [] } = useQuery<AuditLogEntry[]>({

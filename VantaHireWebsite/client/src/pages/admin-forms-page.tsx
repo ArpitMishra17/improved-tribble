@@ -175,7 +175,7 @@ export default function AdminFormsPage() {
   };
 
   const canEditTemplate = (template: FormTemplateDTO) => {
-    return user?.role === 'admin' || template.createdBy === user?.id;
+    return user?.role === 'super_admin' || template.createdBy === user?.id;
   };
 
   // Bulk invite handlers
@@ -280,7 +280,7 @@ export default function AdminFormsPage() {
           <CardHeader>
             <CardTitle className="text-slate-900">Templates</CardTitle>
             <CardDescription className="text-slate-500">
-              {user?.role === 'admin'
+              {user?.role === 'super_admin'
                 ? 'All form templates (published and drafts)'
                 : 'Published templates and your own drafts'}
             </CardDescription>

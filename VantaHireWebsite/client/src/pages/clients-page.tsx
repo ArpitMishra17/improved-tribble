@@ -55,7 +55,7 @@ export default function ClientsPage() {
   }
 
   // Protect route (should also be wrapped in ProtectedRoute)
-  if (user && !["admin", "recruiter"].includes(user.role)) {
+  if (user && !["super_admin", "recruiter"].includes(user.role)) {
     return <Redirect to="/jobs" />;
   }
 
@@ -73,7 +73,7 @@ export default function ClientsPage() {
       }
       return res.json();
     },
-    enabled: !!user && ["admin", "recruiter"].includes(user.role),
+    enabled: !!user && ["super_admin", "recruiter"].includes(user.role),
   });
 
   const { data: clientMetrics = [] } = useQuery<ClientAnalytics[]>({
@@ -87,7 +87,7 @@ export default function ClientsPage() {
       }
       return res.json();
     },
-    enabled: !!user && ["admin", "recruiter"].includes(user.role),
+    enabled: !!user && ["super_admin", "recruiter"].includes(user.role),
   });
 
   const metricsByClientId = new Map<number, ClientAnalytics>();
