@@ -646,7 +646,7 @@ New job application received:
 
       // Permission checks
       const role = req.user!.role;
-      if (role === 'admin') {
+      if (role === 'super_admin') {
         // allowed
       } else if (role === 'recruiter') {
         const job = await storage.getJob(appRecord.jobId);
@@ -1268,7 +1268,7 @@ New job application received:
         return;
       }
 
-      if (req.user!.role !== 'admin') {
+      if (req.user!.role !== 'super_admin') {
         const application = await storage.getApplication(applicationId);
         if (!application) {
           res.status(404).json({ error: "Application not found" });
@@ -1313,7 +1313,7 @@ New job application received:
         return;
       }
 
-      if (req.user!.role !== 'admin') {
+      if (req.user!.role !== 'super_admin') {
         const applicationsList = await Promise.all(
           applicationIds.map(id => storage.getApplication(parseInt(id)))
         );
@@ -1365,7 +1365,7 @@ New job application received:
         return;
       }
 
-      if (req.user!.role !== 'admin') {
+      if (req.user!.role !== 'super_admin') {
         const application = await storage.getApplication(applicationId);
         if (!application) {
           res.status(404).json({ error: "Application not found" });
@@ -1408,7 +1408,7 @@ New job application received:
         return;
       }
 
-      if (req.user!.role !== 'admin') {
+      if (req.user!.role !== 'super_admin') {
         const application = await storage.getApplication(applicationId);
         if (!application) {
           res.status(404).json({ error: "Application not found" });

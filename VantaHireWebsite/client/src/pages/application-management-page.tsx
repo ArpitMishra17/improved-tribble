@@ -56,8 +56,7 @@ import {
 import { FormsModal } from "@/components/FormsModal";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { BulkActionBar } from "@/components/kanban/BulkActionBar";
-import { ApplicationDetailPanel } from "@/components/kanban/ApplicationDetailPanel";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { ApplicationDetailModal } from "@/components/kanban/ApplicationDetailModal";
 import { PageHeaderSkeleton, FilterBarSkeleton, KanbanBoardSkeleton } from "@/components/skeletons";
 import { JobSubNav } from "@/components/JobSubNav";
 
@@ -76,6 +75,7 @@ export default function ApplicationManagementPage() {
 
   // ATS features state
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [selectedAppResumeText, setSelectedAppResumeText] = useState<string | null>(null);
   const [interviewDate, setInterviewDate] = useState("");
   const [interviewTime, setInterviewTime] = useState("");
   const [interviewLocation, setInterviewLocation] = useState("");
@@ -624,13 +624,32 @@ export default function ApplicationManagementPage() {
     );
   };
 
-  const handleOpenDetails = (application: Application) => {
+  const handleOpenDetails = async (application: Application) => {
     setSelectedApp(application);
+    setSelectedAppResumeText(null);
     handleApplicationView(application.id);
+
+    // Fetch resume text in background for fallback display
+    if (application.id) {
+      try {
+        const res = await fetch(`/api/applications/${application.id}/resume-text`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.text === "string") {
+            setSelectedAppResumeText(data.text);
+          }
+        }
+      } catch {
+        // Ignore - fallback text unavailable
+      }
+    }
   };
 
   const handleCloseDetails = () => {
     setSelectedApp(null);
+    setSelectedAppResumeText(null);
   };
 
   const handleDragCancel = () => {
@@ -1297,68 +1316,60 @@ export default function ApplicationManagementPage() {
             bulkProgress={bulkProgress}
           />
 
-          <ResizablePanelGroup direction="horizontal" className="min-h-[600px] rounded-lg border border-slate-200 bg-white shadow-sm">
-            <ResizablePanel defaultSize={selectedApp ? 70 : 100} minSize={40}>
-              <div className="h-full p-4 overflow-auto">
-                <KanbanBoard
-                  applications={applications || []}
-                  pipelineStages={pipelineStages.sort((a, b) => a.order - b.order)}
-                  selectedIds={selectedApplications}
-                  onToggleSelect={handleToggleSelect}
-                  onOpenDetails={handleOpenDetails}
-                  onDragEnd={handleDragEnd}
-                  onDragCancel={handleDragCancel}
-                  onQuickMoveStage={(appId, stageId) => {
-                    updateStageMutation.mutate({ applicationId: appId, stageId });
-                  }}
-                  onQuickEmail={(appId) => {
-                    const app = applications?.find(a => a.id === appId);
-                    if (app) {
-                      handleOpenDetails(app);
-                      // Switch to email tab would require more state; opening details is sufficient
-                    }
-                  }}
-                  onQuickInterview={(appId) => {
-                    const app = applications?.find(a => a.id === appId);
-                    if (app) {
-                      handleOpenDetails(app);
-                    }
-                  }}
-                  onQuickDownload={(appId) => {
-                    window.open(`/api/applications/${appId}/resume`, '_blank');
-                  }}
-                />
-              </div>
-            </ResizablePanel>
+          {/* Kanban Board */}
+          <div className="min-h-[600px] rounded-lg border border-slate-200 bg-white shadow-sm p-4 overflow-auto">
+            <KanbanBoard
+              applications={applications || []}
+              pipelineStages={pipelineStages.sort((a, b) => a.order - b.order)}
+              selectedIds={selectedApplications}
+              onToggleSelect={handleToggleSelect}
+              onOpenDetails={handleOpenDetails}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+              onQuickMoveStage={(appId, stageId) => {
+                updateStageMutation.mutate({ applicationId: appId, stageId });
+              }}
+              onQuickEmail={(appId) => {
+                const app = applications?.find(a => a.id === appId);
+                if (app) {
+                  handleOpenDetails(app);
+                }
+              }}
+              onQuickInterview={(appId) => {
+                const app = applications?.find(a => a.id === appId);
+                if (app) {
+                  handleOpenDetails(app);
+                }
+              }}
+              onQuickDownload={(appId) => {
+                window.open(`/api/applications/${appId}/resume`, '_blank');
+              }}
+            />
+          </div>
 
-            {selectedApp && (
-              <>
-                <ResizableHandle withHandle className="bg-slate-200" />
-                <ResizablePanel defaultSize={30} minSize={25} maxSize={50}>
-                  <ApplicationDetailPanel
-                    application={selectedApp}
-                    jobId={jobId!}
-                    pipelineStages={pipelineStages}
-                    emailTemplates={emailTemplates}
-                    formTemplates={formTemplates}
-                    stageHistory={stageHistory}
-                    onClose={handleCloseDetails}
-                    onMoveStage={handleMoveStageFromPanel}
-                    onScheduleInterview={handleScheduleInterviewFromPanel}
-                    onSendEmail={handleSendEmailFromPanel}
-                    onSendForm={handleSendFormFromPanel}
-                    onAddNote={handleAddNoteFromPanel}
-                    onSetRating={handleSetRatingFromPanel}
-                    onDownloadResume={handleDownloadResumeFromPanel}
-                    onUpdateStatus={(status: string, notes?: string) => {
-                      if (!selectedApp) return;
-                      handleStatusUpdate(selectedApp.id, status, notes);
-                    }}
-                  />
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
+          {/* Application Detail Modal */}
+          <ApplicationDetailModal
+            application={selectedApp}
+            jobId={jobId!}
+            pipelineStages={pipelineStages}
+            emailTemplates={emailTemplates}
+            formTemplates={formTemplates}
+            stageHistory={stageHistory}
+            resumeText={selectedAppResumeText}
+            open={!!selectedApp}
+            onClose={handleCloseDetails}
+            onMoveStage={handleMoveStageFromPanel}
+            onScheduleInterview={handleScheduleInterviewFromPanel}
+            onSendEmail={handleSendEmailFromPanel}
+            onSendForm={handleSendFormFromPanel}
+            onAddNote={handleAddNoteFromPanel}
+            onSetRating={handleSetRatingFromPanel}
+            onDownloadResume={handleDownloadResumeFromPanel}
+            onUpdateStatus={(status: string, notes?: string) => {
+              if (!selectedApp) return;
+              handleStatusUpdate(selectedApp.id, status, notes);
+            }}
+          />
         </div>
 
         {/* ATS Dialogs */}

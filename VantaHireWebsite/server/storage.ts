@@ -738,9 +738,8 @@ export class DatabaseStorage implements IStorage {
   async markApplicationDownloaded(id: number): Promise<Application | undefined> {
     const [application] = await db
       .update(applications)
-      .set({ 
+      .set({
         downloadedAt: new Date(),
-        status: 'downloaded',
         updatedAt: new Date()
       })
       .where(eq(applications.id, id))
@@ -1340,7 +1339,7 @@ export class DatabaseStorage implements IStorage {
           : undefined,
       };
 
-      if (user.role === 'recruiter' || user.role === 'admin') {
+      if (user.role === 'recruiter' || user.role === 'super_admin') {
         result.jobCount = jobCountMap[user.id] || 0;
       }
 

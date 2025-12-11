@@ -115,19 +115,80 @@ test.describe('Job Application Flow', () => {
     await page.waitForLoadState('networkidle');
 
     // Check for applications list or empty state
-    const applicationList = page.locator('[data-testid="application-row"], table tbody tr, .application-item').first();
+    const applicationRow = page.locator('[data-testid="application-row"]').first();
     const emptyState = page.locator('text=No applications').or(page.locator('text=no applications'));
 
-    const hasApplications = await applicationList.isVisible({ timeout: 5000 }).catch(() => false);
+    const hasApplications = await applicationRow.isVisible({ timeout: 5000 }).catch(() => false);
     const hasEmptyState = await emptyState.isVisible({ timeout: 2000 }).catch(() => false);
 
     // Either applications exist or empty state is shown - both are valid
     expect(hasApplications || hasEmptyState || true).toBeTruthy();
 
     if (hasApplications) {
-      // Click to review first application
-      await applicationList.click();
-      await page.waitForLoadState('networkidle');
+      // Click Review button to open the modal
+      const reviewButton = applicationRow.locator('[data-testid="review-application"]');
+      await reviewButton.click();
+
+      // Wait for modal to open
+      const modal = page.locator('[role="dialog"]');
+      await expect(modal).toBeVisible({ timeout: 5000 });
+
+      // Verify modal contains expected elements
+      const modalHeader = modal.locator('h2, [class*="DialogTitle"]').first();
+      await expect(modalHeader).toBeVisible();
+
+      // Check for action buttons in the modal
+      const moveToScreeningBtn = modal.locator('button:has-text("Move to Screening")');
+      const rejectBtn = modal.locator('button:has-text("Reject")');
+
+      const hasScreeningBtn = await moveToScreeningBtn.isVisible({ timeout: 3000 }).catch(() => false);
+      const hasRejectBtn = await rejectBtn.isVisible({ timeout: 2000 }).catch(() => false);
+
+      // Modal should have action buttons
+      expect(hasScreeningBtn || hasRejectBtn).toBeTruthy();
+
+      // Close modal by clicking outside or pressing Escape
+      await page.keyboard.press('Escape');
+      await expect(modal).not.toBeVisible({ timeout: 3000 });
+    }
+  });
+
+  test('recruiter can move application to screening via modal', async ({ page }) => {
+    await loginAs(page, 'recruiter');
+    await page.goto('/applications');
+    await page.waitForLoadState('networkidle');
+
+    const applicationRow = page.locator('[data-testid="application-row"]').first();
+    const hasApplications = await applicationRow.isVisible({ timeout: 5000 }).catch(() => false);
+
+    if (!hasApplications) {
+      test.skip(true, 'No applications available to test');
+      return;
+    }
+
+    // Open review modal
+    const reviewButton = applicationRow.locator('[data-testid="review-application"]');
+    await reviewButton.click();
+
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 5000 });
+
+    // Add notes
+    const notesTextarea = modal.locator('textarea');
+    if (await notesTextarea.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await notesTextarea.fill('Test review notes from E2E');
+    }
+
+    // Click Move to Screening
+    const moveToScreeningBtn = modal.locator('button:has-text("Move to Screening")');
+    if (await moveToScreeningBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await moveToScreeningBtn.click();
+
+      // Modal should close after action
+      await expect(modal).not.toBeVisible({ timeout: 5000 });
+
+      // Toast or success indication should appear
+      await page.waitForTimeout(1000);
     }
   });
 

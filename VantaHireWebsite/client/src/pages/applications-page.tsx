@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Eye, Download, Users, Search, Sparkles, Brain, AlertCircle, MessageCircle } from "lucide-react";
+import { Eye, Users, Search, Sparkles, Brain, AlertCircle, MessageCircle } from "lucide-react";
 import Layout from "@/components/Layout";
 import { PageHeaderSkeleton, FilterBarSkeleton, ApplicationListSkeleton } from "@/components/skeletons";
+import { ResumePreviewModal } from "@/components/ResumePreviewModal";
 import type { Application, PipelineStage } from "@shared/schema";
 
 // Extended types for API responses with relations
@@ -23,19 +23,47 @@ type ApplicationWithJob = Application & {
 export default function ApplicationsPage() {
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
-  const [reviewNotes, setReviewNotes] = useState("");
-  const [newStatus, setNewStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [feedbackFilter, setFeedbackFilter] = useState<string>("all");
   const [minRating, setMinRating] = useState<string>("0");
+  const [resumePreviewApp, setResumePreviewApp] = useState<ApplicationWithJob | null>(null);
+  const [resumeText, setResumeText] = useState<string | null>(null);
+  const [isLoadingResumeText, setIsLoadingResumeText] = useState(false);
 
   // Fetch all applications for recruiter's jobs
   const { data: applications = [], isLoading: applicationsLoading } = useQuery<ApplicationWithJob[]>({
     queryKey: ["/api/my-applications-received"],
   });
+
+  // Fetch resume text on demand for modal
+  const fetchResumeText = async (applicationId: number): Promise<string | null> => {
+    try {
+      const res = await fetch(`/api/applications/${applicationId}/resume-text`, {
+        credentials: "include",
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return typeof data.text === "string" ? data.text : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Handle opening review modal and fetch resume text
+  const handleOpenReviewModal = async (application: ApplicationWithJob) => {
+    setResumePreviewApp(application);
+    setResumeText(null);
+
+    // Fetch resume text in background for fallback display
+    if (application.id) {
+      setIsLoadingResumeText(true);
+      const text = await fetchResumeText(application.id);
+      setResumeText(text);
+      setIsLoadingResumeText(false);
+    }
+  };
 
   useEffect(() => {
     const search = location?.split("?")[1] || "";
@@ -55,7 +83,7 @@ export default function ApplicationsPage() {
     mutationFn: async ({ applicationId, status, notes }: { applicationId: number; status: string; notes?: string }) => {
       const res = await apiRequest("PATCH", `/api/applications/${applicationId}/status`, {
         status,
-        reviewNotes: notes
+        ...(notes ? { notes } : {}),
       });
       return await res.json();
     },
@@ -65,9 +93,6 @@ export default function ApplicationsPage() {
         title: "Application Updated",
         description: "Application status has been updated successfully.",
       });
-      setSelectedApplicationId(null);
-      setReviewNotes("");
-      setNewStatus("");
     },
     onError: (error: Error) => {
       toast({
@@ -88,12 +113,47 @@ export default function ApplicationsPage() {
     },
   });
 
-  const handleStatusUpdate = () => {
-    if (selectedApplicationId && newStatus) {
-      updateStatusMutation.mutate({
-        applicationId: selectedApplicationId,
-        status: newStatus,
-        notes: reviewNotes
+  // Update application stage mutation
+  const updateStageMutation = useMutation({
+    mutationFn: async ({ applicationId, stageId, notes }: { applicationId: number; stageId: number; notes?: string }) => {
+      const res = await apiRequest("PATCH", `/api/applications/${applicationId}/stage`, {
+        stageId,
+        ...(notes ? { notes } : {}),
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-applications-received"] });
+      toast({
+        title: "Stage updated",
+        description: "Application moved to new stage successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Stage update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleMoveToStage = async (applicationId: number, targetStageId?: number, status?: string, notes?: string) => {
+    // Move stage first if a stage target exists
+    if (targetStageId) {
+      await updateStageMutation.mutateAsync({
+        applicationId,
+        stageId: targetStageId,
+        ...(notes ? { notes } : {}),
+      });
+    }
+
+    // Also set status for filtering consistency
+    if (status) {
+      await updateStatusMutation.mutateAsync({
+        applicationId,
+        status,
+        ...(notes ? { notes } : {}),
       });
     }
   };
@@ -209,7 +269,6 @@ export default function ApplicationsPage() {
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="submitted">Submitted</SelectItem>
-                      <SelectItem value="reviewed">Reviewed</SelectItem>
                       <SelectItem value="shortlisted">Shortlisted</SelectItem>
                       <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
@@ -316,25 +375,12 @@ export default function ApplicationsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedApplicationId(application.id)}
+                            onClick={() => handleOpenReviewModal(application)}
                             data-testid="review-application"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Review
                           </Button>
-                          {application.resumeUrl && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                downloadResumeMutation.mutate(application.id);
-                                window.open(`/api/applications/${application.id}/resume`, '_blank');
-                              }}
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              Resume
-                            </Button>
-                          )}
                         </div>
                       </div>
 
@@ -371,57 +417,6 @@ export default function ApplicationsPage() {
                           </div>
                         </div>
                       ) : null}
-
-                      {selectedApplicationId === application.id && (
-                        <div className="pt-4 border-t border-slate-200 space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="text-slate-900 text-sm font-medium mb-2 block">
-                                Update Status
-                              </label>
-                              <Select value={newStatus} onValueChange={setNewStatus} data-testid="status-select">
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select new status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="reviewed">Reviewed</SelectItem>
-                                  <SelectItem value="shortlisted">Shortlisted</SelectItem>
-                                  <SelectItem value="rejected">Rejected</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <label className="text-slate-900 text-sm font-medium mb-2 block">
-                                Review Notes
-                              </label>
-                              <Textarea
-                                value={reviewNotes}
-                                onChange={(e) => setReviewNotes(e.target.value)}
-                                placeholder="Add your review notes..."
-                                data-testid="review-notes"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              onClick={handleStatusUpdate}
-                              disabled={!newStatus || updateStatusMutation.isPending}
-                            >
-                              Save Review
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedApplicationId(null);
-                                setReviewNotes("");
-                                setNewStatus("");
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))
                 )}
@@ -430,6 +425,46 @@ export default function ApplicationsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Application Review Modal */}
+      <ResumePreviewModal
+        applicationId={resumePreviewApp?.id ?? null}
+        applicationName={resumePreviewApp?.name ?? ""}
+        applicationEmail={resumePreviewApp?.email ?? ""}
+        jobTitle={resumePreviewApp?.job?.title}
+        resumeUrl={resumePreviewApp?.resumeUrl ?? null}
+        status={resumePreviewApp?.status}
+        aiFitScore={resumePreviewApp?.aiFitScore}
+        aiFitLabel={resumePreviewApp?.aiFitLabel}
+        aiFitReasons={resumePreviewApp?.aiFitReasons as string[] | null}
+        resumeText={resumeText}
+        open={!!resumePreviewApp}
+        onClose={() => {
+          setResumePreviewApp(null);
+          setResumeText(null);
+        }}
+        onDownload={() => {
+          if (resumePreviewApp) {
+            downloadResumeMutation.mutate(resumePreviewApp.id);
+          }
+        }}
+        onMoveToScreening={async (notes) => {
+          if (resumePreviewApp) {
+            const screeningStage = pipelineStages.find((s) =>
+              s.name.toLowerCase().includes("screen")
+            );
+            await handleMoveToStage(resumePreviewApp.id, screeningStage?.id, "shortlisted", notes);
+          }
+        }}
+        onReject={async (notes) => {
+          if (resumePreviewApp) {
+            const rejectStage = pipelineStages.find((s) =>
+              s.name.toLowerCase().includes("reject")
+            );
+            await handleMoveToStage(resumePreviewApp.id, rejectStage?.id, "rejected", notes);
+          }
+        }}
+      />
     </Layout>
   );
 }

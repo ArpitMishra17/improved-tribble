@@ -19,6 +19,7 @@ import { registerClientsRoutes } from "./clients.routes";
 import { registerJobsRoutes } from "./jobs.routes";
 import { registerApplicationsRoutes } from "./applications.routes";
 import { registerCommunicationsRoutes } from "./communications.routes";
+import { registerResumeRoutes } from "./resume.routes";
 import { doubleCsrfProtection as csrfProtectionModule, generateToken as generateTokenModule } from "./csrf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -370,6 +371,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register communications routes (email templates, sending, AI drafts)
   registerCommunicationsRoutes(app, doubleCsrfProtection);
+
+  // Resume text preview routes
+  registerResumeRoutes(app);
 
   // Register forms routes (recruiter-sent candidate forms feature)
   registerFormsRoutes(app, doubleCsrfProtection);

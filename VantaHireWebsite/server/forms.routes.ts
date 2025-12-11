@@ -251,7 +251,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
     requireRole(['recruiter', 'super_admin']),
     async (req: Request, res: Response) => {
       try {
-        const isAdmin = req.user!.role === 'admin';
+        const isAdmin = req.user!.role === 'super_admin';
 
         // Admins see ALL templates (published + drafts for oversight)
         // Recruiters see: (published templates) OR (their own templates regardless of published status)
@@ -301,7 +301,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
         }
 
         // Check ownership (admins can access all, recruiters only their own)
-        if (req.user!.role !== 'admin' && form.createdBy !== req.user!.id) {
+        if (req.user!.role !== 'super_admin' && form.createdBy !== req.user!.id) {
           return res.status(403).json({ error: 'Unauthorized' });
         }
 
@@ -333,7 +333,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
           return res.status(404).json({ error: 'Form template not found' });
         }
 
-        if (req.user!.role !== 'admin' && existingForm.createdBy !== req.user!.id) {
+        if (req.user!.role !== 'super_admin' && existingForm.createdBy !== req.user!.id) {
           return res.status(403).json({ error: 'Unauthorized' });
         }
 
@@ -413,7 +413,7 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
           return res.status(404).json({ error: 'Form template not found' });
         }
 
-        if (req.user!.role !== 'admin' && existingForm.createdBy !== req.user!.id) {
+        if (req.user!.role !== 'super_admin' && existingForm.createdBy !== req.user!.id) {
           return res.status(403).json({ error: 'Unauthorized' });
         }
 
@@ -637,7 +637,7 @@ VantaHire Team`;
         }
 
         // Template access check: recruiters can only send their own templates or published templates
-        const isAdmin = req.user!.role === 'admin';
+        const isAdmin = req.user!.role === 'super_admin';
         if (!isAdmin) {
           const canAccess = form.isPublished || form.createdBy === req.user!.id;
           if (!canAccess) {
@@ -769,7 +769,7 @@ VantaHire Team`;
         }
 
         // Template access check
-        const isAdmin = req.user!.role === 'admin';
+        const isAdmin = req.user!.role === 'super_admin';
         if (!isAdmin) {
           const canAccess = form.isPublished || form.createdBy === req.user!.id;
           if (!canAccess) {
@@ -1445,7 +1445,7 @@ VantaHire Team`;
           return res.status(404).json({ error: 'Form not found' });
         }
 
-        if (form.createdBy !== req.user!.id && req.user!.role !== 'admin') {
+        if (form.createdBy !== req.user!.id && req.user!.role !== 'super_admin') {
           return res.status(403).json({ error: 'Unauthorized: You can only view responses for your own forms' });
         }
 

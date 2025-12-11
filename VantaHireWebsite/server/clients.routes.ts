@@ -345,8 +345,8 @@ export function registerClientsRoutes(
         return;
       }
 
-      // Verify ownership if not admin
-      if (req.user!.role !== 'admin') {
+      // Verify ownership if not super_admin
+      if (req.user!.role !== 'super_admin') {
         const job = await storage.getJob(jobId);
         if (!job || job.postedBy !== req.user!.id) {
           res.status(403).json({ error: 'Access denied' });

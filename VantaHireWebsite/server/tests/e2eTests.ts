@@ -542,7 +542,7 @@ async function adminJourney(reporter: TestReporter): Promise<void> {
     assertStatus(response.status, [200, 401], 'Admin login status');
 
     if (response.status === 200) {
-      assert(response.data.role === 'admin', 'Should be logged in as admin');
+      assert(response.data.role === 'super_admin', 'Should be logged in as super_admin');
     } else {
       // Admin account might not exist or wrong password
       throw new Error('Admin login failed - check credentials');

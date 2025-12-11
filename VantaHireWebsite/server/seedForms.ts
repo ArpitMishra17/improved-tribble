@@ -213,9 +213,9 @@ async function seedForms() {
   console.log('🌱 Seeding default form templates...');
 
   try {
-    // Find the first admin user to attribute templates to
+    // Find the first super_admin user to attribute templates to
     const adminUser = await db.query.users.findFirst({
-      where: eq(users.role, 'admin'),
+      where: eq(users.role, 'super_admin'),
     });
 
     if (!adminUser) {

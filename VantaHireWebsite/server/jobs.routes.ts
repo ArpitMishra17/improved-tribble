@@ -259,7 +259,7 @@ export function registerJobsRoutes(
    */
   app.get("/api/analytics/job-health", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const userId = req.user!.role === 'super_admin' ? undefined : req.user!.id;
       const jobHealth = await storage.getJobHealthSummary(userId);
       res.json(jobHealth);
       return;
@@ -275,7 +275,7 @@ export function registerJobsRoutes(
    */
   app.get("/api/analytics/nudges", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const userId = req.user!.role === 'super_admin' ? undefined : req.user!.id;
       const nudges = await storage.getAnalyticsNudges(userId);
       res.json(nudges);
       return;
@@ -291,7 +291,7 @@ export function registerJobsRoutes(
    */
   app.get("/api/analytics/clients", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const userId = req.user!.role === 'super_admin' ? undefined : req.user!.id;
       const metrics = await storage.getClientAnalytics(userId);
       res.json(metrics);
       return;
@@ -304,7 +304,7 @@ export function registerJobsRoutes(
   // Get job analytics for admin/recruiter
   app.get("/api/analytics/jobs", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const userId = req.user!.role === 'super_admin' ? undefined : req.user!.id;
       const jobsWithAnalytics = await storage.getJobsWithAnalytics(userId);
       res.json(jobsWithAnalytics);
       return;
@@ -328,7 +328,7 @@ export function registerJobsRoutes(
       }
 
       // Verify ownership if not admin
-      if (req.user!.role !== 'admin') {
+      if (req.user!.role !== 'super_admin') {
         const job = await storage.getJob(jobId);
         if (!job || job.postedBy !== req.user!.id) {
           res.status(403).json({ error: "Access denied" });
@@ -353,7 +353,7 @@ export function registerJobsRoutes(
   app.get("/api/analytics/export", requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { format = 'json', dateRange = '30' } = req.query;
-      const userId = req.user!.role === 'admin' ? undefined : req.user!.id;
+      const userId = req.user!.role === 'super_admin' ? undefined : req.user!.id;
 
       const jobs = await storage.getJobsWithAnalytics(userId);
 
@@ -454,7 +454,7 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applications.appliedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applications.appliedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
 
       let appsQuery = db
         .select({
@@ -530,7 +530,7 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applications.appliedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applications.appliedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
 
       let sourceQuery = db
         .select({
@@ -624,7 +624,7 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applicationStageHistory.changedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applicationStageHistory.changedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
 
       let historyQuery = db
         .select({
@@ -735,7 +735,7 @@ export function registerJobsRoutes(
       // Scoped jobs for current user (recruiter sees own jobs only)
       const jobFilters: any[] = [];
       if (parsedJobId) jobFilters.push(eq(jobs.id, parsedJobId));
-      if (req.user!.role !== 'admin') jobFilters.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') jobFilters.push(eq(jobs.postedBy, req.user!.id));
 
       let jobsQuery = db
         .select({

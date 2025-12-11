@@ -41,7 +41,7 @@ async function main() {
       password: hashed,
       firstName: 'System',
       lastName: 'Administrator',
-      role: 'admin',
+      role: 'super_admin',
     })
     .returning();
 

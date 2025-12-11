@@ -43,6 +43,15 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+
+  // Serve static HTML files from client/public (e.g., landing pages)
+  // These bypass SPA routing
+  const publicDir = path.resolve(__dirname, "..", "client", "public");
+  app.use(express.static(publicDir, {
+    extensions: ['html'],
+    index: false, // Don't serve index.html for directories
+  }));
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 

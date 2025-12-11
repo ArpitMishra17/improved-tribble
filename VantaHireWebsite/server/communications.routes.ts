@@ -91,9 +91,9 @@ export function registerCommunicationsRoutes(
 
       const updates: Partial<InsertEmailTemplate> & { isDefault?: boolean } = {};
 
-      // Only admins can approve/mark templates as default
+      // Only super_admins can approve/mark templates as default
       if (parsed.data.isDefault !== undefined) {
-        if (req.user!.role !== "admin") {
+        if (req.user!.role !== "super_admin") {
           res.status(403).json({ error: "Only admins can approve email templates" });
           return;
         }

@@ -795,7 +795,7 @@ export const insertApplicationSchema = createInsertSchema(applications).pick({
   email: z.string().email(),
   phone: z.string().min(10).max(15),
   coverLetter: z.string().max(2000).optional(),
-  status: z.enum(["submitted", "reviewed", "shortlisted", "rejected", "downloaded"]).optional(),
+  status: z.enum(["submitted", "reviewed", "shortlisted", "rejected"]).optional(),
   notes: z.string().max(1000).optional(),
 });
 
