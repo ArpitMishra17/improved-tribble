@@ -35,14 +35,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       directives: {
         defaultSrc: ["'self'"],
         // scriptSrc: Only allow unsafe directives in development
+        // Mautic form embed requires inline scripts and external script
         scriptSrc: isDevelopment
-          ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://assets.apollo.io"]
-          : ["'self'", "https://assets.apollo.io"],
+          ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://assets.apollo.io", "https://mautic.evalmatch.app"]
+          : ["'self'", "'unsafe-inline'", "https://assets.apollo.io", "https://mautic.evalmatch.app"],
         // style: allow inline attributes for UI libraries (Radix/Popper). Some components also inject small <style> tags,
         // so allow inline element styles with 'unsafe-inline' to prevent layout breakage.
         styleSrc: isDevelopment
-          ? ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"]
-          : ["'self'", "https://fonts.googleapis.com"],
+          ? ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"]
+          : ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"],
         // CSP Level 3: refine style policy in production
         ...(isDevelopment
           ? {}
@@ -50,13 +51,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Allow style attributes (inline) needed for popovers/portals positioning
             // while keeping external styles limited to self + Google Fonts
               "style-src-attr": ["'unsafe-inline'"],
-              "style-src-elem": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+              "style-src-elem": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://mautic.evalmatch.app"],
             }),
         imgSrc: ["'self'", "data:", "https:"],
         // connectSrc: Restrict WebSocket connections in production
+        // Mautic form submissions require connection to mautic domain
         connectSrc: isDevelopment
-          ? ["'self'", "ws:", "wss:", "https://assets.apollo.io"]
-          : ["'self'", "https://assets.apollo.io"],
+          ? ["'self'", "ws:", "wss:", "https://assets.apollo.io", "https://mautic.evalmatch.app"]
+          : ["'self'", "https://assets.apollo.io", "https://mautic.evalmatch.app"],
         fontSrc: [
           "'self'",
           "data:",
@@ -65,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ],
         objectSrc: ["'self'"],
         mediaSrc: ["'self'"],
-        frameSrc: ["'self'"],
+        frameSrc: ["'self'", "https://mautic.evalmatch.app"],
       },
     },
   }));
