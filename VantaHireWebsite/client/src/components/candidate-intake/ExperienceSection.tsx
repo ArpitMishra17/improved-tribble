@@ -54,8 +54,8 @@ export function ExperienceSection({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Work Experience</h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <h3 className="text-lg font-semibold text-foreground">Work Experience</h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Add the candidate's relevant work history (optional)
         </p>
       </div>
@@ -63,8 +63,8 @@ export function ExperienceSection({
       {data.items.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="p-8 text-center">
-            <Briefcase className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 mb-4">
+            <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-4">
               No experience added yet. Add work history to build a complete profile.
             </p>
             <Button variant="outline" onClick={addExperience}>
@@ -79,13 +79,13 @@ export function ExperienceSection({
             <Card key={item.id}>
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-start justify-between">
-                  <span className="text-sm font-medium text-slate-500">
+                  <span className="text-sm font-medium text-muted-foreground">
                     Experience {index + 1}
                   </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-slate-400 hover:text-red-600"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={() => removeItem(item.id)}
                   >
                     <Trash2 className="h-4 w-4" />

@@ -46,27 +46,27 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
 
       return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-muted/50 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+            <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
             </div>
 
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+            <h1 className="text-2xl font-bold text-foreground mb-2">
               Something went wrong
             </h1>
 
-            <p className="text-slate-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               An unexpected error occurred. Please try refreshing the page or return to the home page.
             </p>
 
             {import.meta.env.DEV && this.state.error && (
-              <div className="mb-6 p-4 bg-slate-100 rounded-md text-left overflow-auto max-h-40">
-                <p className="text-sm font-mono text-red-600 break-all">
+              <div className="mb-6 p-4 bg-muted rounded-md text-left overflow-auto max-h-40">
+                <p className="text-sm font-mono text-destructive break-all">
                   {this.state.error.message}
                 </p>
                 {this.state.errorInfo?.componentStack && (
-                  <pre className="text-xs text-slate-500 mt-2 whitespace-pre-wrap">
+                  <pre className="text-xs text-muted-foreground mt-2 whitespace-pre-wrap">
                     {this.state.errorInfo.componentStack.slice(0, 500)}
                   </pre>
                 )}
@@ -95,7 +95,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 href="https://github.com/anthropics/claude-code/issues"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-slate-500 hover:text-primary flex items-center gap-1 mt-2"
+                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1 mt-2"
               >
                 <ExternalLink className="h-3 w-3" />
                 Report an issue

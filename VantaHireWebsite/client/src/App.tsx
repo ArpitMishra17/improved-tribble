@@ -40,7 +40,16 @@ import PrivacyPolicyPage from "@/pages/privacy-policy-page";
 import TermsOfServicePage from "@/pages/terms-of-service-page";
 import CookiePolicyPage from "@/pages/cookie-policy-page";
 import BrandAssetsPage from "@/pages/brand-assets-page";
+import VerifyEmailPage from "@/pages/verify-email-page";
+import ProfileSettingsPage from "@/pages/profile-settings-page";
+import RecruiterProfilePage from "@/pages/recruiter-profile-page";
 import { CookieConsent, AnalyticsOnConsent } from "@/components/CookieConsent";
+import { lazy, Suspense } from "react";
+
+// Dev-only UI gallery (lazy loaded, tree-shaken in production)
+const DevUIGallery = import.meta.env.DEV
+  ? lazy(() => import("@/pages/dev-ui-gallery"))
+  : null;
 import { TourProvider } from "@/components/TourProvider";
 import { TourLauncher } from "@/components/TourLauncher";
 
@@ -58,6 +67,8 @@ function Router() {
       <Route path="/terms-of-service" component={TermsOfServicePage} />
       <Route path="/cookie-policy" component={CookiePolicyPage} />
       <Route path="/brand" component={BrandAssetsPage} />
+      <Route path="/verify-email/:token" component={VerifyEmailPage} />
+      <Route path="/recruiters/:id" component={RecruiterProfilePage} />
       <Route path="/jobs" component={JobsPage} />
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/jobs/:id/applications" component={ApplicationManagementPage} requiredRole={['recruiter', 'super_admin']} />
@@ -72,6 +83,7 @@ function Router() {
       <ProtectedRoute path="/candidates" component={CandidatesPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/my-jobs" component={MyJobsPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/clients" component={ClientsPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/profile/settings" component={ProfileSettingsPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/admin" component={AdminSuperDashboard} requiredRole={['super_admin']} />
       <Route path="/admin/legacy">{() => <Redirect to="/admin" />}</Route>
       <Route path="/admin/super">{() => <Redirect to="/admin" />}</Route>
@@ -84,6 +96,16 @@ function Router() {
       <ProtectedRoute path="/admin/ai-usage" component={AdminAIUsagePage} requiredRole={['super_admin']} />
       <ProtectedRoute path="/admin/feedback" component={AdminFeedbackPage} requiredRole={['super_admin']} />
       <ProtectedRoute path="/analytics" component={JobAnalyticsDashboard} requiredRole={['recruiter', 'super_admin']} />
+      {/* Dev-only UI gallery route */}
+      {DevUIGallery && (
+        <Route path="/dev/ui-gallery">
+          {() => (
+            <Suspense fallback={<div className="p-8 text-center">Loading UI Gallery...</div>}>
+              <DevUIGallery />
+            </Suspense>
+          )}
+        </Route>
+      )}
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

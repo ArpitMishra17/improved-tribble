@@ -20,10 +20,10 @@ interface SkillsSectionProps {
 }
 
 const PROFICIENCY_COLORS: Record<string, string> = {
-  beginner: "bg-slate-100 text-slate-700 border-slate-200",
-  intermediate: "bg-blue-100 text-blue-700 border-blue-200",
-  advanced: "bg-purple-100 text-purple-700 border-purple-200",
-  expert: "bg-green-100 text-green-700 border-green-200",
+  beginner: "bg-muted text-foreground border-border",
+  intermediate: "bg-info/20 text-info-foreground border-info/30",
+  advanced: "bg-primary/20 text-primary border-primary/30",
+  expert: "bg-success/20 text-success-foreground border-success/30",
 };
 
 const PROFICIENCY_LABELS: Record<string, string> = {
@@ -79,8 +79,8 @@ export function SkillsSection({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Skills</h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <h3 className="text-lg font-semibold text-foreground">Skills</h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Add relevant skills with optional proficiency levels
         </p>
       </div>
@@ -113,8 +113,8 @@ export function SkillsSection({
       {/* Skills list */}
       {data.skills.length === 0 ? (
         <div className="text-center py-8 border border-dashed rounded-lg">
-          <Sparkles className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-          <p className="text-sm text-slate-500">
+          <Sparkles className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
             No skills added yet. Type a skill name above and press Enter or click Add.
           </p>
         </div>
@@ -127,7 +127,7 @@ export function SkillsSection({
               className={`py-1.5 px-3 text-sm ${
                 skill.proficiency
                   ? PROFICIENCY_COLORS[skill.proficiency]
-                  : "bg-slate-50 text-slate-700 border-slate-200"
+                  : "bg-muted/50 text-foreground border-border"
               }`}
             >
               <span>{skill.name}</span>
@@ -138,7 +138,7 @@ export function SkillsSection({
               )}
               <button
                 onClick={() => removeSkill(skill.name)}
-                className="ml-2 hover:text-red-600 transition-colors"
+                className="ml-2 hover:text-destructive transition-colors"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -147,7 +147,7 @@ export function SkillsSection({
         </div>
       )}
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-muted-foreground">
         {data.skills.length}/30 skills added
       </p>
 

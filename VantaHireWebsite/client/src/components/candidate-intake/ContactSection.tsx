@@ -67,8 +67,8 @@ export function ContactSection({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Contact Information</h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <h3 className="text-lg font-semibold text-foreground">Contact Information</h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Basic contact details for the candidate
         </p>
       </div>
@@ -76,7 +76,7 @@ export function ContactSection({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="firstName">
-            First Name <span className="text-red-500">*</span>
+            First Name <span className="text-destructive">*</span>
           </Label>
           <Input
             id="firstName"
@@ -84,10 +84,10 @@ export function ContactSection({
             onChange={(e) => updateField("firstName", e.target.value)}
             onBlur={() => handleBlur("firstName")}
             placeholder="Jane"
-            className={showError("firstName") ? "border-red-500" : ""}
+            className={showError("firstName") ? "border-destructive" : ""}
           />
           {showError("firstName") && (
-            <p className="text-xs text-red-500 flex items-center gap-1">
+            <p className="text-xs text-destructive flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               {errors.firstName}
             </p>
@@ -96,7 +96,7 @@ export function ContactSection({
 
         <div className="space-y-2">
           <Label htmlFor="lastName">
-            Last Name <span className="text-red-500">*</span>
+            Last Name <span className="text-destructive">*</span>
           </Label>
           <Input
             id="lastName"
@@ -104,10 +104,10 @@ export function ContactSection({
             onChange={(e) => updateField("lastName", e.target.value)}
             onBlur={() => handleBlur("lastName")}
             placeholder="Doe"
-            className={showError("lastName") ? "border-red-500" : ""}
+            className={showError("lastName") ? "border-destructive" : ""}
           />
           {showError("lastName") && (
-            <p className="text-xs text-red-500 flex items-center gap-1">
+            <p className="text-xs text-destructive flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               {errors.lastName}
             </p>
@@ -117,7 +117,7 @@ export function ContactSection({
 
       <div className="space-y-2">
         <Label htmlFor="email">
-          Email <span className="text-red-500">*</span>
+          Email <span className="text-destructive">*</span>
         </Label>
         <Input
           id="email"
@@ -126,10 +126,10 @@ export function ContactSection({
           onChange={(e) => updateField("email", e.target.value)}
           onBlur={() => handleBlur("email")}
           placeholder="jane.doe@example.com"
-          className={showError("email") ? "border-red-500" : ""}
+          className={showError("email") ? "border-destructive" : ""}
         />
         {showError("email") && (
-          <p className="text-xs text-red-500 flex items-center gap-1">
+          <p className="text-xs text-destructive flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             {errors.email}
           </p>
@@ -146,10 +146,10 @@ export function ContactSection({
             onChange={(e) => updateField("phone", e.target.value)}
             onBlur={() => handleBlur("phone")}
             placeholder="+1 (555) 123-4567"
-            className={showError("phone") ? "border-red-500" : ""}
+            className={showError("phone") ? "border-destructive" : ""}
           />
           {showError("phone") && (
-            <p className="text-xs text-red-500 flex items-center gap-1">
+            <p className="text-xs text-destructive flex items-center gap-1">
               <AlertCircle className="h-3 w-3" />
               {errors.phone}
             </p>

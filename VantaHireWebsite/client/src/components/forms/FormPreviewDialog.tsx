@@ -25,26 +25,26 @@ interface FormPreviewDialogProps {
 export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: FormPreviewDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-white text-2xl flex items-center gap-2">
             Form Preview
-            <Badge variant="outline" className="text-xs border-purple-400/50 text-purple-300">
+            <Badge variant="outline" className="text-xs border-primary/50 text-primary">
               Candidate View
             </Badge>
           </DialogTitle>
-          <DialogDescription className="text-slate-400">
+          <DialogDescription className="text-muted-foreground">
             This is how candidates will see and interact with your form
           </DialogDescription>
         </DialogHeader>
 
         <div className="mt-6">
           {/* Form Header */}
-          <div className="mb-6 pb-6 border-b border-slate-700">
+          <div className="mb-6 pb-6 border-b border-border">
             <h2 className="text-2xl font-bold text-white">
               {templateName || "Untitled Form"}
             </h2>
-            <p className="text-slate-400 text-sm mt-2">
+            <p className="text-muted-foreground text-sm mt-2">
               Please fill out all required fields marked with an asterisk (*)
             </p>
           </div>
@@ -53,7 +53,7 @@ export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: 
           {fields.length === 0 ? (
             <Card className="bg-white/5 border-white/10 border-dashed">
               <CardContent className="py-12 text-center">
-                <p className="text-slate-400">No fields to preview. Add fields to see them here.</p>
+                <p className="text-muted-foreground">No fields to preview. Add fields to see them here.</p>
               </CardContent>
             </Card>
           ) : (
@@ -61,14 +61,14 @@ export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: 
               {fields.map((field) => (
                 <div key={field.id} className="space-y-2">
                   <Label className="text-white text-base">
-                    {field.label || <span className="text-slate-500 italic">Untitled field</span>}
-                    {field.required && <span className="text-red-400 ml-1">*</span>}
+                    {field.label || <span className="text-muted-foreground italic">Untitled field</span>}
+                    {field.required && <span className="text-destructive ml-1">*</span>}
                   </Label>
 
                   {field.type === "short_text" && (
                     <Input
                       placeholder="Enter your response..."
-                      className="bg-white/5 border-white/20 text-white placeholder:text-slate-500"
+                      className="bg-white/5 border-white/20 text-white placeholder:text-muted-foreground"
                     />
                   )}
 
@@ -76,7 +76,7 @@ export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: 
                     <Textarea
                       placeholder="Enter your detailed response..."
                       rows={4}
-                      className="bg-white/5 border-white/20 text-white placeholder:text-slate-500 resize-none"
+                      className="bg-white/5 border-white/20 text-white placeholder:text-muted-foreground resize-none"
                     />
                   )}
 
@@ -84,14 +84,14 @@ export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: 
                     <Input
                       type="email"
                       placeholder="your.email@example.com"
-                      className="bg-white/5 border-white/20 text-white placeholder:text-slate-500"
+                      className="bg-white/5 border-white/20 text-white placeholder:text-muted-foreground"
                     />
                   )}
 
                   {field.type === "yes_no" && (
                     <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/20">
                       <Switch />
-                      <span className="text-slate-400 text-sm">Toggle to select Yes/No</span>
+                      <span className="text-muted-foreground text-sm">Toggle to select Yes/No</span>
                     </div>
                   )}
 
@@ -130,9 +130,9 @@ export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: 
                     <div className="space-y-2">
                       <Input
                         type="file"
-                        className="bg-white/5 border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                        className="bg-white/5 border-white/20 text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/100 file:text-white hover:file:bg-primary"
                       />
-                      <p className="text-slate-500 text-xs">
+                      <p className="text-muted-foreground text-xs">
                         Supported formats: PDF, DOC, DOCX, TXT (max 10MB)
                       </p>
                     </div>
@@ -141,7 +141,7 @@ export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: 
               ))}
 
               {/* Submit Button (Preview Only) */}
-              <div className="pt-6 border-t border-slate-700">
+              <div className="pt-6 border-t border-border">
                 <Button
                   disabled
                   size="lg"
@@ -149,7 +149,7 @@ export function FormPreviewDialog({ open, onOpenChange, templateName, fields }: 
                 >
                   Submit Form
                 </Button>
-                <p className="text-slate-500 text-xs mt-2 text-center">
+                <p className="text-muted-foreground text-xs mt-2 text-center">
                   This is a preview only. Candidates will submit their responses here.
                 </p>
               </div>

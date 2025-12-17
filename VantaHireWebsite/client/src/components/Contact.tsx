@@ -297,14 +297,14 @@ const Contact = () => {
     <section id="contact" className="bg-[var(--vh-bg-secondary)] relative overflow-hidden" ref={sectionRef}>
       {/* Premium background decorations */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
-      <div className="absolute top-20 right-10 w-80 h-80 bg-blue-500/10 rounded-full blur-[40px] animate-pulse-slow"></div>
-      <div className="absolute bottom-10 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-[40px] animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
-      <div className="absolute top-40 left-1/4 w-60 h-60 bg-pink-500/10 rounded-full blur-[40px] animate-pulse-slow" style={{ animationDelay: '0.8s' }}></div>
+      <div className="absolute top-20 right-10 w-80 h-80 bg-info/10 rounded-full blur-[40px] animate-pulse-slow"></div>
+      <div className="absolute bottom-10 left-10 w-72 h-72 bg-primary/10 rounded-full blur-[40px] animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
+      <div className="absolute top-40 left-1/4 w-60 h-60 bg-primary/10 rounded-full blur-[40px] animate-pulse-slow" style={{ animationDelay: '0.8s' }}></div>
       
       {/* Animated particles */}
-      <div className="absolute w-2 h-2 bg-blue-300/40 rounded-full top-1/4 right-1/4 animate-float-path" 
+      <div className="absolute w-2 h-2 bg-info/50/40 rounded-full top-1/4 right-1/4 animate-float-path" 
           style={{animationDelay: '0.6s', animationDuration: '18s'}}></div>
-      <div className="absolute w-3 h-3 bg-purple-300/40 rounded-full bottom-1/3 left-1/3 animate-float-path" 
+      <div className="absolute w-3 h-3 bg-primary/70/40 rounded-full bottom-1/3 left-1/3 animate-float-path" 
           style={{animationDelay: '1.2s', animationDuration: '15s'}}></div>
       
       <div className="container mx-auto px-4 py-24 relative z-10">

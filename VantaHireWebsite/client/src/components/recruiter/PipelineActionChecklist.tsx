@@ -60,29 +60,29 @@ const PRIORITY_CONFIG = {
   urgent: {
     label: "Urgent",
     icon: AlertTriangle,
-    bgColor: "bg-red-50",
-    borderColor: "border-red-200",
-    iconColor: "text-red-600",
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
-    hoverBg: "hover:bg-red-100/50",
+    bgColor: "bg-destructive/10",
+    borderColor: "border-destructive/30",
+    iconColor: "text-destructive",
+    badgeClass: "bg-destructive/20 text-destructive border-destructive/30",
+    hoverBg: "hover:bg-destructive/20/50",
   },
   important: {
     label: "Important",
     icon: AlertCircle,
-    bgColor: "bg-amber-50",
-    borderColor: "border-amber-200",
-    iconColor: "text-amber-600",
-    badgeClass: "bg-amber-100 text-amber-700 border-amber-200",
-    hoverBg: "hover:bg-amber-100/50",
+    bgColor: "bg-warning/10",
+    borderColor: "border-warning/30",
+    iconColor: "text-warning",
+    badgeClass: "bg-warning/20 text-warning-foreground border-warning/30",
+    hoverBg: "hover:bg-warning/20/50",
   },
   maintenance: {
     label: "Maintenance",
     icon: Wrench,
-    bgColor: "bg-slate-50",
-    borderColor: "border-slate-200",
-    iconColor: "text-slate-600",
-    badgeClass: "bg-slate-100 text-slate-700 border-slate-200",
-    hoverBg: "hover:bg-slate-100/50",
+    bgColor: "bg-muted/50",
+    borderColor: "border-border",
+    iconColor: "text-muted-foreground",
+    badgeClass: "bg-muted text-foreground border-border",
+    hoverBg: "hover:bg-muted/50",
   },
 };
 
@@ -95,25 +95,25 @@ function getHealthColor(score: number): {
 } {
   if (score >= 70) {
     return {
-      bg: "bg-emerald-50",
+      bg: "bg-success/10",
       border: "border-emerald-300",
-      text: "text-emerald-700",
+      text: "text-success-foreground",
       badge: "bg-emerald-100 text-emerald-800",
     };
   }
   if (score >= 50) {
     return {
-      bg: "bg-amber-50",
+      bg: "bg-warning/10",
       border: "border-amber-300",
-      text: "text-amber-700",
-      badge: "bg-amber-100 text-amber-800",
+      text: "text-warning-foreground",
+      badge: "bg-warning/20 text-amber-800",
     };
   }
   return {
-    bg: "bg-red-50",
+    bg: "bg-destructive/10",
     border: "border-red-300",
-    text: "text-red-700",
-    badge: "bg-red-100 text-red-800",
+    text: "text-destructive",
+    badge: "bg-destructive/20 text-destructive",
   };
 }
 
@@ -136,7 +136,7 @@ function ActionItemRow({
         "group flex items-center gap-3 py-3 px-4 rounded-lg transition-all duration-200",
         "border",
         isCompleted
-          ? "bg-slate-50/50 border-slate-100"
+          ? "bg-muted/50/50 border-border"
           : `${config.bgColor} ${config.borderColor}`,
         !isCompleted && config.hoverBg
       )}
@@ -147,20 +147,20 @@ function ActionItemRow({
         onCheckedChange={onToggle}
         className={cn(
           "h-5 w-5 rounded-full border-2 transition-colors",
-          isCompleted ? "border-emerald-500 bg-emerald-500" : "border-slate-300"
+          isCompleted ? "border-emerald-500 bg-success/100" : "border-border"
         )}
       />
       <div className="flex-1 min-w-0">
         <p
           className={cn(
             "text-sm font-medium transition-all",
-            isCompleted ? "text-slate-400 line-through" : "text-slate-800"
+            isCompleted ? "text-muted-foreground line-through" : "text-foreground"
           )}
         >
           {item.title}
         </p>
         {item.description && (
-          <p className="text-xs text-slate-500 mt-0.5 truncate">
+          <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {item.description}
           </p>
         )}
@@ -177,7 +177,7 @@ function ActionItemRow({
         </Button>
       )}
       {isCompleted && (
-        <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+        <CheckCircle2 className="h-5 w-5 text-success shrink-0" />
       )}
     </div>
   );
@@ -206,7 +206,7 @@ function PrioritySection({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Icon className={cn("h-4 w-4", config.iconColor)} />
-        <span className="text-sm font-semibold text-slate-700">
+        <span className="text-sm font-semibold text-foreground">
           {config.label}
         </span>
         <Badge variant="outline" className={config.badgeClass}>
@@ -239,12 +239,12 @@ function VerificationSummaryPanel({
 
   return (
     <div
-      className="rounded-lg border-2 border-emerald-200 bg-emerald-50 p-4 space-y-3"
+      className="rounded-lg border-2 border-success/30 bg-success/10 p-4 space-y-3"
       data-testid="verification-summary"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <CheckCheck className="h-5 w-5 text-emerald-600" />
+          <CheckCheck className="h-5 w-5 text-success" />
           <h4 className="font-semibold text-emerald-800">
             Verification Summary
           </h4>
@@ -255,30 +255,30 @@ function VerificationSummaryPanel({
           onClick={onClose}
           className="h-8 w-8 p-0"
         >
-          <EyeOff className="h-4 w-4 text-slate-500" />
+          <EyeOff className="h-4 w-4 text-muted-foreground" />
         </Button>
       </div>
 
       {/* Summary stats */}
       <div className="flex gap-4 text-sm">
         <div className="flex items-center gap-1.5">
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          <span className="text-emerald-700 font-medium">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <span className="text-success-foreground font-medium">
             {summary.verified} verified
           </span>
         </div>
         {summary.unverified > 0 && (
           <div className="flex items-center gap-1.5">
-            <XCircle className="h-4 w-4 text-amber-500" />
-            <span className="text-amber-700 font-medium">
+            <XCircle className="h-4 w-4 text-warning" />
+            <span className="text-warning-foreground font-medium">
               {summary.unverified} unverified
             </span>
           </div>
         )}
         {summary.manual > 0 && (
           <div className="flex items-center gap-1.5">
-            <UserCheck className="h-4 w-4 text-blue-500" />
-            <span className="text-blue-700 font-medium">
+            <UserCheck className="h-4 w-4 text-info" />
+            <span className="text-info-foreground font-medium">
               {summary.manual} manual
             </span>
           </div>
@@ -292,15 +292,15 @@ function VerificationSummaryPanel({
             key={change.itemId}
             className={cn(
               "flex items-center gap-2 text-xs p-2 rounded",
-              change.verified ? "bg-emerald-100/50" : "bg-amber-100/50"
+              change.verified ? "bg-emerald-100/50" : "bg-warning/20/50"
             )}
           >
             {change.verified ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+              <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
             ) : (
-              <XCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <XCircle className="h-3.5 w-3.5 text-warning shrink-0" />
             )}
-            <span className="truncate flex-1 text-slate-700">
+            <span className="truncate flex-1 text-foreground">
               {change.title}
             </span>
             <Badge
@@ -308,14 +308,14 @@ function VerificationSummaryPanel({
               className={cn(
                 "text-[10px] px-1.5 py-0",
                 change.mode === "auto"
-                  ? "bg-blue-50 text-blue-600 border-blue-200"
-                  : "bg-slate-50 text-slate-600 border-slate-200"
+                  ? "bg-info/10 text-info border-info/30"
+                  : "bg-muted/50 text-muted-foreground border-border"
               )}
             >
               {change.mode === "auto" ? "Auto" : "Manual"}
             </Badge>
             {change.mode === "auto" && change.change !== "n/a" && (
-              <span className="text-slate-500 font-mono text-[10px]">
+              <span className="text-muted-foreground font-mono text-[10px]">
                 {change.change}
               </span>
             )}
@@ -324,7 +324,7 @@ function VerificationSummaryPanel({
       </div>
 
       {allVerified && (
-        <p className="text-xs text-emerald-600">
+        <p className="text-xs text-success">
           All completed actions have been verified. Great work!
         </p>
       )}
@@ -584,11 +584,11 @@ export function PipelineActionChecklist({
               <div>
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-lg">AI-Powered Actions</CardTitle>
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
                     AI Generated
                   </Badge>
                 </div>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-muted-foreground">
                   All caught up! Your pipeline is optimized for better hiring.
                 </p>
               </div>
@@ -605,8 +605,8 @@ export function PipelineActionChecklist({
         </CardHeader>
         <CardContent className="py-6 text-center">
           <div className="flex flex-col items-center gap-4">
-            <Sparkles className="h-8 w-8 text-emerald-500" />
-            <p className="text-slate-600">
+            <Sparkles className="h-8 w-8 text-success" />
+            <p className="text-muted-foreground">
               Great job! No action items at this time.
             </p>
             <Button
@@ -648,11 +648,11 @@ export function PipelineActionChecklist({
             <div>
               <div className="flex items-center gap-2">
                 <CardTitle className="text-lg">AI-Powered Actions</CardTitle>
-                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
                   AI Generated
                 </Badge>
               </div>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 {items.length} action{items.length !== 1 ? "s" : ""} to improve your hiring outcomes
               </p>
             </div>
@@ -666,7 +666,7 @@ export function PipelineActionChecklist({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="text-sm text-emerald-600 font-medium">
+                      <span className="text-sm text-success font-medium">
                         → {projectedScore}%
                       </span>
                     </TooltipTrigger>
@@ -686,14 +686,14 @@ export function PipelineActionChecklist({
         {/* Progress bar */}
         <div className="mt-4">
           <div className="flex items-center justify-between text-sm mb-1">
-            <span className="text-slate-600">Progress</span>
-            <span className="font-medium text-slate-700">
+            <span className="text-muted-foreground">Progress</span>
+            <span className="font-medium text-foreground">
               {completedIds.size}/{items.length} completed
             </span>
           </div>
-          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+              className="h-full bg-success/100 rounded-full transition-all duration-300"
               style={{ width: `${completionRate}%` }}
             />
           </div>
@@ -726,26 +726,26 @@ export function PipelineActionChecklist({
 
         {/* AI insights or explanation */}
         <div
-          className="flex items-start gap-2 p-3 rounded-lg bg-purple-50 border border-purple-100"
+          className="flex items-start gap-2 p-3 rounded-lg bg-primary/10 border border-purple-100"
           data-testid="pipeline-ai-insights"
         >
-          <Sparkles className={cn("h-4 w-4 text-purple-600 mt-0.5 shrink-0", isEnhancing && "animate-pulse")} />
+          <Sparkles className={cn("h-4 w-4 text-primary mt-0.5 shrink-0", isEnhancing && "animate-pulse")} />
           <div className="flex-1">
             {isEnhancing ? (
-              <p className="text-xs text-purple-700">
+              <p className="text-xs text-primary">
                 AI is analyzing your pipeline to provide personalized recommendations...
               </p>
             ) : aiInsights.length > 0 ? (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-purple-800">AI Insights:</p>
                 {aiInsights.map((insight, i) => (
-                  <p key={i} className="text-xs text-purple-700">
+                  <p key={i} className="text-xs text-primary">
                     • {insight}
                   </p>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-purple-700">
+              <p className="text-xs text-primary">
                 Our AI analyzes your pipeline data to identify bottlenecks, stale candidates, and opportunities.
                 Complete these actions to improve time-to-hire and candidate experience.
               </p>
@@ -762,11 +762,11 @@ export function PipelineActionChecklist({
         )}
 
         {/* Reanalyze section */}
-        <div className="pt-4 border-t border-slate-200">
+        <div className="pt-4 border-t border-border">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-muted-foreground">
               {reanalyzeCheck.allowed ? (
-                <span className="text-emerald-600 font-medium">
+                <span className="text-success font-medium">
                   {reanalyzeCheck.reason} - Ready for fresh AI analysis
                 </span>
               ) : (
@@ -780,7 +780,7 @@ export function PipelineActionChecklist({
               size="sm"
               className={cn(
                 reanalyzeCheck.allowed &&
-                  "bg-purple-600 hover:bg-purple-700 text-white"
+                  "bg-primary hover:bg-primary/80 text-white"
               )}
               data-testid="reanalyze-button"
             >

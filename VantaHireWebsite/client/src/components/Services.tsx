@@ -3,8 +3,8 @@ import { Zap, CheckCircle, Sparkles } from "lucide-react";
 const services = [
   {
     icon: <Zap className="w-7 h-7" />,
-    iconBg: "bg-purple-500/20",
-    iconColor: "text-purple-400",
+    iconBg: "bg-primary/20",
+    iconColor: "text-primary",
     title: "Contract Staffing",
     description: "On-demand tech & non-tech specialists for short-term, long-term, and project-based needs.",
     features: [
@@ -16,8 +16,8 @@ const services = [
   },
   {
     icon: <CheckCircle className="w-7 h-7" />,
-    iconBg: "bg-amber-500/20",
-    iconColor: "text-amber-400",
+    iconBg: "bg-warning/20",
+    iconColor: "text-warning",
     title: "Permanent Hiring",
     description: "AI-assisted resume screening with expert recruiter validation for high-quality, long-term hires.",
     features: [
@@ -30,7 +30,7 @@ const services = [
   {
     icon: <Sparkles className="w-7 h-7" />,
     iconBg: "bg-gradient-to-br from-purple-500/15 to-amber-500/15",
-    iconColor: "text-purple-400",
+    iconColor: "text-primary",
     title: "VantaHire ATS",
     description: "Easy job posting, AI resume analysis, candidate scoring, and pipeline automation.",
     features: [
@@ -77,7 +77,7 @@ const Services = () => {
               <ul className="space-y-3">
                 {service.features.map((feature, idx) => (
                   <li key={idx} className="flex items-center gap-3 text-[var(--text-muted)] text-sm">
-                    <span className="text-amber-500 font-bold">→</span>
+                    <span className="text-warning font-bold">→</span>
                     {feature}
                   </li>
                 ))}

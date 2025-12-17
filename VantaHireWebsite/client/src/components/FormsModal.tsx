@@ -166,12 +166,12 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; icon: any; label: string }> = {
-      pending: { color: "bg-slate-100 text-slate-600", icon: Clock, label: "Pending" },
-      sent: { color: "bg-blue-50 text-blue-700", icon: Send, label: "Sent" },
+      pending: { color: "bg-muted text-muted-foreground", icon: Clock, label: "Pending" },
+      sent: { color: "bg-info/10 text-info-foreground", icon: Send, label: "Sent" },
       viewed: { color: "bg-primary/10 text-primary", icon: Eye, label: "Viewed" },
-      answered: { color: "bg-green-50 text-green-700", icon: CheckCircle2, label: "Answered" },
-      expired: { color: "bg-amber-50 text-amber-700", icon: Clock, label: "Expired" },
-      failed: { color: "bg-red-50 text-red-700", icon: XCircle, label: "Failed" },
+      answered: { color: "bg-success/10 text-success-foreground", icon: CheckCircle2, label: "Answered" },
+      expired: { color: "bg-warning/10 text-warning-foreground", icon: Clock, label: "Expired" },
+      failed: { color: "bg-destructive/10 text-destructive", icon: XCircle, label: "Failed" },
     };
 
     const config = statusConfig[status] ?? statusConfig.pending!;
@@ -195,11 +195,11 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent key={application.id} className="max-w-3xl max-h-[80vh] overflow-y-auto ">
           <DialogHeader>
-            <DialogTitle className="text-slate-900 flex items-center gap-2">
+            <DialogTitle className="text-foreground flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
               {detailedResponse.formName} - Response
             </DialogTitle>
-            <DialogDescription className="text-slate-500">
+            <DialogDescription className="text-muted-foreground">
               Submitted by {detailedResponse.candidateName} ({detailedResponse.candidateEmail})
               <br />
               on {new Date(detailedResponse.submittedAt).toLocaleString()}
@@ -208,22 +208,22 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
 
           <div className="space-y-4 mt-4">
             {detailedResponse.questionsAndAnswers.map((qa, idx) => (
-              <Card key={idx} className="bg-slate-50 border-slate-200">
+              <Card key={idx} className="bg-muted/50 border-border">
                 <CardContent className="pt-4">
-                  <Label className="text-slate-300 font-medium">{qa.question}</Label>
-                  <p className="text-slate-900 mt-2">
+                  <Label className="text-muted-foreground/50 font-medium">{qa.question}</Label>
+                  <p className="text-foreground mt-2">
                     {qa.fileUrl ? (
                       <a
                         href={qa.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary hover:text-purple-300 underline inline-flex items-center gap-1"
+                        className="text-primary hover:text-primary underline inline-flex items-center gap-1"
                       >
                         <FileText className="w-4 h-4" />
                         View Uploaded File
                       </a>
                     ) : qa.answer || (
-                      <span className="text-slate-500 italic">No answer provided</span>
+                      <span className="text-muted-foreground italic">No answer provided</span>
                     )}
                   </p>
                 </CardContent>
@@ -250,11 +250,11 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent key={application.id} className="max-w-3xl max-h-[80vh] overflow-y-auto ">
         <DialogHeader>
-          <DialogTitle className="text-slate-900 flex items-center gap-2">
+          <DialogTitle className="text-foreground flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
             Forms - {application.name}
           </DialogTitle>
-          <DialogDescription className="text-slate-500">
+          <DialogDescription className="text-muted-foreground">
             Send custom forms to the candidate and view their responses
           </DialogDescription>
         </DialogHeader>
@@ -263,15 +263,15 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
           {/* Send New Form Section */}
           <div className="p-4 bg-white/5 rounded-lg border border-white/10">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-slate-900 font-medium">Send New Form</h3>
+              <h3 className="text-foreground font-medium">Send New Form</h3>
               {/* Invitation Quota Display */}
               {invitationQuota && (
                 <span className={`text-xs px-2 py-1 rounded ${
                   invitationQuota.remaining === 0
-                    ? 'bg-red-50 text-red-700'
+                    ? 'bg-destructive/10 text-destructive'
                     : invitationQuota.remaining <= 10
-                    ? 'bg-amber-50 text-amber-700'
-                    : 'bg-blue-50 text-blue-700'
+                    ? 'bg-warning/10 text-warning-foreground'
+                    : 'bg-info/10 text-info-foreground'
                 }`}>
                   {invitationQuota.remaining} invites remaining today
                 </span>
@@ -279,7 +279,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
             </div>
             <div className="space-y-3">
               <div>
-                <Label className="text-slate-600">Select Form Template</Label>
+                <Label className="text-muted-foreground">Select Form Template</Label>
                 <Select
                   value={selectedTemplateId?.toString() || ""}
                   onValueChange={(value) => setSelectedTemplateId(parseInt(value))}
@@ -299,7 +299,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
               </div>
 
               <div>
-                <Label className="text-slate-600">Custom Message (Optional)</Label>
+                <Label className="text-muted-foreground">Custom Message (Optional)</Label>
                 <Textarea
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
@@ -337,7 +337,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
           {/* Invitations Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-slate-900 font-medium">Sent Forms</h3>
+              <h3 className="text-foreground font-medium">Sent Forms</h3>
               {responses.length > 0 && (
                 <Button
                   onClick={handleExportCSV}
@@ -356,11 +356,11 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
                 <Loader2 className="w-6 h-6 text-primary animate-spin" />
               </div>
             ) : invitations.length === 0 ? (
-              <Card className="bg-slate-50 border-slate-200">
+              <Card className="bg-muted/50 border-border">
                 <CardContent className="py-8 text-center">
-                  <FileText className="w-12 h-12 text-slate-500 mx-auto mb-2" />
-                  <p className="text-slate-500">No forms sent yet</p>
-                  <p className="text-slate-500 text-sm mt-1">
+                  <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No forms sent yet</p>
+                  <p className="text-muted-foreground text-sm mt-1">
                     Send a form using the section above
                   </p>
                 </CardContent>
@@ -371,15 +371,15 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
                   const response = responses.find((r) => r.invitationId === invitation.id);
 
                   return (
-                    <Card key={invitation.id} className="bg-slate-50 border-slate-200">
+                    <Card key={invitation.id} className="bg-muted/50 border-border">
                       <CardContent className="pt-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="text-slate-900 font-medium">{invitation.form.name}</h4>
+                              <h4 className="text-foreground font-medium">{invitation.form.name}</h4>
                               {getStatusBadge(invitation.status)}
                             </div>
-                            <div className="text-sm text-slate-400 space-y-1">
+                            <div className="text-sm text-muted-foreground space-y-1">
                               {invitation.sentAt && (
                                 <p>Sent: {new Date(invitation.sentAt).toLocaleString()}</p>
                               )}
@@ -397,7 +397,7 @@ export function FormsModal({ open, onOpenChange, application }: FormsModalProps)
                               <Button
                                 onClick={() => setSelectedResponse(response)}
                                 size="sm"
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-success hover:bg-success/80"
                               >
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Response

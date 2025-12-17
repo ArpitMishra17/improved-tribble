@@ -44,8 +44,8 @@ export function NotesSection({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Internal Notes</h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <h3 className="text-lg font-semibold text-foreground">Internal Notes</h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Add sourcing details and internal notes (not visible to candidate)
         </p>
       </div>
@@ -101,7 +101,7 @@ export function NotesSection({
             <SelectValue placeholder="Auto-assign to default stage" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Auto-assign to default stage</SelectItem>
+            <SelectItem value="auto">Auto-assign to default stage</SelectItem>
             {sortedStages.map((stage) => (
               <SelectItem key={stage.id} value={stage.id.toString()}>
                 <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export function NotesSection({
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           Choose where this candidate should start in your pipeline
         </p>
       </div>
@@ -135,17 +135,17 @@ export function NotesSection({
           placeholder="Add any internal notes about this candidate... (not visible to candidate)"
           rows={5}
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           {(data.internalNotes?.length || 0).toLocaleString()}/2,000 characters
         </p>
       </div>
 
       {/* Summary Card */}
-      <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-        <h4 className="text-sm font-medium text-slate-700 mb-2">
+      <div className="bg-muted/50 rounded-lg p-4 border border-border">
+        <h4 className="text-sm font-medium text-foreground mb-2">
           Ready to Submit
         </h4>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted-foreground">
           Review all sections in the left navigation. Required sections must be
           complete before submitting. Click "Add Candidate" below to create the
           application.

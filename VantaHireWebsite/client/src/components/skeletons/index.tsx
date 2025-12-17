@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 // Application card skeleton for list views
 export function ApplicationCardSkeleton() {
   return (
-    <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-3">
+    <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-3">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <Skeleton className="h-5 w-40" />
@@ -74,14 +74,14 @@ export function JobListSkeleton({ count = 3 }: { count?: number }) {
 // Kanban column skeleton
 export function KanbanColumnSkeleton() {
   return (
-    <div className="flex-shrink-0 w-72 bg-slate-100 rounded-lg p-3">
+    <div className="flex-shrink-0 w-72 bg-muted rounded-lg p-3">
       <div className="flex items-center justify-between mb-3">
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-5 w-8 rounded-full" />
       </div>
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-lg p-3 border border-slate-200">
+          <div key={i} className="bg-white rounded-lg p-3 border border-border">
             <Skeleton className="h-4 w-32 mb-2" />
             <Skeleton className="h-3 w-40 mb-2" />
             <div className="flex gap-1">
@@ -109,7 +109,7 @@ export function KanbanBoardSkeleton({ columns = 5 }: { columns?: number }) {
 // Candidate card skeleton (for candidates page)
 export function CandidateCardSkeleton() {
   return (
-    <div className="p-4 rounded-lg border border-slate-200 bg-white">
+    <div className="p-4 rounded-lg border border-border bg-white">
       <div className="flex items-center gap-4">
         <Skeleton className="h-12 w-12 rounded-full" />
         <div className="flex-1 space-y-2">

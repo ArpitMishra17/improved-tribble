@@ -57,10 +57,10 @@ export function JobSubNav({ jobId, jobTitle, className }: JobSubNavProps) {
   const activeId = getActiveId();
 
   return (
-    <div className={cn("border-b border-slate-200 bg-white rounded-t-lg", className)}>
+    <div className={cn("border-b border-border bg-white rounded-t-lg", className)}>
       {jobTitle && (
         <div className="px-4 pt-3 pb-1">
-          <h2 className="text-lg font-semibold text-slate-900 truncate">{jobTitle}</h2>
+          <h2 className="text-lg font-semibold text-foreground truncate">{jobTitle}</h2>
         </div>
       )}
       <nav className="flex gap-1 px-2 -mb-px overflow-x-auto" aria-label="Job navigation">
@@ -72,7 +72,7 @@ export function JobSubNav({ jobId, jobTitle, className }: JobSubNavProps) {
               "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
               activeId === item.id
                 ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
             aria-current={activeId === item.id ? "page" : undefined}
           >

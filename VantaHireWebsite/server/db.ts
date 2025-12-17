@@ -43,6 +43,9 @@ if (isNeon) {
   pool = new Pool({
     connectionString: databaseUrl,
     ssl,
+    max: Number(process.env.PGPOOL_MAX || process.env.DB_POOL_MAX || '5'),
+    idleTimeoutMillis: Number(process.env.PGPOOL_IDLE_TIMEOUT_MS || '30000'),
+    connectionTimeoutMillis: Number(process.env.PGPOOL_CONNECT_TIMEOUT_MS || '10000'),
   } as any);
   db = drizzle(pool, { schema });
 }

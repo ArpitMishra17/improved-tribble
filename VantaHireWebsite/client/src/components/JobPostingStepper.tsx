@@ -378,7 +378,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
     const error = getFieldError(field);
     if (!error) return null;
     return (
-      <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
+      <p className="text-sm text-destructive mt-1 flex items-center gap-1">
         <AlertCircle className="h-3 w-3" />
         {error}
       </p>
@@ -411,8 +411,8 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                   currentStep === step.id
                     ? "bg-primary text-white"
                     : step.id < currentStep
-                    ? "bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer"
-                    : "bg-slate-100 text-slate-400"
+                    ? "bg-success/20 text-success-foreground hover:bg-green-200 cursor-pointer"
+                    : "bg-muted text-muted-foreground"
                 )}
                 disabled={step.id > currentStep}
               >
@@ -423,7 +423,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                       ? "bg-white/20"
                       : step.id < currentStep
                       ? "bg-green-200"
-                      : "bg-slate-200"
+                      : "bg-muted"
                   )}
                 >
                   {step.id < currentStep ? (
@@ -438,7 +438,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                 <ChevronRight
                   className={cn(
                     "h-4 w-4 mx-1",
-                    step.id < currentStep ? "text-green-500" : "text-slate-300"
+                    step.id < currentStep ? "text-success" : "text-muted-foreground/50"
                   )}
                 />
               )}
@@ -450,7 +450,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
       {/* Step Content */}
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-900 text-lg">
+          <CardTitle className="text-foreground text-lg">
             {STEPS[currentStep - 1]?.title}
           </CardTitle>
           <CardDescription>{STEPS[currentStep - 1]?.description}</CardDescription>
@@ -461,7 +461,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="title" className="flex items-center gap-2 mb-2">
-                  <FileText className="h-4 w-4 text-slate-500" />
+                  <FileText className="h-4 w-4 text-muted-foreground" />
                   Job Title *
                 </Label>
                 <Input
@@ -470,7 +470,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g. Senior Software Engineer"
-                  className={cn(getFieldError("title") && "border-red-500")}
+                  className={cn(getFieldError("title") && "border-destructive")}
                 />
                 {renderFieldError("title")}
               </div>
@@ -478,7 +478,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="location" className="flex items-center gap-2 mb-2">
-                    <MapPin className="h-4 w-4 text-slate-500" />
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
                     Location *
                   </Label>
                   <Input
@@ -487,7 +487,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     placeholder="e.g. San Francisco, CA"
-                    className={cn(getFieldError("location") && "border-red-500")}
+                    className={cn(getFieldError("location") && "border-destructive")}
                   />
                   {renderFieldError("location")}
                 </div>
@@ -515,7 +515,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
 
               <div>
                 <Label htmlFor="deadline" className="flex items-center gap-2 mb-2">
-                  <Calendar className="h-4 w-4 text-slate-500" />
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                   Application Deadline (Optional)
                 </Label>
                 <Input
@@ -534,7 +534,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
             <div className="space-y-4">
               <div>
                 <Label className="flex items-center gap-2 mb-2">
-                  <Tag className="h-4 w-4 text-slate-500" />
+                  <Tag className="h-4 w-4 text-muted-foreground" />
                   Required Skills
                 </Label>
                 <div className="flex gap-2 mb-3">
@@ -564,7 +564,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                           onClick={() => setSkills(skills.filter((s) => s !== skill))}
                           variant="ghost"
                           size="icon"
-                          className="ml-2 p-0 h-4 w-4 hover:bg-red-100 text-red-600"
+                          className="ml-2 p-0 h-4 w-4 hover:bg-destructive/20 text-destructive"
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -588,21 +588,21 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity exciting..."
-                  className={cn("min-h-[200px]", getFieldError("description") && "border-red-500")}
+                  className={cn("min-h-[200px]", getFieldError("description") && "border-destructive")}
                 />
                 <div className="flex justify-between mt-1">
                   {renderFieldError("description") || (
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted-foreground">
                       {formData.description.length}/5000 characters
                     </p>
                   )}
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     {formData.description.length < 50
                       ? `${50 - formData.description.length} more needed`
                       : ""}
                   </p>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Clear, inclusive descriptions improve apply rates.</p>
+                <p className="text-xs text-muted-foreground mt-1">Clear, inclusive descriptions improve apply rates.</p>
               </div>
             </div>
           )}
@@ -613,7 +613,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="hiringManager" className="flex items-center gap-2 mb-2">
-                    <Users className="h-4 w-4 text-slate-500" />
+                    <Users className="h-4 w-4 text-muted-foreground" />
                     Hiring Manager (Optional)
                   </Label>
                   <Select
@@ -638,7 +638,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
 
                 <div>
                   <Label htmlFor="client" className="flex items-center gap-2 mb-2">
-                    <Briefcase className="h-4 w-4 text-slate-500" />
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
                     Client (Optional)
                   </Label>
                   <Select
@@ -670,7 +670,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               {existingJobs.length > 0 && (
                 <div>
                   <Label className="flex items-center gap-2 mb-2">
-                    <Copy className="h-4 w-4 text-slate-500" />
+                    <Copy className="h-4 w-4 text-muted-foreground" />
                     Clone Settings From (Optional)
                   </Label>
                   <Select
@@ -689,7 +689,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Clone email templates and pipeline configuration from an existing job
                   </p>
                 </div>
@@ -698,11 +698,11 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               {/* Email Templates */}
               <div>
                 <Label className="flex items-center gap-2 mb-3">
-                  <Mail className="h-4 w-4 text-slate-500" />
+                  <Mail className="h-4 w-4 text-muted-foreground" />
                   Email Templates
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs">
                       <p className="text-sm">
@@ -714,25 +714,25 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                 </Label>
                 <div className="space-y-3">
                   {Object.entries(templatesByType).map(([type, templates]) => (
-                    <div key={type} className="bg-slate-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-slate-500 uppercase mb-2">
+                    <div key={type} className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs font-medium text-muted-foreground uppercase mb-2">
                         {type.replace(/_/g, ' ')}
                       </p>
                       <div className="space-y-2">
                         {templates.map((tpl) => (
                           <div
                             key={tpl.id}
-                            className="flex items-center gap-3 bg-white rounded p-2 border border-slate-200"
+                            className="flex items-center gap-3 bg-white rounded p-2 border border-border"
                           >
                             <Checkbox
                               checked={selectedTemplateIds.includes(tpl.id)}
                               onCheckedChange={() => toggleTemplate(tpl.id)}
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-900 truncate">
+                              <p className="text-sm font-medium text-foreground truncate">
                                 {tpl.name}
                               </p>
-                              <p className="text-xs text-slate-500 truncate">
+                              <p className="text-xs text-muted-foreground truncate">
                                 {tpl.subject}
                               </p>
                             </div>
@@ -747,7 +747,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                     </div>
                   ))}
                   {emailTemplates.length === 0 && (
-                    <p className="text-sm text-slate-500 italic">
+                    <p className="text-sm text-muted-foreground italic">
                       No email templates available. You can create them later in Settings.
                     </p>
                   )}
@@ -757,7 +757,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               {/* Pipeline Stages */}
               <div>
                 <Label className="flex items-center gap-2 mb-3">
-                  <GitBranch className="h-4 w-4 text-slate-500" />
+                  <GitBranch className="h-4 w-4 text-muted-foreground" />
                   Pipeline Stages
                 </Label>
                 <div className="space-y-3">
@@ -766,7 +766,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                       checked={useDefaultPipeline}
                       onCheckedChange={(checked) => setUseDefaultPipeline(!!checked)}
                     />
-                    <span className="text-sm text-slate-700">
+                    <span className="text-sm text-foreground">
                       {pipelineStages.length > 0
                         ? `Use existing pipeline stages (${pipelineStages.length} stages)`
                         : "Use default pipeline stages"}
@@ -793,7 +793,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                   )}
 
                   {pipelineStages.length === 0 && useDefaultPipeline && (
-                    <div className="ml-7 p-3 bg-amber-50 rounded border border-amber-200">
+                    <div className="ml-7 p-3 bg-warning/10 rounded border border-warning/30">
                       <p className="text-sm text-amber-800">
                         No pipeline stages exist yet. Default stages will be created:
                       </p>
@@ -819,7 +819,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                   {/* Custom stages UI when default pipeline unchecked */}
                   {!useDefaultPipeline && (
                     <div className="ml-7 space-y-3">
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-muted-foreground">
                         {pipelineStages.length > 0
                           ? "Add custom stages to extend your existing pipeline:"
                           : "Define your custom pipeline stages:"}
@@ -831,20 +831,20 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                           {customStages.map((stage, index) => (
                             <div
                               key={index}
-                              className="flex items-center gap-3 bg-white rounded p-2 border border-slate-200"
+                              className="flex items-center gap-3 bg-white rounded p-2 border border-border"
                             >
                               <div
                                 className="w-4 h-4 rounded-full border-2"
                                 style={{ backgroundColor: stage.color, borderColor: stage.color }}
                               />
-                              <span className="flex-1 text-sm font-medium text-slate-700">
+                              <span className="flex-1 text-sm font-medium text-foreground">
                                 {stage.name}
                               </span>
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => setCustomStages(prev => prev.filter((_, i) => i !== index))}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -863,7 +863,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                             const colorInput = e.target;
                             colorInput.dataset.color = e.target.value;
                           }}
-                          className="w-8 h-8 rounded border border-slate-300 cursor-pointer"
+                          className="w-8 h-8 rounded border border-border cursor-pointer"
                           id="newStageColor"
                         />
                         <Input
@@ -901,7 +901,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                       </div>
 
                       {customStages.length === 0 && pipelineStages.length === 0 && (
-                        <p className="text-xs text-amber-600">
+                        <p className="text-xs text-warning">
                           Add at least one stage or switch back to use default pipeline.
                         </p>
                       )}
@@ -911,30 +911,30 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
               </div>
 
               {/* Review Summary */}
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <h4 className="font-medium text-slate-900 mb-3">Review Your Job Posting</h4>
+              <div className="bg-muted/50 rounded-lg p-4 border border-border">
+                <h4 className="font-medium text-foreground mb-3">Review Your Job Posting</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Title:</span>
-                    <span className="text-slate-900 font-medium">{formData.title || "-"}</span>
+                    <span className="text-muted-foreground">Title:</span>
+                    <span className="text-foreground font-medium">{formData.title || "-"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Location:</span>
-                    <span className="text-slate-900">{formData.location || "-"}</span>
+                    <span className="text-muted-foreground">Location:</span>
+                    <span className="text-foreground">{formData.location || "-"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Type:</span>
-                    <span className="text-slate-900 capitalize">{formData.type}</span>
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="text-foreground capitalize">{formData.type}</span>
                   </div>
                   {skills.length > 0 && (
                     <div className="flex justify-between items-start">
-                      <span className="text-slate-500">Skills:</span>
-                      <span className="text-slate-900">{skills.length} added</span>
+                      <span className="text-muted-foreground">Skills:</span>
+                      <span className="text-foreground">{skills.length} added</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Templates:</span>
-                    <span className="text-slate-900">{selectedTemplateIds.length} selected</span>
+                    <span className="text-muted-foreground">Templates:</span>
+                    <span className="text-foreground">{selectedTemplateIds.length} selected</span>
                   </div>
                 </div>
               </div>
@@ -942,7 +942,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-6 pt-4 border-t border-slate-200">
+          <div className="flex justify-between mt-6 pt-4 border-t border-border">
             <Button
               type="button"
               variant="outline"
@@ -962,7 +962,7 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                 type="button"
                 onClick={handleSubmit}
                 disabled={jobMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-success/80"
               >
                 {jobMutation.isPending ? "Posting..." : "Post Job"}
                 <Check className="h-4 w-4 ml-2" />

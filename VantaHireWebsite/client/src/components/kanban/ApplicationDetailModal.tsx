@@ -63,18 +63,18 @@ export function ApplicationDetailModal({
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-5xl w-[95vw] h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b border-slate-200 shrink-0">
+        <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <DialogTitle className="text-xl font-semibold text-slate-900">
+              <DialogTitle className="text-xl font-semibold text-foreground">
                 {application.name}
               </DialogTitle>
-              <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
+              <Badge variant="outline" className="border-info/30 text-info-foreground bg-info/10">
                 {application.status}
               </Badge>
             </div>
           </div>
-          <p className="text-sm text-slate-500">{application.email}</p>
+          <p className="text-sm text-muted-foreground">{application.email}</p>
         </DialogHeader>
 
         {/* Tab Navigation */}
@@ -122,8 +122,8 @@ export function ApplicationDetailModal({
               {/* Resume Actions Bar */}
               <div className="flex items-center justify-between mb-4 shrink-0">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-slate-500" />
-                  <span className="text-sm text-slate-600">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
                     {application.resumeUrl?.split('/').pop() || 'Resume'}
                   </span>
                 </div>
@@ -148,7 +148,7 @@ export function ApplicationDetailModal({
               </div>
 
               {/* Resume Preview */}
-              <div className="flex-1 border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+              <div className="flex-1 border border-border rounded-lg overflow-hidden bg-muted/50">
                 {resumeUrl ? (
                   isPdf ? (
                     <iframe
@@ -164,8 +164,8 @@ export function ApplicationDetailModal({
                     >
                       {/* Fallback for non-PDF files or if object fails */}
                       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                        <FileText className="h-16 w-16 text-slate-300 mb-4" />
-                        <p className="text-slate-600 mb-4">
+                        <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                        <p className="text-muted-foreground mb-4">
                           Unable to preview this file type in browser.
                         </p>
                         <Button onClick={() => window.open(resumeUrl, '_blank')}>
@@ -177,15 +177,15 @@ export function ApplicationDetailModal({
                   )
                 ) : resumeText ? (
                   <div className="h-full p-4 overflow-auto bg-white">
-                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Resume text</p>
-                    <pre className="whitespace-pre-wrap text-sm text-slate-800 font-sans leading-relaxed">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Resume text</p>
+                    <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">
                       {resumeText}
                     </pre>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                    <AlertCircle className="h-16 w-16 text-slate-300 mb-4" />
-                    <p className="text-slate-500">No resume available</p>
+                    <AlertCircle className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground">No resume available</p>
                   </div>
                 )}
               </div>

@@ -84,7 +84,7 @@ export function ApplicationCard({
             <button
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-primary rounded"
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-1 focus:outline-none focus:ring-2 focus:ring-primary rounded"
               onClick={(e) => e.stopPropagation()}
               aria-label={`Drag to move ${application.name}'s application`}
               aria-describedby={`drag-help-${application.id}`}
@@ -110,16 +110,16 @@ export function ApplicationCard({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-slate-900 font-medium text-sm truncate">
+                  <h4 className="text-foreground font-medium text-sm truncate">
                     {application.name}
                   </h4>
                   <div className="flex flex-col gap-1 mt-1">
-                    <div className="flex items-center gap-1 text-xs text-slate-500">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Mail className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">{application.email}</span>
                     </div>
                     {application.phone && (
-                      <div className="flex items-center gap-1 text-xs text-slate-500">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Phone className="h-3 w-3 flex-shrink-0" />
                         <span>{application.phone}</span>
                       </div>
@@ -130,7 +130,7 @@ export function ApplicationCard({
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {/* Rating */}
                   {application.rating !== null && application.rating !== undefined && (
-                    <div className="flex items-center gap-1 text-yellow-400 mr-1">
+                    <div className="flex items-center gap-1 text-warning mr-1">
                       <Star className="h-3 w-3 fill-current" />
                       <span className="text-xs font-medium">{application.rating}</span>
                     </div>
@@ -216,7 +216,7 @@ export function ApplicationCard({
                 {application.status && (
                   <Badge
                     variant="outline"
-                    className="text-xs border-blue-200 bg-blue-50 text-blue-700"
+                    className="text-xs border-info/30 bg-info/10 text-info-foreground"
                   >
                     {application.status}
                   </Badge>
@@ -224,7 +224,7 @@ export function ApplicationCard({
                 {application.interviewDate && (
                   <Badge
                     variant="outline"
-                    className="text-xs border-green-200 bg-green-50 text-green-700"
+                    className="text-xs border-success/30 bg-success/10 text-success-foreground"
                   >
                     Interview
                   </Badge>

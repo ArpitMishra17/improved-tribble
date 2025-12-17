@@ -53,8 +53,8 @@ export function EducationSection({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Education</h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <h3 className="text-lg font-semibold text-foreground">Education</h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Add the candidate's educational background (optional)
         </p>
       </div>
@@ -62,8 +62,8 @@ export function EducationSection({
       {data.items.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="p-8 text-center">
-            <GraduationCap className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 mb-4">
+            <GraduationCap className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-4">
               No education added yet. Add educational history if relevant.
             </p>
             <Button variant="outline" onClick={addEducation}>
@@ -78,13 +78,13 @@ export function EducationSection({
             <Card key={item.id}>
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-start justify-between">
-                  <span className="text-sm font-medium text-slate-500">
+                  <span className="text-sm font-medium text-muted-foreground">
                     Education {index + 1}
                   </span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-slate-400 hover:text-red-600"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={() => removeItem(item.id)}
                   >
                     <Trash2 className="h-4 w-4" />

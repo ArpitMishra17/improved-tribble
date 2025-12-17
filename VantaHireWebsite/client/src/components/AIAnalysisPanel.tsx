@@ -90,9 +90,9 @@ export default function AIAnalysisPanel({
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-amber-600";
-    return "text-red-600";
+    if (score >= 80) return "text-success";
+    if (score >= 60) return "text-warning";
+    return "text-destructive";
   };
 
   const getScoreDescription = (score: number) => {
@@ -104,7 +104,7 @@ export default function AIAnalysisPanel({
   };
 
   const ScoreRing = ({ score, label, icon: Icon }: { score: number; label: string; icon: any }) => (
-    <div className="flex flex-col items-center p-4 bg-slate-50 rounded-lg border border-slate-200">
+    <div className="flex flex-col items-center p-4 bg-muted/50 rounded-lg border border-border">
       <div className="relative w-16 h-16 mb-2">
         <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 100 100">
           <circle
@@ -130,15 +130,15 @@ export default function AIAnalysisPanel({
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <Icon className="w-6 h-6 text-slate-600" />
+          <Icon className="w-6 h-6 text-muted-foreground" />
         </div>
       </div>
       <div className="text-center">
         <div className={`text-2xl font-bold ${getScoreColor(score)}`}>
           {score}
         </div>
-        <div className="text-sm text-slate-600 mb-1">{label}</div>
-        <div className="text-xs text-slate-500">{getScoreDescription(score)}</div>
+        <div className="text-sm text-muted-foreground mb-1">{label}</div>
+        <div className="text-xs text-muted-foreground">{getScoreDescription(score)}</div>
       </div>
     </div>
   );
@@ -147,7 +147,7 @@ export default function AIAnalysisPanel({
     return (
       <Card className="shadow-sm">
         <CardContent className="p-6">
-          <div className="flex items-center justify-center space-x-2 text-slate-500">
+          <div className="flex items-center justify-center space-x-2 text-muted-foreground">
             <Brain className="w-5 h-5" />
             <span>Add job title and description to enable AI analysis</span>
           </div>
@@ -159,20 +159,20 @@ export default function AIAnalysisPanel({
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center space-x-2 text-slate-900">
+        <CardTitle className="flex items-center space-x-2 text-foreground">
           <Sparkles className="w-5 h-5 text-primary" />
           <span>AI Job Analysis</span>
         </CardTitle>
-        <CardDescription className="text-slate-500">
+        <CardDescription className="text-muted-foreground">
           Get intelligent insights to optimize your job posting for better performance
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {!analysisResult && analysisMutation.isError ? (
           <div className="text-center py-6">
-            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-300" />
-            <p className="text-sm text-red-600 font-medium">Analysis failed</p>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
+            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-destructive" />
+            <p className="text-sm text-destructive font-medium">Analysis failed</p>
+            <p className="text-xs text-muted-foreground mt-1 mb-4">
               {isRateLimitError(analysisMutation.error)
                 ? `Daily AI limit reached. Try again ${(analysisMutation.error as RateLimitError).formattedRetryTime}.`
                 : analysisMutation.error?.message || "An error occurred"}
@@ -208,7 +208,7 @@ export default function AIAnalysisPanel({
                 </>
               )}
             </Button>
-            <p className="text-sm text-slate-500 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               AI will evaluate clarity, inclusion, and SEO optimization
             </p>
           </div>
@@ -218,12 +218,12 @@ export default function AIAnalysisPanel({
             <div className="text-center p-4 bg-primary/5 rounded-lg border border-primary/20">
               <div className="flex items-center justify-center space-x-2 mb-2">
                 <Target className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold text-slate-900">Overall Score</h3>
+                <h3 className="text-lg font-semibold text-foreground">Overall Score</h3>
               </div>
               <div className={`text-4xl font-bold ${getScoreColor(analysisResult.overall_score)}`}>
                 {analysisResult.overall_score}/100
               </div>
-              <p className="text-sm text-slate-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {getScoreDescription(analysisResult.overall_score)}
               </p>
             </div>
@@ -249,15 +249,15 @@ export default function AIAnalysisPanel({
 
             {/* Bias Flags */}
             {analysisResult.bias_flags.length > 0 && (
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <Alert className="border-warning/30 bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
                 <AlertDescription className="text-amber-900">
                   <strong>Bias Detected:</strong> Consider revising these terms: {" "}
                   {analysisResult.bias_flags.map((flag, index) => (
                     <Badge
                       key={index}
                       variant="outline"
-                      className="mx-1 border-amber-300 text-amber-700 bg-amber-50"
+                      className="mx-1 border-amber-300 text-warning-foreground bg-warning/10"
                     >
                       {flag}
                     </Badge>
@@ -269,8 +269,8 @@ export default function AIAnalysisPanel({
             {/* SEO Keywords */}
             {analysisResult.seo_keywords.length > 0 && (
               <div className="space-y-2">
-                <h4 className="flex items-center space-x-2 text-slate-900 font-medium">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
+                <h4 className="flex items-center space-x-2 text-foreground font-medium">
+                  <TrendingUp className="w-4 h-4 text-info" />
                   <span>Recommended SEO Keywords</span>
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -278,7 +278,7 @@ export default function AIAnalysisPanel({
                     <Badge
                       key={index}
                       variant="outline"
-                      className="border-blue-200 text-blue-700 bg-blue-50"
+                      className="border-info/30 text-info-foreground bg-info/10"
                     >
                       {keyword}
                     </Badge>
@@ -290,18 +290,18 @@ export default function AIAnalysisPanel({
             {/* Suggestions */}
             {analysisResult.suggestions.length > 0 && (
               <div className="space-y-3">
-                <h4 className="flex items-center space-x-2 text-slate-900 font-medium">
-                  <Lightbulb className="w-4 h-4 text-green-600" />
+                <h4 className="flex items-center space-x-2 text-foreground font-medium">
+                  <Lightbulb className="w-4 h-4 text-success" />
                   <span>AI Recommendations</span>
                 </h4>
                 <div className="space-y-2">
                   {analysisResult.suggestions.map((suggestion, index) => (
                     <div
                       key={index}
-                      className="flex items-start space-x-2 p-3 bg-slate-50 rounded-lg border border-slate-200"
+                      className="flex items-start space-x-2 p-3 bg-muted/50 rounded-lg border border-border"
                     >
-                      <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-slate-700">{suggestion}</span>
+                      <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-foreground">{suggestion}</span>
                     </div>
                   ))}
                 </div>
@@ -309,7 +309,7 @@ export default function AIAnalysisPanel({
             )}
 
             {/* Analysis Info with cost/duration */}
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-200">
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t border-border">
               <div className="flex items-center gap-3">
                 {analysisResult.durationMs !== undefined && (
                   <span className="flex items-center gap-1">

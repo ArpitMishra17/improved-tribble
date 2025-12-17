@@ -37,7 +37,7 @@ export function KpiCard({ label, value, icon: Icon, delta, isLoading, className 
     <Card className={cn("shadow-sm hover:shadow-md transition-shadow", className)}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-slate-500">{label}</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
           {Icon && (
             <div className="bg-primary/10 p-2 rounded-md">
               <Icon className="w-4 h-4 text-primary" />
@@ -48,18 +48,18 @@ export function KpiCard({ label, value, icon: Icon, delta, isLoading, className 
       <CardContent>
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-3xl font-bold text-slate-900">{value}</p>
+            <p className="text-3xl font-bold text-foreground">{value}</p>
             {delta && (
               <div className="flex items-center gap-1 mt-1">
-                {deltaIsPositive && <TrendingUp className="w-3 h-3 text-green-600" />}
-                {deltaIsNegative && <TrendingDown className="w-3 h-3 text-red-600" />}
+                {deltaIsPositive && <TrendingUp className="w-3 h-3 text-success" />}
+                {deltaIsNegative && <TrendingDown className="w-3 h-3 text-destructive" />}
                 <Badge
                   variant="outline"
                   className={cn(
                     "text-xs border-0",
-                    deltaIsPositive && "bg-green-50 text-green-700",
-                    deltaIsNegative && "bg-red-50 text-red-700",
-                    !deltaIsPositive && !deltaIsNegative && "bg-slate-100 text-slate-600"
+                    deltaIsPositive && "bg-success/10 text-success-foreground",
+                    deltaIsNegative && "bg-destructive/10 text-destructive",
+                    !deltaIsPositive && !deltaIsNegative && "bg-muted text-muted-foreground"
                   )}
                 >
                   {deltaIsPositive && "+"}

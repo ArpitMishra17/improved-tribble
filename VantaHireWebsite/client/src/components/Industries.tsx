@@ -249,9 +249,9 @@ const Industries = () => {
       <div className="absolute top-1/3 left-1/4 w-72 h-72 bg-[#FF5BA8]/10 rounded-full blur-[40px] animate-pulse-slow" style={{ animationDelay: '0.8s' }}></div>
       
       {/* Animated particles */}
-      <div className="absolute w-2 h-2 bg-blue-300/40 rounded-full top-1/4 right-1/3 animate-float-path" 
+      <div className="absolute w-2 h-2 bg-info/50/40 rounded-full top-1/4 right-1/3 animate-float-path" 
           style={{animationDelay: '0.3s', animationDuration: '15s'}}></div>
-      <div className="absolute w-3 h-3 bg-purple-300/40 rounded-full bottom-1/3 left-1/4 animate-float-path" 
+      <div className="absolute w-3 h-3 bg-primary/70/40 rounded-full bottom-1/3 left-1/4 animate-float-path" 
           style={{animationDelay: '1.5s', animationDuration: '18s'}}></div>
       
       <div className="container mx-auto px-4 relative z-10">

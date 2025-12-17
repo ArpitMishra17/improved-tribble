@@ -46,10 +46,10 @@ interface FieldPropertiesPanelProps {
 export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldPropertiesPanelProps) {
   if (!field) {
     return (
-      <div className="h-full bg-slate-900 border-l border-slate-700 overflow-y-auto">
+      <div className="h-full bg-card border-l border-border overflow-y-auto">
         <div className="p-6">
           <div className="text-center py-12">
-            <p className="text-slate-400">Select a field to edit its properties</p>
+            <p className="text-muted-foreground">Select a field to edit its properties</p>
           </div>
         </div>
       </div>
@@ -60,18 +60,18 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
   const optionsError = errors[`field_${field.id}_options`];
 
   return (
-    <div className="h-full bg-slate-900 border-l border-slate-700 overflow-y-auto">
+    <div className="h-full bg-card border-l border-border overflow-y-auto">
       <div className="p-6 space-y-6">
         <div>
           <h2 className="text-white font-semibold text-lg">Field Properties</h2>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Configure the selected field
           </p>
         </div>
 
         {/* Field Type */}
         <div className="space-y-2">
-          <Label htmlFor="field-type" className="text-slate-300">
+          <Label htmlFor="field-type" className="text-muted-foreground/50">
             Field Type
           </Label>
           <Select
@@ -89,15 +89,15 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
               ))}
             </SelectContent>
           </Select>
-          <p className="text-slate-500 text-xs">
+          <p className="text-muted-foreground text-xs">
             {FIELD_TYPE_DESCRIPTIONS[field.type]}
           </p>
         </div>
 
         {/* Field Label */}
         <div className="space-y-2">
-          <Label htmlFor="field-label" className="text-slate-300">
-            Question/Label <span className="text-red-400">*</span>
+          <Label htmlFor="field-label" className="text-muted-foreground/50">
+            Question/Label <span className="text-destructive">*</span>
           </Label>
           <Textarea
             id="field-label"
@@ -108,12 +108,12 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
             className="bg-white/5 border-white/20 text-white resize-none"
           />
           {labelError ? (
-            <div className="flex items-center gap-1 text-red-400 text-sm">
+            <div className="flex items-center gap-1 text-destructive text-sm">
               <AlertCircle className="w-3 h-3" />
               <span>{labelError}</span>
             </div>
           ) : (
-            <p className="text-slate-500 text-xs">
+            <p className="text-muted-foreground text-xs">
               This is what candidates will see
             </p>
           )}
@@ -122,10 +122,10 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
         {/* Required Toggle */}
         <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
           <div className="flex-1">
-            <Label htmlFor="field-required" className="text-slate-300 cursor-pointer">
+            <Label htmlFor="field-required" className="text-muted-foreground/50 cursor-pointer">
               Required Field
             </Label>
-            <p className="text-slate-500 text-xs mt-1">
+            <p className="text-muted-foreground text-xs mt-1">
               Candidates must fill this field to submit
             </p>
           </div>
@@ -139,8 +139,8 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
         {/* Options (for select fields) */}
         {field.type === "select" && (
           <div className="space-y-2">
-            <Label htmlFor="field-options" className="text-slate-300">
-              Dropdown Options <span className="text-red-400">*</span>
+            <Label htmlFor="field-options" className="text-muted-foreground/50">
+              Dropdown Options <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="field-options"
@@ -151,12 +151,12 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
               className="bg-white/5 border-white/20 text-white resize-none"
             />
             {optionsError ? (
-              <div className="flex items-center gap-1 text-red-400 text-sm">
+              <div className="flex items-center gap-1 text-destructive text-sm">
                 <AlertCircle className="w-3 h-3" />
                 <span>{optionsError}</span>
               </div>
             ) : (
-              <p className="text-slate-500 text-xs">
+              <p className="text-muted-foreground text-xs">
                 Separate options with commas. Example: "Yes, No, Maybe"
               </p>
             )}
@@ -164,11 +164,11 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
         )}
 
         {/* Field Help Text */}
-        <Card className="bg-purple-500/10 border-purple-500/30">
+        <Card className="bg-primary/10 border-primary/30">
           <CardHeader>
-            <CardTitle className="text-sm text-purple-300">Validation Tips</CardTitle>
+            <CardTitle className="text-sm text-primary">Validation Tips</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-slate-400 space-y-2">
+          <CardContent className="text-xs text-muted-foreground space-y-2">
             {field.type === "email" && (
               <p>• Email fields automatically validate email format</p>
             )}
@@ -189,18 +189,18 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
 
         {/* Field Preview */}
         <div className="space-y-2">
-          <Label className="text-slate-300">Preview</Label>
+          <Label className="text-muted-foreground/50">Preview</Label>
           <Card className="bg-white/5 border-white/10">
             <CardContent className="p-4">
               <Label className="text-white text-sm">
-                {field.label || <span className="text-slate-500 italic">Untitled field</span>}
-                {field.required && <span className="text-red-400 ml-1">*</span>}
+                {field.label || <span className="text-muted-foreground italic">Untitled field</span>}
+                {field.required && <span className="text-destructive ml-1">*</span>}
               </Label>
               {field.type === "short_text" && (
                 <Input
                   disabled
                   placeholder="Text input..."
-                  className="mt-2 bg-white/10 border-white/20 text-slate-400"
+                  className="mt-2 bg-white/10 border-white/20 text-muted-foreground"
                 />
               )}
               {field.type === "long_text" && (
@@ -208,7 +208,7 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
                   disabled
                   placeholder="Text area..."
                   rows={3}
-                  className="mt-2 bg-white/10 border-white/20 text-slate-400 resize-none"
+                  className="mt-2 bg-white/10 border-white/20 text-muted-foreground resize-none"
                 />
               )}
               {field.type === "email" && (
@@ -216,18 +216,18 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
                   disabled
                   type="email"
                   placeholder="email@example.com"
-                  className="mt-2 bg-white/10 border-white/20 text-slate-400"
+                  className="mt-2 bg-white/10 border-white/20 text-muted-foreground"
                 />
               )}
               {field.type === "yes_no" && (
                 <div className="flex items-center gap-2 mt-2">
                   <Switch disabled />
-                  <span className="text-slate-400 text-sm">Toggle</span>
+                  <span className="text-muted-foreground text-sm">Toggle</span>
                 </div>
               )}
               {field.type === "select" && (
                 <Select disabled>
-                  <SelectTrigger className="mt-2 bg-white/10 border-white/20 text-slate-400">
+                  <SelectTrigger className="mt-2 bg-white/10 border-white/20 text-muted-foreground">
                     <SelectValue placeholder="Select an option..." />
                   </SelectTrigger>
                 </Select>
@@ -236,14 +236,14 @@ export function FieldPropertiesPanel({ field, onUpdateField, errors }: FieldProp
                 <Input
                   disabled
                   type="date"
-                  className="mt-2 bg-white/10 border-white/20 text-slate-400"
+                  className="mt-2 bg-white/10 border-white/20 text-muted-foreground"
                 />
               )}
               {field.type === "file" && (
                 <Input
                   disabled
                   type="file"
-                  className="mt-2 bg-white/10 border-white/20 text-slate-400"
+                  className="mt-2 bg-white/10 border-white/20 text-muted-foreground"
                 />
               )}
             </CardContent>

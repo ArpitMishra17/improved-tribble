@@ -77,7 +77,12 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
+  // Email verification operations
+  setVerificationToken(userId: number, token: string, expires: Date): Promise<void>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  verifyUserEmail(userId: number): Promise<User | undefined>;
+
   // Contact form operations
   createContactSubmission(submission: InsertContact): Promise<ContactSubmission>;
   getAllContactSubmissions(): Promise<ContactSubmission[]>;
@@ -85,6 +90,7 @@ export interface IStorage {
   // Job operations
   createJob(job: InsertJob & { postedBy: number }): Promise<Job>;
   getJob(id: number): Promise<Job | undefined>;
+  getJobWithRecruiter(id: number): Promise<(Job & { recruiter?: { firstName: string | null; lastName: string | null } }) | undefined>;
   getJobs(filters: {
     page?: number;
     limit?: number;
@@ -100,7 +106,8 @@ export interface IStorage {
   getJobsByUser(userId: number): Promise<(Job & { applicationCount: number; hiringManager?: { id: number; firstName: string | null; lastName: string | null; username: string } })[]>;
   reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined>;
   getJobsByStatus(status: string, page?: number, limit?: number): Promise<{ jobs: Job[]; total: number }>;
-  
+  getPublicJobsByRecruiter(recruiterId: number): Promise<Job[]>;
+
   // Application operations
   createApplication(application: InsertApplication & {
     jobId: number;
@@ -256,7 +263,39 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user;
   }
-  
+
+  // Email verification methods
+  async setVerificationToken(userId: number, tokenHash: string, expires: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        emailVerificationToken: tokenHash,
+        emailVerificationExpires: expires,
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserByVerificationToken(tokenHash: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.emailVerificationToken, tokenHash));
+    return user || undefined;
+  }
+
+  async verifyUserEmail(userId: number): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user || undefined;
+  }
+
   // Contact form methods
   async createContactSubmission(submission: InsertContact): Promise<ContactSubmission> {
     const [result] = await db
@@ -500,7 +539,29 @@ export class DatabaseStorage implements IStorage {
     const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
     return job || undefined;
   }
-  
+
+  async getJobWithRecruiter(id: number): Promise<(Job & { recruiter?: { firstName: string | null; lastName: string | null } }) | undefined> {
+    const [result] = await db
+      .select({
+        job: jobs,
+        recruiterFirstName: users.firstName,
+        recruiterLastName: users.lastName,
+      })
+      .from(jobs)
+      .leftJoin(users, eq(jobs.postedBy, users.id))
+      .where(eq(jobs.id, id));
+
+    if (!result) return undefined;
+
+    return {
+      ...result.job,
+      recruiter: {
+        firstName: result.recruiterFirstName,
+        lastName: result.recruiterLastName,
+      },
+    };
+  }
+
   async getJobs(filters: {
     page?: number;
     limit?: number;
@@ -827,6 +888,20 @@ export class DatabaseStorage implements IStorage {
       jobs: jobResults,
       total: totalResults[0].count
     };
+  }
+
+  async getPublicJobsByRecruiter(recruiterId: number): Promise<Job[]> {
+    // Get active, approved jobs posted by this recruiter
+    const result = await db.select().from(jobs)
+      .where(
+        and(
+          eq(jobs.postedBy, recruiterId),
+          eq(jobs.isActive, true),
+          eq(jobs.status, 'approved')
+        )
+      )
+      .orderBy(desc(jobs.createdAt));
+    return result;
   }
 
   // Application methods

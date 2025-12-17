@@ -293,11 +293,11 @@ const AnimatedRocket = ({ className = "" }: AnimatedRocketProps) => {
       {renderFlameParticles()}
       
       {/* Glowing effect behind rocket */}
-      <div className="absolute inset-0 -z-10 bg-blue-500/30 blur-xl rounded-full animate-pulse-slow"></div>
+      <div className="absolute inset-0 -z-10 bg-info/30 blur-xl rounded-full animate-pulse-slow"></div>
       
       {/* Stronger glow effect under flames */}
       <div 
-        className="absolute w-28 h-16 -z-10 bg-orange-500/30 blur-lg rounded-full animate-pulse-slow"
+        className="absolute w-28 h-16 -z-10 bg-warning/30 blur-lg rounded-full animate-pulse-slow"
         style={{ 
           bottom: "-10px", 
           left: "50%", 

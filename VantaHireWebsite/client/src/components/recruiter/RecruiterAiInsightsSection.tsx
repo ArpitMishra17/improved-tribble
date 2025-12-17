@@ -60,9 +60,9 @@ interface RecruiterAiInsightsSectionProps {
 }
 
 const severityConfig = {
-  high: { color: "bg-red-500", border: "border-l-red-500", text: "text-red-700", label: "Urgent" },
-  medium: { color: "bg-orange-400", border: "border-l-orange-400", text: "text-orange-700", label: "Watch" },
-  low: { color: "bg-amber-300", border: "border-l-amber-300", text: "text-amber-700", label: "Info" },
+  high: { color: "bg-destructive/100", border: "border-l-red-500", text: "text-destructive", label: "Urgent" },
+  medium: { color: "bg-orange-400", border: "border-l-orange-400", text: "text-warning-foreground", label: "Watch" },
+  low: { color: "bg-amber-300", border: "border-l-amber-300", text: "text-warning-foreground", label: "Info" },
 };
 
 export function RecruiterAiInsightsSection({
@@ -102,7 +102,7 @@ export function RecruiterAiInsightsSection({
     <Collapsible open={insightsOpen} onOpenChange={setInsightsOpen}>
       <div className="flex items-center justify-between mb-3">
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="sm" className="gap-2 text-slate-700 hover:text-slate-900 p-0">
+          <Button variant="ghost" size="sm" className="gap-2 text-foreground hover:text-foreground p-0">
             {insightsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             <span className="font-semibold">AI Insights</span>
             <Badge variant="outline" className="text-[10px] ml-2">AI-assisted</Badge>
@@ -118,7 +118,7 @@ export function RecruiterAiInsightsSection({
             <Card className="shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <AlertTriangle className="h-4 w-4 text-warning" />
                   Needs Attention
                   {jobsNeedingAttention.length > 0 && (
                     <Badge variant="secondary" className="text-xs ml-auto">{jobsNeedingAttention.length}</Badge>
@@ -127,7 +127,7 @@ export function RecruiterAiInsightsSection({
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
                 {visibleJobs.length === 0 && (
-                  <p className="text-sm text-slate-500 py-2">All jobs healthy</p>
+                  <p className="text-sm text-muted-foreground py-2">All jobs healthy</p>
                 )}
                 <TooltipProvider>
                   {visibleJobs.map((job) => {
@@ -142,23 +142,23 @@ export function RecruiterAiInsightsSection({
                             onClick={() => onViewJob?.(job.jobId)}
                             onKeyDown={(e) => { if (e.key === "Enter") onViewJob?.(job.jobId); }}
                             className={cn(
-                              "flex items-center gap-3 p-2 rounded-md border-l-4 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors",
+                              "flex items-center gap-3 p-2 rounded-md border-l-4 bg-muted/50 hover:bg-muted cursor-pointer transition-colors",
                               config.border
                             )}
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-sm text-slate-900 truncate">{job.title}</span>
+                                <span className="font-medium text-sm text-foreground truncate">{job.title}</span>
                                 <span className={cn("text-[10px] font-medium uppercase", config.text)}>{config.label}</span>
                               </div>
                               {action && (
-                                <p className="text-xs text-slate-500 truncate mt-0.5">{action}</p>
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">{action}</p>
                               )}
                               {aiLoading && !action && (
-                                <p className="text-xs text-slate-400 italic">Generating...</p>
+                                <p className="text-xs text-muted-foreground italic">Generating...</p>
                               )}
                             </div>
-                            <ChevronRight className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="max-w-xs">
@@ -172,7 +172,7 @@ export function RecruiterAiInsightsSection({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full text-xs text-slate-500"
+                    className="w-full text-xs text-muted-foreground"
                     onClick={() => setShowAllJobs(!showAllJobs)}
                   >
                     {showAllJobs ? "Show less" : `Show ${jobsNeedingAttention.length - 3} more`}
@@ -185,7 +185,7 @@ export function RecruiterAiInsightsSection({
             <Card className="shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
+                  <Sparkles className="h-4 w-4 text-primary" />
                   JD Improvements
                   {jdSuggestions.length > 0 && (
                     <Badge variant="secondary" className="text-xs ml-auto">{jdSuggestions.length}</Badge>
@@ -194,7 +194,7 @@ export function RecruiterAiInsightsSection({
               </CardHeader>
               <CardContent className="space-y-2 pt-0">
                 {jdSuggestions.length === 0 && (
-                  <p className="text-sm text-slate-500 py-2">All JDs look good</p>
+                  <p className="text-sm text-muted-foreground py-2">All JDs look good</p>
                 )}
                 {jdSuggestions.map((item) => (
                   <Collapsible
@@ -203,24 +203,24 @@ export function RecruiterAiInsightsSection({
                     onOpenChange={(open) => setJdExpanded(open ? item.jobId : null)}
                   >
                     <CollapsibleTrigger asChild>
-                      <div className="flex items-center justify-between p-2 rounded-md bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors">
+                      <div className="flex items-center justify-between p-2 rounded-md bg-muted/50 hover:bg-muted cursor-pointer transition-colors">
                         <div className="flex items-center gap-2">
                           {jdExpanded === item.jobId ? (
-                            <ChevronDown className="h-3 w-3 text-slate-400" />
+                            <ChevronDown className="h-3 w-3 text-muted-foreground" />
                           ) : (
-                            <ChevronRight className="h-3 w-3 text-slate-400" />
+                            <ChevronRight className="h-3 w-3 text-muted-foreground" />
                           )}
-                          <span className="font-medium text-sm text-slate-900">{item.title}</span>
+                          <span className="font-medium text-sm text-foreground">{item.title}</span>
                         </div>
                         <Badge variant="outline" className="text-[10px]">{item.score}</Badge>
                       </div>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <div className="pl-5 pr-2 py-2 space-y-2">
-                        <ul className="text-xs text-slate-600 space-y-1">
+                        <ul className="text-xs text-muted-foreground space-y-1">
                           {item.tips.map((tip, i) => (
                             <li key={i} className="flex items-start gap-2">
-                              <span className="text-purple-400">•</span>
+                              <span className="text-primary">•</span>
                               {tip}
                             </li>
                           ))}
@@ -242,7 +242,7 @@ export function RecruiterAiInsightsSection({
             <Card className="shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-blue-500" />
+                  <TrendingUp className="h-4 w-4 text-info" />
                   Conversion Funnel
                 </CardTitle>
               </CardHeader>
@@ -254,29 +254,29 @@ export function RecruiterAiInsightsSection({
                     return (
                       <div key={step.name} className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-700 font-medium">{step.name}</span>
-                          <span className={cn("tabular-nums", isWeak ? "text-red-600 font-medium" : "text-slate-500")}>
+                          <span className="text-foreground font-medium">{step.name}</span>
+                          <span className={cn("tabular-nums", isWeak ? "text-destructive font-medium" : "text-muted-foreground")}>
                             {step.rate}%
                           </span>
                         </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className={cn(
                               "h-full rounded-full transition-all",
-                              isWeak ? "bg-red-400" : idx === 0 ? "bg-blue-500" : "bg-blue-400"
+                              isWeak ? "bg-red-400" : idx === 0 ? "bg-info/100" : "bg-blue-400"
                             )}
                             style={{ width: `${barWidth}%` }}
                           />
                         </div>
-                        <div className="text-[10px] text-slate-400">{step.count} candidates</div>
+                        <div className="text-[10px] text-muted-foreground">{step.count} candidates</div>
                       </div>
                     );
                   })}
                 </div>
                 {/* AI Summary */}
                 {dropoff.length > 0 && (
-                  <div className="pt-2 border-t border-slate-100">
-                    <p className="text-xs text-slate-600 leading-relaxed">
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       {preGeneratedDropoffExplanation || dropoffSummary}
                     </p>
                   </div>
@@ -288,7 +288,7 @@ export function RecruiterAiInsightsSection({
             <Card className="shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-amber-500" />
+                  <Clock className="h-4 w-4 text-warning" />
                   Stage Delays
                   {bottlenecks.length > 0 && (
                     <Badge variant="secondary" className="text-xs ml-auto">{bottlenecks.length}</Badge>
@@ -297,7 +297,7 @@ export function RecruiterAiInsightsSection({
               </CardHeader>
               <CardContent className="pt-0">
                 {bottlenecks.length === 0 && (
-                  <p className="text-sm text-slate-500 py-2">No delays detected</p>
+                  <p className="text-sm text-muted-foreground py-2">No delays detected</p>
                 )}
                 <div className="space-y-2">
                   {bottlenecks.map((item, idx) => {
@@ -312,7 +312,7 @@ export function RecruiterAiInsightsSection({
                         tabIndex={0}
                         onClick={() => onViewStage?.(item.stage)}
                         onKeyDown={(e) => { if (e.key === "Enter") onViewStage?.(item.stage); }}
-                        className="flex items-center gap-3 p-2 rounded-md bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors"
+                        className="flex items-center gap-3 p-2 rounded-md bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
                       >
                         {/* Heatmap intensity bar */}
                         <div
@@ -322,8 +322,8 @@ export function RecruiterAiInsightsSection({
                           }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-slate-900">{item.stage}</div>
-                          <p className="text-xs text-slate-500 truncate">{stuckCount} stuck</p>
+                          <div className="font-medium text-sm text-foreground">{item.stage}</div>
+                          <p className="text-xs text-muted-foreground truncate">{stuckCount} stuck</p>
                         </div>
                         {item.actionLabel && (
                           <Button variant="ghost" size="sm" className="text-xs h-7 px-2">

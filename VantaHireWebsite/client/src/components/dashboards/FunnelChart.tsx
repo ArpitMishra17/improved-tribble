@@ -30,7 +30,7 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-900">{title}</CardTitle>
+          <CardTitle className="text-foreground">{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
@@ -44,12 +44,12 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-900">{title}</CardTitle>
+          <CardTitle className="text-foreground">{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            <p className="text-slate-500">No data available</p>
+            <p className="text-muted-foreground">No data available</p>
           </div>
         </CardContent>
       </Card>
@@ -59,7 +59,7 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="text-slate-900">{title}</CardTitle>
+        <CardTitle className="text-foreground">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
@@ -112,8 +112,8 @@ export function FunnelChart({ title, description, data, isLoading }: FunnelChart
                 className="w-3 h-3 rounded"
                 style={{ backgroundColor: entry.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length] }}
               />
-              <span className="text-slate-600 text-sm">
-                {entry.name}: <span className="font-semibold text-slate-900">{entry.count}</span>
+              <span className="text-muted-foreground text-sm">
+                {entry.name}: <span className="font-semibold text-foreground">{entry.count}</span>
               </span>
             </div>
           ))}

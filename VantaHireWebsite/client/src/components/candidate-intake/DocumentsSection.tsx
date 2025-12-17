@@ -99,8 +99,8 @@ export function DocumentsSection({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-slate-900">Documents</h3>
-        <p className="text-sm text-slate-500 mt-1">
+        <h3 className="text-lg font-semibold text-foreground">Documents</h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Upload the candidate's resume and optional supporting documents
         </p>
       </div>
@@ -108,20 +108,20 @@ export function DocumentsSection({
       {/* Resume Upload */}
       <div className="space-y-2">
         <Label>
-          Resume <span className="text-red-500">*</span>
+          Resume <span className="text-destructive">*</span>
         </Label>
         {data.resumeFile ? (
-          <Card className="border-green-200 bg-green-50/50">
+          <Card className="border-success/30 bg-success/10/50">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <FileText className="h-5 w-5 text-green-600" />
+                <div className="p-2 bg-success/20 rounded-lg">
+                  <FileText className="h-5 w-5 text-success" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {data.resumeFile.name}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {formatFileSize(data.resumeFile.size)}
                   </p>
                 </div>
@@ -129,7 +129,7 @@ export function DocumentsSection({
                   variant="ghost"
                   size="sm"
                   onClick={removeFile}
-                  className="text-slate-500 hover:text-red-600"
+                  className="text-muted-foreground hover:text-destructive"
                 >
                   <X className="h-4 w-4 mr-1" />
                   Remove
@@ -154,17 +154,17 @@ export function DocumentsSection({
               onChange={handleFileSelect}
               className="hidden"
             />
-            <Upload className="h-10 w-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-medium text-slate-700 mb-1">
+            <Upload className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">
               Drop your resume here or click to browse
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               PDF or Word document, max 5MB
             </p>
           </div>
         )}
         {!data.resumeFile && (
-          <p className="text-xs text-amber-600 flex items-center gap-1">
+          <p className="text-xs text-warning flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             Resume is required to continue
           </p>
@@ -181,7 +181,7 @@ export function DocumentsSection({
           placeholder="Paste or write a cover letter..."
           rows={5}
         />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-muted-foreground">
           {(data.coverLetter?.length || 0).toLocaleString()}/5,000 characters
         </p>
       </div>
@@ -189,7 +189,7 @@ export function DocumentsSection({
       {/* Portfolio URL */}
       <div className="space-y-2">
         <Label htmlFor="portfolioUrl" className="flex items-center gap-2">
-          <LinkIcon className="h-4 w-4 text-slate-400" />
+          <LinkIcon className="h-4 w-4 text-muted-foreground" />
           Portfolio / Website (Optional)
         </Label>
         <Input

@@ -10,8 +10,8 @@ const AiOrb = () => (
     <div className="orb-ring"></div>
     <div className="orb-center">
       <div className="text-center">
-        <span className="text-purple-400 font-bold text-lg block">AI + Human</span>
-        <span className="text-purple-300 font-semibold text-sm">Expertise</span>
+        <span className="text-primary font-bold text-lg block">AI + Human</span>
+        <span className="text-primary font-semibold text-sm">Expertise</span>
       </div>
     </div>
   </div>
@@ -45,9 +45,9 @@ const Hero = () => {
         {/* Left Content */}
         <div className="lg:w-1/2 text-center lg:text-left">
           {/* AI Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 mb-6 animate-fade-in-up">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span className="text-sm text-purple-300">AI-Powered Recruitment</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6 animate-fade-in-up">
+            <Sparkles className="w-4 h-4 text-warning" />
+            <span className="text-sm text-primary">AI-Powered Recruitment</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 animate-fade-in-up-delay-1">
@@ -57,27 +57,27 @@ const Hero = () => {
             <span className="gradient-text-gold">Hiring.</span>
           </h1>
 
-          <p className="text-lg text-gray-300 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up-delay-2">
+          <p className="text-lg text-muted-foreground/50 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up-delay-2">
             VantaHire combines AI-powered candidate matching with specialist recruiters to help startups and enterprises scale faster across{" "}
-            <span className="text-purple-400 font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>.
+            <span className="text-primary font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>.
           </p>
 
           {/* Stats Row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8 animate-fade-in-up-delay-2">
             <div className="flex items-center justify-center lg:justify-start gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+              <div className="w-2 h-2 rounded-full bg-primary/100"></div>
               <span className="stat-number text-lg">~40%</span>
-              <span className="text-gray-400 text-sm">Faster Hiring</span>
+              <span className="text-muted-foreground text-sm">Faster Hiring</span>
             </div>
             <div className="flex items-center justify-center lg:justify-start gap-2">
-              <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+              <div className="w-2 h-2 rounded-full bg-warning/100"></div>
               <span className="stat-number text-lg">60%</span>
-              <span className="text-gray-400 text-sm">Fewer Mis-Hires</span>
+              <span className="text-muted-foreground text-sm">Fewer Mis-Hires</span>
             </div>
             <div className="flex items-center justify-center lg:justify-start gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+              <div className="w-2 h-2 rounded-full bg-success/100"></div>
               <span className="stat-number text-lg">96%</span>
-              <span className="text-gray-400 text-sm">Satisfaction</span>
+              <span className="text-muted-foreground text-sm">Satisfaction</span>
             </div>
           </div>
 

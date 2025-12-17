@@ -53,7 +53,7 @@ const TestimonialCard = ({
             <div key={i} className="relative mr-2 transition-all duration-300 group-hover:scale-105" style={{ animationDelay: `${i * 0.1}s` }}>
               <Star 
                 key={i} 
-                className={`w-5 h-5 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'}`} 
+                className={`w-5 h-5 ${i < rating ? 'text-warning fill-yellow-400' : 'text-muted-foreground'}`} 
               />
               {i < rating && active && (
                 <div className="absolute inset-0 blur-sm -z-10 opacity-70 animate-pulse-slow" style={{ backgroundColor: 'rgba(250, 204, 21, 0.4)' }}></div>
@@ -191,9 +191,9 @@ const Testimonials = () => {
       <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-[#2D81FF]/10 rounded-full blur-[40px] animate-pulse-slow" style={{ animationDelay: '0.6s' }}></div>
       
       {/* Animated floating particles */}
-      <div className="absolute w-2 h-2 bg-purple-300/40 rounded-full top-1/4 right-1/3 animate-float-path" 
+      <div className="absolute w-2 h-2 bg-primary/70/40 rounded-full top-1/4 right-1/3 animate-float-path" 
            style={{animationDelay: "0.3s", animationDuration: "15s"}}></div>
-      <div className="absolute w-3 h-3 bg-blue-300/40 rounded-full bottom-1/3 left-1/4 animate-float-path" 
+      <div className="absolute w-3 h-3 bg-info/50/40 rounded-full bottom-1/3 left-1/4 animate-float-path" 
            style={{animationDelay: "1.2s", animationDuration: "18s"}}></div>
       <div className="absolute w-2 h-2 bg-pink-300/40 rounded-full top-1/2 right-1/4 animate-float-path" 
            style={{animationDelay: "0.8s", animationDuration: "20s"}}></div>

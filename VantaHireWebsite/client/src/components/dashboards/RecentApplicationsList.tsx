@@ -34,13 +34,13 @@ export function RecentApplicationsList({
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-900">{title}</CardTitle>
+          <CardTitle className="text-foreground">{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+              <div key={i} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
                 <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-32" />
@@ -60,12 +60,12 @@ export function RecentApplicationsList({
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-900">{title}</CardTitle>
+          <CardTitle className="text-foreground">{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="py-12 text-center">
-            <p className="text-slate-500">No applications yet</p>
+            <p className="text-muted-foreground">No applications yet</p>
           </div>
         </CardContent>
       </Card>
@@ -75,7 +75,7 @@ export function RecentApplicationsList({
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="text-slate-900">{title}</CardTitle>
+        <CardTitle className="text-foreground">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
@@ -87,7 +87,7 @@ export function RecentApplicationsList({
             return (
               <div
                 key={app.id}
-                className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200"
+                className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer border border-border"
                 onClick={() => onApplicationClick?.(app.id)}
               >
                 <div className="bg-primary/10 p-2 rounded-full">
@@ -96,22 +96,22 @@ export function RecentApplicationsList({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-slate-900 font-medium truncate">{app.name}</p>
-                      <p className="text-slate-500 text-sm truncate">{app.email}</p>
+                      <p className="text-foreground font-medium truncate">{app.name}</p>
+                      <p className="text-muted-foreground text-sm truncate">{app.email}</p>
                     </div>
                     {app.status && (
-                      <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">
+                      <Badge variant="outline" className="text-xs border-info/30 text-info-foreground bg-info/10">
                         {app.status}
                       </Badge>
                     )}
                   </div>
                   {app.jobTitle && (
-                    <div className="flex items-center gap-1 mt-1 text-slate-600 text-xs">
+                    <div className="flex items-center gap-1 mt-1 text-muted-foreground text-xs">
                       <Briefcase className="w-3 h-3" />
                       <span className="truncate">{app.jobTitle}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1 mt-1 text-slate-500 text-xs">
+                  <div className="flex items-center gap-1 mt-1 text-muted-foreground text-xs">
                     <Clock className="w-3 h-3" />
                     <span>{timeAgo}</span>
                   </div>
@@ -121,7 +121,7 @@ export function RecentApplicationsList({
           })}
         </div>
         {applications.length > limit && (
-          <p className="text-center text-slate-500 text-sm mt-3">
+          <p className="text-center text-muted-foreground text-sm mt-3">
             Showing {limit} of {applications.length} applications
           </p>
         )}

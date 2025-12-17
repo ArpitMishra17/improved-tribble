@@ -105,21 +105,21 @@ export function AISummaryPanel({
     switch (action) {
       case 'advance':
         return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Badge className="bg-success/20 text-success-foreground hover:bg-success/20">
             <CheckCircle className="w-3 h-3 mr-1" />
             Advance
           </Badge>
         );
       case 'hold':
         return (
-          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+          <Badge className="bg-warning/20 text-warning-foreground hover:bg-warning/20">
             <AlertCircle className="w-3 h-3 mr-1" />
             Hold
           </Badge>
         );
       case 'reject':
         return (
-          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+          <Badge className="bg-destructive/20 text-destructive hover:bg-destructive/20">
             <XCircle className="w-3 h-3 mr-1" />
             Reject
           </Badge>
@@ -233,7 +233,7 @@ export function AISummaryPanel({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-600" />
+            <Sparkles className="h-5 w-5 text-primary" />
             <CardTitle>AI Candidate Summary</CardTitle>
           </div>
           <Button
@@ -274,10 +274,10 @@ export function AISummaryPanel({
             {(aiSuggestedAction || expandedSummary?.suggestedAction) && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-slate-700">Recommendation:</span>
+                  <span className="text-sm font-medium text-foreground">Recommendation:</span>
                   {getActionBadge(expandedSummary?.suggestedAction || aiSuggestedAction)}
                 </div>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted-foreground">
                   {expandedSummary?.suggestedActionReason || aiSuggestedActionReason}
                 </p>
                 {canApplySuggestion && (
@@ -296,8 +296,8 @@ export function AISummaryPanel({
 
             {/* Summary Text */}
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-slate-700">Summary</h4>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <h4 className="text-sm font-medium text-foreground">Summary</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 {expandedSummary?.text || aiSummary}
               </p>
             </div>
@@ -305,10 +305,10 @@ export function AISummaryPanel({
             {/* Strengths */}
             {expandedSummary?.strengths && expandedSummary.strengths.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-slate-700">Key Strengths</h4>
+                <h4 className="text-sm font-medium text-foreground">Key Strengths</h4>
                 <ul className="list-disc list-inside space-y-1">
                   {expandedSummary.strengths.map((strength, idx) => (
-                    <li key={idx} className="text-sm text-slate-600">
+                    <li key={idx} className="text-sm text-muted-foreground">
                       {strength}
                     </li>
                   ))}
@@ -319,10 +319,10 @@ export function AISummaryPanel({
             {/* Concerns */}
             {expandedSummary?.concerns && expandedSummary.concerns.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-slate-700">Areas of Concern</h4>
+                <h4 className="text-sm font-medium text-foreground">Areas of Concern</h4>
                 <ul className="list-disc list-inside space-y-1">
                   {expandedSummary.concerns.map((concern, idx) => (
-                    <li key={idx} className="text-sm text-slate-600">
+                    <li key={idx} className="text-sm text-muted-foreground">
                       {concern}
                     </li>
                   ))}
@@ -333,10 +333,10 @@ export function AISummaryPanel({
             {/* Key Highlights */}
             {expandedSummary?.keyHighlights && expandedSummary.keyHighlights.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-slate-700">Notable Achievements</h4>
+                <h4 className="text-sm font-medium text-foreground">Notable Achievements</h4>
                 <ul className="list-disc list-inside space-y-1">
                   {expandedSummary.keyHighlights.map((highlight, idx) => (
-                    <li key={idx} className="text-sm text-slate-600">
+                    <li key={idx} className="text-sm text-muted-foreground">
                       {highlight}
                     </li>
                   ))}
@@ -346,7 +346,7 @@ export function AISummaryPanel({
 
             {/* Cost & Performance Info */}
             {expandedSummary && (
-              <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-200">
+              <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border">
                 <div className="flex items-center gap-3">
                   <span className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
@@ -363,9 +363,9 @@ export function AISummaryPanel({
           </>
         ) : generateSummaryMutation.isError ? (
           <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-300" />
-            <p className="text-sm text-red-600 font-medium">Failed to generate summary</p>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
+            <AlertCircle className="h-12 w-12 mx-auto mb-3 text-destructive" />
+            <p className="text-sm text-destructive font-medium">Failed to generate summary</p>
+            <p className="text-xs text-muted-foreground mt-1 mb-4">
               {isRateLimitError(generateSummaryMutation.error)
                 ? `Daily AI limit reached. Try again ${(generateSummaryMutation.error as RateLimitError).formattedRetryTime}.`
                 : generateSummaryMutation.error?.message || "An error occurred"}
@@ -384,8 +384,8 @@ export function AISummaryPanel({
             </Button>
           </div>
         ) : (
-          <div className="text-center py-8 text-slate-500">
-            <Sparkles className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+          <div className="text-center py-8 text-muted-foreground">
+            <Sparkles className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
             <p className="text-sm">No AI summary generated yet.</p>
             <p className="text-xs mt-1">Click "Generate Summary" to get AI-powered insights.</p>
           </div>
@@ -406,21 +406,21 @@ export function AISummaryPanel({
               <span className="text-sm font-medium">Action:</span>
               {getActionBadge(suggestedAction)}
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted-foreground">
               {expandedSummary?.suggestedActionReason || aiSuggestedActionReason}
             </p>
             {suggestedAction === 'advance' && pipelineStages && (
-              <p className="text-sm text-slate-500 mt-3">
+              <p className="text-sm text-muted-foreground mt-3">
                 This will move the candidate to the next pipeline stage.
               </p>
             )}
             {suggestedAction === 'reject' && (
-              <p className="text-sm text-slate-500 mt-3">
+              <p className="text-sm text-muted-foreground mt-3">
                 This will update the candidate's status to "rejected".
               </p>
             )}
             {suggestedAction === 'hold' && (
-              <p className="text-sm text-slate-500 mt-3">
+              <p className="text-sm text-muted-foreground mt-3">
                 This will add a note explaining the hold recommendation.
               </p>
             )}

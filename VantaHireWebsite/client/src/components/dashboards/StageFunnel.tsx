@@ -48,14 +48,14 @@ export function StageFunnel({ title, description, data, isLoading, onStageClick 
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-slate-900">{title}</CardTitle>
+        <CardTitle className="text-foreground">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="h-[320px] rounded-lg bg-slate-100 animate-pulse" />
+          <div className="h-[320px] rounded-lg bg-muted animate-pulse" />
         ) : data.length === 0 ? (
-          <div className="h-[320px] flex items-center justify-center text-slate-500 text-sm">
+          <div className="h-[320px] flex items-center justify-center text-muted-foreground text-sm">
             No data available
           </div>
         ) : (
@@ -127,17 +127,17 @@ export function StageFunnel({ title, description, data, isLoading, onStageClick 
                     </TooltipTrigger>
                     <TooltipContent
                       side="right"
-                      className="bg-slate-900 text-white border-slate-800"
+                      className="bg-card text-white border-slate-800"
                     >
                       <div className="space-y-1">
                         <div className="font-semibold">{stage.name}</div>
-                        <div className="text-slate-300 text-sm">
+                        <div className="text-muted-foreground/50 text-sm">
                           {stage.count} candidates
                         </div>
-                        <div className="text-slate-400 text-xs">
+                        <div className="text-muted-foreground text-xs">
                           {percent.toFixed(1)}% of total pipeline
                         </div>
-                        <div className="text-purple-400 text-xs pt-1">
+                        <div className="text-primary text-xs pt-1">
                           Click to filter applications
                         </div>
                       </div>
@@ -148,15 +148,15 @@ export function StageFunnel({ title, description, data, isLoading, onStageClick 
 
               {/* Funnel total at bottom */}
               <div className="pt-4 text-center">
-                <div className="text-2xl font-bold text-slate-900">{total}</div>
-                <div className="text-xs text-slate-500 uppercase tracking-wide">
+                <div className="text-2xl font-bold text-foreground">{total}</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">
                   Total Candidates
                 </div>
               </div>
             </div>
           </TooltipProvider>
         )}
-        <p className="text-xs text-slate-500 text-center mt-2">
+        <p className="text-xs text-muted-foreground text-center mt-2">
           Click any stage to view candidates
         </p>
       </CardContent>

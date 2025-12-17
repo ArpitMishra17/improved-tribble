@@ -4,7 +4,7 @@ import { useAIFeatures } from "@/hooks/use-ai-features";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Menu, X, User, LogOut, Briefcase, Plus, ChevronDown, BarChart3, Shield, Sparkles } from "lucide-react";
+import { Menu, X, User, LogOut, Briefcase, Plus, ChevronDown, BarChart3, Shield, Sparkles, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
 import QuickAccessBar from "@/components/QuickAccessBar";
@@ -98,17 +98,15 @@ const Layout = ({ children }: LayoutProps) => {
 
   return (
     <div className={cn(
-      "min-h-screen",
-      atsContext
-        ? "ats-theme bg-slate-50 text-slate-900"
-        : "public-theme"
+      "min-h-screen bg-background text-foreground",
+      atsContext ? "ats-theme" : "public-theme"
     )}>
       {/* Quick Access Bar for authenticated users (not in ATS context) */}
       {user && !atsContext && <QuickAccessBar />}
 
       {/* ATS Header - Dark theme for recruiter/admin dashboards */}
       {atsContext && (
-        <header className="fixed top-0 left-0 right-0 z-50 bg-[#0d0d1a] border-b border-purple-500/20 shadow-lg">
+        <header className="fixed top-0 left-0 right-0 z-50 bg-[#0d0d1a] border-b border-primary/20 shadow-lg">
           <nav className="container mx-auto px-4 py-3 flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-3">
@@ -118,7 +116,7 @@ const Layout = ({ children }: LayoutProps) => {
               >
                 VantaHire
               </Link>
-              <span className="px-2.5 py-1 bg-amber-500 text-slate-900 text-xs font-bold rounded-md">
+              <span className="px-2.5 py-1 bg-warning/100 text-foreground text-xs font-bold rounded-md">
                 ATS
               </span>
             </div>
@@ -132,7 +130,7 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === '/recruiter-dashboard'
-                        ? "text-amber-400 bg-white/10"
+                        ? "text-warning bg-white/10"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
@@ -143,7 +141,7 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === '/applications'
-                        ? "text-amber-400 bg-white/10"
+                        ? "text-warning bg-white/10"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
@@ -154,7 +152,7 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location === '/my-jobs'
-                        ? "text-amber-400 bg-white/10"
+                        ? "text-warning bg-white/10"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
@@ -165,7 +163,7 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location.startsWith('/admin/forms')
-                        ? "text-amber-400 bg-white/10"
+                        ? "text-warning bg-white/10"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
@@ -176,7 +174,7 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location.startsWith('/clients')
-                        ? "text-amber-400 bg-white/10"
+                        ? "text-warning bg-white/10"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
@@ -187,7 +185,7 @@ const Layout = ({ children }: LayoutProps) => {
                     className={cn(
                       "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                       location.startsWith('/admin/email-templates')
-                        ? "text-amber-400 bg-white/10"
+                        ? "text-warning bg-white/10"
                         : "text-white/70 hover:text-white hover:bg-white/10"
                     )}
                   >
@@ -228,11 +226,11 @@ const Layout = ({ children }: LayoutProps) => {
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white">
-                  <div className="px-2 py-1.5 text-sm font-medium text-slate-900">
+                <DropdownMenuContent align="end" className="w-56 bg-card">
+                  <div className="px-2 py-1.5 text-sm font-medium text-foreground">
                     {user?.firstName} {user?.lastName}
                   </div>
-                  <div className="px-2 py-1 text-xs text-slate-500">
+                  <div className="px-2 py-1 text-xs text-muted-foreground">
                     @{user?.username}
                   </div>
                   <div className="px-2 py-1.5 flex items-center gap-2">
@@ -242,7 +240,7 @@ const Layout = ({ children }: LayoutProps) => {
                       </Badge>
                     )}
                     {aiEnabled && (
-                      <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-100">
+                      <Badge variant="secondary" className="text-xs bg-primary/20 text-primary hover:bg-primary/20">
                         <Sparkles className="h-3 w-3 mr-1" />
                         AI Beta
                       </Badge>
@@ -264,7 +262,14 @@ const Layout = ({ children }: LayoutProps) => {
                     </>
                   )}
 
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
+                  {(user?.role === 'recruiter' || user?.role === 'super_admin') && (
+                    <DropdownMenuItem onClick={() => setLocation("/profile/settings")} className="cursor-pointer">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Profile Settings
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
                     <LogOut className="h-4 w-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
@@ -279,7 +284,7 @@ const Layout = ({ children }: LayoutProps) => {
       {!user && (
         <header className={`fixed top-0 left-0 right-0 transition-all duration-500 z-50
           ${scrollPosition > 50
-            ? 'bg-[#0d0d1a]/95 backdrop-blur-lg shadow-lg py-3 border-b border-purple-500/20'
+            ? 'bg-[#0d0d1a]/95 backdrop-blur-lg shadow-lg py-3 border-b border-primary/20'
             : 'bg-[#0d0d1a]/80 backdrop-blur-sm py-6'}`}
         >
         {/* Premium background glow effects */}

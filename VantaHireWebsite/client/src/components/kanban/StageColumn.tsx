@@ -156,15 +156,15 @@ export function StageColumn({
       >
         <CardHeader className="pb-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-slate-900 text-base font-semibold flex items-center gap-2">
+            <CardTitle className="text-foreground text-base font-semibold flex items-center gap-2">
               {stage.name}
               {isUnassigned && (
-                <span className="text-xs text-slate-500 font-normal">(read-only)</span>
+                <span className="text-xs text-muted-foreground font-normal">(read-only)</span>
               )}
             </CardTitle>
             <Badge
               variant="secondary"
-              className="bg-slate-100 text-slate-700 border-slate-200"
+              className="bg-muted text-foreground border-border"
             >
               {applications.length}
             </Badge>
@@ -174,7 +174,7 @@ export function StageColumn({
         <CardContent className="flex-1 overflow-y-auto min-h-[200px] p-3">
           <div ref={setNodeRef} className="min-h-full">
             {applications.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-slate-500 text-sm">
+              <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
                 No applications
               </div>
             ) : hasMultipleCategories ? (
@@ -191,7 +191,7 @@ export function StageColumn({
                   onQuickEmail={onQuickEmail}
                   onQuickInterview={onQuickInterview}
                   onQuickDownload={onQuickDownload}
-                  colorClass="bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  colorClass="bg-info/10 text-info-foreground hover:bg-info/20"
                 />
                 <SubSection
                   label="Advanced"
@@ -204,7 +204,7 @@ export function StageColumn({
                   onQuickEmail={onQuickEmail}
                   onQuickInterview={onQuickInterview}
                   onQuickDownload={onQuickDownload}
-                  colorClass="bg-green-50 text-green-700 hover:bg-green-100"
+                  colorClass="bg-success/10 text-success-foreground hover:bg-success/20"
                 />
                 <SubSection
                   label="Archived"
@@ -217,7 +217,7 @@ export function StageColumn({
                   onQuickEmail={onQuickEmail}
                   onQuickInterview={onQuickInterview}
                   onQuickDownload={onQuickDownload}
-                  colorClass="bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  colorClass="bg-muted text-muted-foreground hover:bg-muted"
                   defaultExpanded={false}
                 />
               </>

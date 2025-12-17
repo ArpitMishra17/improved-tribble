@@ -113,7 +113,7 @@ export function BulkActionBar({
   return (
     <>
       <div
-        className="sticky top-0 z-20 bg-white border-b border-slate-200 p-3 shadow-sm"
+        className="sticky top-0 z-20 bg-white border-b border-border p-3 shadow-sm"
         role="toolbar"
         aria-label="Bulk actions"
       >
@@ -131,13 +131,13 @@ export function BulkActionBar({
             />
             <span className={cn(
               "text-sm",
-              hasSelection ? "text-slate-900 font-medium" : "text-slate-500"
+              hasSelection ? "text-foreground font-medium" : "text-muted-foreground"
             )}>
               {hasSelection ? `${selectedCount} selected` : "Select all"}
             </span>
           </div>
 
-          <div className="h-4 w-px bg-slate-200" />
+          <div className="h-4 w-px bg-muted" />
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 flex-1">
@@ -176,7 +176,7 @@ export function BulkActionBar({
               variant="ghost"
               onClick={() => setShowArchiveDialog(true)}
               disabled={isBulkProcessing || !hasSelection}
-              className="text-slate-600 hover:text-red-600 hover:bg-red-50"
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
             >
               <Archive className="h-4 w-4 mr-2" />
               Archive
@@ -191,7 +191,7 @@ export function BulkActionBar({
               aria-live="polite"
             >
               <Progress value={progressPercentage} className="h-2" />
-              <span className="text-sm text-slate-600 whitespace-nowrap">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
                 {bulkProgress.sent}/{bulkProgress.total}
               </span>
             </div>
@@ -204,7 +204,7 @@ export function BulkActionBar({
               size="sm"
               onClick={onClearSelection}
               disabled={isBulkProcessing}
-              className="text-slate-500 hover:text-slate-700"
+              className="text-muted-foreground hover:text-foreground"
               aria-label="Clear selection"
             >
               <X className="h-4 w-4" />
@@ -273,11 +273,11 @@ export function BulkActionBar({
                     <SelectItem key={template.id} value={template.id.toString()}>
                       <div className="flex items-center gap-2">
                         <span>{template.name}</span>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-muted-foreground">
                           ({templateTypeLabel(template.templateType)})
                         </span>
                         {template.isDefault && (
-                          <span className="text-xs font-medium text-green-600">(Default)</span>
+                          <span className="text-xs font-medium text-success">(Default)</span>
                         )}
                       </div>
                     </SelectItem>
@@ -291,10 +291,10 @@ export function BulkActionBar({
               if (!template) return null;
               const firstLine = template.body.split('\n')[0];
               return (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-1">
-                  <p className="text-xs font-medium text-slate-700">Preview:</p>
-                  <p className="text-sm text-slate-900 font-medium">{template.subject}</p>
-                  <p className="text-xs text-slate-600 truncate">{firstLine || template.body.substring(0, 80)}...</p>
+                <div className="p-3 bg-muted/50 border border-border rounded-md space-y-1">
+                  <p className="text-xs font-medium text-foreground">Preview:</p>
+                  <p className="text-sm text-foreground font-medium">{template.subject}</p>
+                  <p className="text-xs text-muted-foreground truncate">{firstLine || template.body.substring(0, 80)}...</p>
                 </div>
               );
             })()}
@@ -340,14 +340,14 @@ export function BulkActionBar({
               </SelectContent>
             </Select>
             <div className="space-y-2">
-              <label className="text-sm text-slate-600">
+              <label className="text-sm text-muted-foreground">
                 Custom message (optional)
               </label>
               <textarea
                 value={formMessage}
                 onChange={(e) => setFormMessage(e.target.value)}
                 placeholder="Add a personalized message..."
-                className="w-full min-h-[80px] rounded-md border border-slate-300 bg-white p-2 text-slate-900 placeholder:text-slate-400"
+                className="w-full min-h-[80px] rounded-md border border-border bg-white p-2 text-foreground placeholder:text-muted-foreground"
               />
             </div>
           </div>
@@ -385,7 +385,7 @@ export function BulkActionBar({
                 await onArchiveSelected();
                 setShowArchiveDialog(false);
               }}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/80"
             >
               Archive
             </AlertDialogAction>

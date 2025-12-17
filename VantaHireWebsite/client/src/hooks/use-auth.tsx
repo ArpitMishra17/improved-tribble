@@ -8,13 +8,18 @@ import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+type RegisterResponse = {
+  message: string;
+  requiresVerification?: boolean;
+} | SelectUser;
+
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  registerMutation: UseMutationResult<RegisterResponse, Error, InsertUser>;
 };
 
 type ExpectedRole = 'candidate' | 'recruiter' | 'super_admin';
@@ -57,12 +62,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
+    mutationFn: async (credentials: InsertUser): Promise<RegisterResponse> => {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: (response: RegisterResponse) => {
+      // Check if this is a verification-required response
+      if ('requiresVerification' in response && response.requiresVerification) {
+        toast({
+          title: "Check your email",
+          description: response.message || "Please verify your email address to continue.",
+        });
+        // Don't set user - they need to verify first
+        return;
+      }
+      // Legacy response (user object) - should not happen with new backend
+      queryClient.setQueryData(["/api/user"], response);
       toast({
         title: "Registration successful",
         description: "Welcome to VantaHire!",

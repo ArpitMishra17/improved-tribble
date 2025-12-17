@@ -10,6 +10,10 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   role: text("role").notNull().default("candidate"), // super_admin, recruiter, candidate, hiring_manager
+  // Email verification
+  emailVerified: boolean("email_verified").default(false),
+  emailVerificationToken: text("email_verification_token"),
+  emailVerificationExpires: timestamp("email_verification_expires"),
   // AI features
   aiContentFreeUsed: boolean("ai_content_free_used").default(false),
   aiOnboardedAt: timestamp("ai_onboarded_at"),
@@ -83,10 +87,14 @@ export const jobs = pgTable("jobs", {
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  displayName: text("display_name"),
+  company: text("company"),
+  photoUrl: text("photo_url"),
   bio: text("bio"),
   skills: text("skills").array(),
   linkedin: text("linkedin"),
   location: text("location"),
+  isPublic: boolean("is_public").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -842,15 +850,23 @@ export const recruiterAddApplicationSchema = z.object({
 });
 
 export const insertUserProfileSchema = createInsertSchema(userProfiles).pick({
+  displayName: true,
+  company: true,
+  photoUrl: true,
   bio: true,
   skills: true,
   linkedin: true,
   location: true,
+  isPublic: true,
 }).extend({
-  bio: z.string().max(500).optional(),
+  displayName: z.string().max(100).optional(),
+  company: z.string().max(200).optional(),
+  photoUrl: z.string().url().max(500).optional(),
+  bio: z.string().max(2000).optional(),
   skills: z.array(z.string().min(1).max(50)).max(20).optional(),
   linkedin: z.string().url().optional(),
-  location: z.string().min(1).max(100).optional(),
+  location: z.string().min(1).max(200).optional(),
+  isPublic: z.boolean().optional(),
 });
 
 export const insertJobAnalyticsSchema = createInsertSchema(jobAnalytics).pick({

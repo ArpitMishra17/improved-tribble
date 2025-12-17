@@ -28,7 +28,7 @@ export function TimeSeriesChart({
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-900">{title}</CardTitle>
+          <CardTitle className="text-foreground">{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
@@ -42,12 +42,12 @@ export function TimeSeriesChart({
     return (
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-900">{title}</CardTitle>
+          <CardTitle className="text-foreground">{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="h-[300px] flex items-center justify-center">
-            <p className="text-slate-500">No data available</p>
+            <p className="text-muted-foreground">No data available</p>
           </div>
         </CardContent>
       </Card>
@@ -57,7 +57,7 @@ export function TimeSeriesChart({
   return (
     <Card className="shadow-sm">
       <CardHeader>
-        <CardTitle className="text-slate-900">{title}</CardTitle>
+        <CardTitle className="text-foreground">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>

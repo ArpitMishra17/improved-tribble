@@ -9,7 +9,7 @@ const Footer = ({ minimal = false }: FooterProps) => {
   // Minimal footer for ATS pages
   if (minimal) {
     return (
-      <footer className="bg-[#0d0d1a] border-t border-purple-500/20 py-6 relative z-10">
+      <footer className="bg-[#0d0d1a] border-t border-primary/20 py-6 relative z-10">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-white/50 text-sm">
@@ -20,31 +20,31 @@ const Footer = ({ minimal = false }: FooterProps) => {
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('cookie-consent:open', { detail: { reset: true } }));
                 }}
-                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+                className="text-white/50 text-sm hover:text-warning transition-colors"
               >
                 Cookie Preferences
               </button>
               <Link
                 href="/privacy-policy"
-                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+                className="text-white/50 text-sm hover:text-warning transition-colors"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/terms-of-service"
-                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+                className="text-white/50 text-sm hover:text-warning transition-colors"
               >
                 Terms of Service
               </Link>
               <Link
                 href="/cookie-policy"
-                className="text-white/50 text-sm hover:text-amber-400 transition-colors"
+                className="text-white/50 text-sm hover:text-warning transition-colors"
               >
                 Cookie Policy
               </Link>
               <a
                 href="mailto:hello@vantahire.com"
-                className="text-white/70 text-sm hover:text-amber-400 transition-colors"
+                className="text-white/70 text-sm hover:text-warning transition-colors"
               >
                 hello@vantahire.com
               </a>
@@ -78,22 +78,22 @@ const Footer = ({ minimal = false }: FooterProps) => {
             </h4>
             <ul className="space-y-3">
               <li>
-                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Contract Staffing
                 </a>
               </li>
               <li>
-                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Permanent Hiring
                 </a>
               </li>
               <li>
-                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   VantaHire ATS
                 </a>
               </li>
               <li>
-                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Pricing
                 </a>
               </li>
@@ -107,17 +107,17 @@ const Footer = ({ minimal = false }: FooterProps) => {
             </h4>
             <ul className="space-y-3">
               <li>
-                <a href="/#about" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#about" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Why VantaHire
                 </a>
               </li>
               <li>
-                <Link href="/jobs" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <Link href="/jobs" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Jobs
                 </Link>
               </li>
               <li>
-                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Contact
                 </a>
               </li>
@@ -131,22 +131,22 @@ const Footer = ({ minimal = false }: FooterProps) => {
             </h4>
             <ul className="space-y-3">
               <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Technology & SaaS
                 </a>
               </li>
               <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Telecom
                 </a>
               </li>
               <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   FinTech
                 </a>
               </li>
               <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-purple-400 transition-colors">
+                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Healthcare
                 </a>
               </li>
@@ -165,31 +165,31 @@ const Footer = ({ minimal = false }: FooterProps) => {
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('cookie-consent:open', { detail: { reset: true } }));
                 }}
-                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+                className="text-[var(--text-muted)] text-sm hover:text-warning transition-colors"
               >
                 Cookie Preferences
               </button>
               <Link
                 href="/privacy-policy"
-                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+                className="text-[var(--text-muted)] text-sm hover:text-warning transition-colors"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/terms-of-service"
-                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+                className="text-[var(--text-muted)] text-sm hover:text-warning transition-colors"
               >
                 Terms of Service
               </Link>
               <Link
                 href="/cookie-policy"
-                className="text-[var(--text-muted)] text-sm hover:text-amber-400 transition-colors"
+                className="text-[var(--text-muted)] text-sm hover:text-warning transition-colors"
               >
                 Cookie Policy
               </Link>
               <a
                 href="mailto:hello@vantahire.com"
-                className="text-[var(--text-secondary)] text-sm hover:text-amber-400 transition-colors"
+                className="text-[var(--text-secondary)] text-sm hover:text-warning transition-colors"
               >
                 hello@vantahire.com
               </a>

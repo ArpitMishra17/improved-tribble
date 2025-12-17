@@ -41,18 +41,18 @@ function FilterContent({
       {/* Search */}
       <div className="space-y-2">
         <Label htmlFor="search" className="text-sm font-medium flex items-center gap-2">
-          <Search className="h-4 w-4 text-purple-400" />
+          <Search className="h-4 w-4 text-primary" />
           Keyword Search
         </Label>
         <div className="relative group">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-focus-within:text-purple-400 transition-colors" />
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             id="search"
             placeholder="Job title, keywords..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onApplyFilters()}
-            className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+            className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-purple-400/20"
           />
         </div>
       </div>
@@ -60,18 +60,18 @@ function FilterContent({
       {/* Location */}
       <div className="space-y-2">
         <Label htmlFor="location" className="text-sm font-medium flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-purple-400" />
+          <MapPin className="h-4 w-4 text-primary" />
           Location
         </Label>
         <div className="relative group">
-          <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-focus-within:text-purple-400 transition-colors" />
+          <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             id="location"
             placeholder="City, state, country..."
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onApplyFilters()}
-            className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+            className="pl-10 bg-white/5 border-white/20 text-white placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-purple-400/20"
           />
         </div>
       </div>
@@ -81,11 +81,11 @@ function FilterContent({
       {/* Job Type */}
       <div className="space-y-2">
         <Label className="text-sm font-medium flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-purple-400" />
+          <Briefcase className="h-4 w-4 text-primary" />
           Job Type
         </Label>
         <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20">
+          <SelectTrigger className="bg-white/5 border-white/20 text-white focus:border-primary focus:ring-2 focus:ring-purple-400/20">
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
           <SelectContent>
@@ -108,7 +108,7 @@ function FilterContent({
           value={skills}
           onChange={(e) => setSkills(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onApplyFilters()}
-          className="bg-white/5 border-white/20 text-white placeholder:text-gray-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
+          className="bg-white/5 border-white/20 text-white placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-purple-400/20"
         />
       </div>
 
@@ -145,7 +145,7 @@ export function FilterPanel(props: FilterPanelProps) {
       <div className="sticky top-4">
         <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-6">
           <div className="flex items-center gap-2 mb-6">
-            <SlidersHorizontal className="h-5 w-5 text-purple-400" />
+            <SlidersHorizontal className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold text-white">Filters</h2>
           </div>
           <FilterContent {...props} />
@@ -176,10 +176,10 @@ export function MobileFilterSheet(props: FilterPanelProps) {
           Filters
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="bg-slate-900/95 backdrop-blur-sm border-white/20 text-white overflow-y-auto">
+      <SheetContent side="left" className="bg-card/95 backdrop-blur-sm border-white/20 text-white overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="text-white flex items-center gap-2">
-            <SlidersHorizontal className="h-5 w-5 text-purple-400" />
+            <SlidersHorizontal className="h-5 w-5 text-primary" />
             Filter Jobs
           </SheetTitle>
         </SheetHeader>

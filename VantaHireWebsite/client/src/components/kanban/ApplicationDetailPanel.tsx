@@ -234,15 +234,15 @@ export function ApplicationDetailPanel({
   const currentStage = pipelineStages.find((s) => s.id === application.currentStage);
 
   return (
-    <div className="h-full flex flex-col bg-white border-l border-slate-200">
+    <div className="h-full flex flex-col bg-white border-l border-border">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200">
-        <h2 className="text-slate-900 text-lg font-semibold">Application Details</h2>
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <h2 className="text-foreground text-lg font-semibold">Application Details</h2>
         <Button
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="text-slate-600 hover:bg-slate-100"
+          className="text-muted-foreground hover:bg-muted"
           aria-label="Close panel"
         >
           <X className="h-4 w-4" />
@@ -265,23 +265,23 @@ export function ApplicationDetailPanel({
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-4">
-            <Card className="bg-slate-50 border-slate-200">
+            <Card className="bg-muted/50 border-border">
               <CardHeader>
-                <CardTitle className="text-slate-900 text-lg">{application.name}</CardTitle>
+                <CardTitle className="text-foreground text-lg">{application.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="h-4 w-4 text-primary" />
                     <span className="text-sm">{application.email}</span>
                   </div>
                   {application.phone && (
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <Phone className="h-4 w-4 text-primary" />
                       <span className="text-sm">{application.phone}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-4 w-4 text-primary" />
                     <span className="text-sm">
                       Applied {new Date(application.appliedAt).toLocaleDateString()}
@@ -290,16 +290,16 @@ export function ApplicationDetailPanel({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
+                  <Badge variant="outline" className="border-info/30 text-info-foreground bg-info/10">
                     {application.status}
                   </Badge>
                   {currentStage && (
-                    <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">
+                    <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
                       {currentStage.name}
                     </Badge>
                   )}
                   {application.interviewDate && (
-                    <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
+                    <Badge variant="outline" className="border-success/30 text-success-foreground bg-success/10">
                       Interview Scheduled
                     </Badge>
                   )}
@@ -314,10 +314,10 @@ export function ApplicationDetailPanel({
                 </Button>
 
                 {/* Move Stage */}
-                <div className="space-y-2 pt-4 border-t border-slate-200">
-                  <Label className="text-slate-900">Move to Stage</Label>
+                <div className="space-y-2 pt-4 border-t border-border">
+                  <Label className="text-foreground">Move to Stage</Label>
                   <Select value={selectedStageId} onValueChange={setSelectedStageId}>
-                    <SelectTrigger className="bg-white border-slate-300">
+                    <SelectTrigger className="bg-white border-border">
                       <SelectValue placeholder="Select stage" />
                     </SelectTrigger>
                     <SelectContent>
@@ -332,7 +332,7 @@ export function ApplicationDetailPanel({
                     placeholder="Add notes (optional)"
                     value={stageNotes}
                     onChange={(e) => setStageNotes(e.target.value)}
-                    className="bg-white border-slate-300 placeholder:text-slate-500"
+                    className="bg-white border-border placeholder:text-muted-foreground"
                   />
                   <Button
                     onClick={handleMoveStage}
@@ -345,15 +345,15 @@ export function ApplicationDetailPanel({
 
                 {/* Send Email */}
                 {emailTemplates.length > 0 && (
-                  <div className="space-y-3 pt-4 border-t border-slate-200">
-                    <Label className="text-slate-900">Send Email</Label>
+                  <div className="space-y-3 pt-4 border-t border-border">
+                    <Label className="text-foreground">Send Email</Label>
 
                     {/* Template Selector */}
                     <Select value={selectedTemplateId} onValueChange={(value) => {
                       setSelectedTemplateId(value);
                       setShowAiDraft(false);
                     }}>
-                      <SelectTrigger className="bg-white border-slate-300">
+                      <SelectTrigger className="bg-white border-border">
                         <SelectValue placeholder="Select template" />
                       </SelectTrigger>
                       <SelectContent>
@@ -368,11 +368,11 @@ export function ApplicationDetailPanel({
                             <SelectItem key={template.id} value={template.id.toString()}>
                               <div className="flex items-center gap-2">
                                 <span>{template.name}</span>
-                                <span className="text-xs text-slate-500">
+                                <span className="text-xs text-muted-foreground">
                                   ({templateTypeLabel(template.templateType)})
                                 </span>
                                 {template.isDefault && (
-                                  <span className="text-xs font-medium text-green-600">(Default)</span>
+                                  <span className="text-xs font-medium text-success">(Default)</span>
                                 )}
                               </div>
                             </SelectItem>
@@ -386,10 +386,10 @@ export function ApplicationDetailPanel({
                       if (!template) return null;
                       const firstLine = template.body.split('\n')[0];
                       return (
-                        <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-1">
-                          <p className="text-xs font-medium text-slate-700">Preview:</p>
-                          <p className="text-sm text-slate-900 font-medium">{template.subject}</p>
-                          <p className="text-xs text-slate-600 truncate">{firstLine || template.body.substring(0, 80)}...</p>
+                        <div className="p-3 bg-muted/50 border border-border rounded-md space-y-1">
+                          <p className="text-xs font-medium text-foreground">Preview:</p>
+                          <p className="text-sm text-foreground font-medium">{template.subject}</p>
+                          <p className="text-xs text-muted-foreground truncate">{firstLine || template.body.substring(0, 80)}...</p>
                         </div>
                       );
                     })()}
@@ -397,7 +397,7 @@ export function ApplicationDetailPanel({
                     {/* Tone Selector */}
                     {selectedTemplateId && (
                       <div className="space-y-2">
-                        <Label className="text-slate-900 text-sm">Tone</Label>
+                        <Label className="text-foreground text-sm">Tone</Label>
                         <div className="flex gap-2">
                           <Button
                             type="button"
@@ -452,12 +452,12 @@ export function ApplicationDetailPanel({
                         </div>
                         <div className="space-y-2">
                           <div>
-                            <Label className="text-xs text-slate-600">Subject:</Label>
-                            <p className="text-sm text-slate-900 font-medium">{aiDraftSubject}</p>
+                            <Label className="text-xs text-muted-foreground">Subject:</Label>
+                            <p className="text-sm text-foreground font-medium">{aiDraftSubject}</p>
                           </div>
                           <div>
-                            <Label className="text-xs text-slate-600">Body:</Label>
-                            <p className="text-sm text-slate-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                            <Label className="text-xs text-muted-foreground">Body:</Label>
+                            <p className="text-sm text-foreground whitespace-pre-wrap max-h-40 overflow-y-auto">
                               {aiDraftBody}
                             </p>
                           </div>
@@ -470,7 +470,7 @@ export function ApplicationDetailPanel({
                       onClick={handleSendEmail}
                       disabled={!selectedTemplateId}
                       variant="outline"
-                      className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
+                      className="w-full border-border text-foreground hover:bg-muted"
                     >
                       <Mail className="h-4 w-4 mr-2" />
                       Send Email
@@ -480,10 +480,10 @@ export function ApplicationDetailPanel({
 
                 {/* Send Form */}
                 {formTemplates.length > 0 && (
-                  <div className="space-y-2 pt-4 border-t border-slate-200">
-                    <Label className="text-slate-900">Invite to Form</Label>
+                  <div className="space-y-2 pt-4 border-t border-border">
+                    <Label className="text-foreground">Invite to Form</Label>
                     <Select value={selectedFormId} onValueChange={setSelectedFormId}>
-                      <SelectTrigger className="bg-white border-slate-300">
+                      <SelectTrigger className="bg-white border-border">
                         <SelectValue placeholder="Select form" />
                       </SelectTrigger>
                       <SelectContent>
@@ -498,13 +498,13 @@ export function ApplicationDetailPanel({
                       placeholder="Custom message (optional)"
                       value={formMessage}
                       onChange={(e) => setFormMessage(e.target.value)}
-                      className="bg-white border-slate-300 placeholder:text-slate-500"
+                      className="bg-white border-border placeholder:text-muted-foreground"
                     />
                     <Button
                       onClick={handleSendForm}
                       disabled={!selectedFormId}
                       variant="outline"
-                      className="w-full border-slate-300 text-slate-700 hover:bg-slate-100"
+                      className="w-full border-border text-foreground hover:bg-muted"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Send Invitation
@@ -541,20 +541,20 @@ export function ApplicationDetailPanel({
           {/* History Tab */}
           <TabsContent value="history" className="space-y-3">
             {stageHistory.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No history available</p>
+              <p className="text-muted-foreground text-sm text-center py-8">No history available</p>
             ) : (
               stageHistory.map((entry: any, index: number) => (
-                <Card key={index} className="bg-slate-50 border-slate-200">
+                <Card key={index} className="bg-muted/50 border-border">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <HistoryIcon className="h-4 w-4 text-primary mt-1" />
                       <div className="flex-1">
-                        <p className="text-slate-900 text-sm font-medium">{entry.action}</p>
-                        <p className="text-slate-500 text-xs mt-1">
+                        <p className="text-foreground text-sm font-medium">{entry.action}</p>
+                        <p className="text-muted-foreground text-xs mt-1">
                           {new Date(entry.timestamp).toLocaleString()}
                         </p>
                         {entry.notes && (
-                          <p className="text-slate-600 text-sm mt-2">{entry.notes}</p>
+                          <p className="text-muted-foreground text-sm mt-2">{entry.notes}</p>
                         )}
                       </div>
                     </div>
@@ -571,36 +571,36 @@ export function ApplicationDetailPanel({
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : emailHistory.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">No emails sent to this candidate</p>
+              <p className="text-muted-foreground text-sm text-center py-8">No emails sent to this candidate</p>
             ) : (
               emailHistory.map((entry) => (
-                <Card key={entry.id} className="bg-slate-50 border-slate-200">
+                <Card key={entry.id} className="bg-muted/50 border-border">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                       <Mail className="h-4 w-4 text-primary mt-1" />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <p className="text-slate-900 text-sm font-medium">{entry.templateName}</p>
+                          <p className="text-foreground text-sm font-medium">{entry.templateName}</p>
                           <Badge variant="outline" className="text-xs capitalize">
                             {entry.templateType.replace(/_/g, ' ')}
                           </Badge>
                         </div>
-                        <p className="text-slate-500 text-xs mt-1">
+                        <p className="text-muted-foreground text-xs mt-1">
                           To: {entry.recipientEmail}
                         </p>
-                        <p className="text-slate-500 text-xs">
+                        <p className="text-muted-foreground text-xs">
                           {format(new Date(entry.sentAt), "MMM d, yyyy 'at' h:mm a")}
                         </p>
                         {entry.sentBy && (
-                          <p className="text-slate-400 text-xs mt-1">
+                          <p className="text-muted-foreground text-xs mt-1">
                             Sent by {entry.sentBy.firstName} {entry.sentBy.lastName}
                           </p>
                         )}
                         <Badge
                           className={`mt-2 text-xs ${
-                            entry.status === 'sent' ? 'bg-green-100 text-green-700' :
-                            entry.status === 'failed' ? 'bg-red-100 text-red-700' :
-                            'bg-slate-100 text-slate-700'
+                            entry.status === 'sent' ? 'bg-success/20 text-success-foreground' :
+                            entry.status === 'failed' ? 'bg-destructive/20 text-destructive' :
+                            'bg-muted text-foreground'
                           }`}
                         >
                           {entry.status}
@@ -615,13 +615,13 @@ export function ApplicationDetailPanel({
 
           {/* Notes Tab */}
           <TabsContent value="notes" className="space-y-3">
-            <Card className="bg-slate-50 border-slate-200">
+            <Card className="bg-muted/50 border-border">
               <CardContent className="p-4 space-y-3">
                 <Textarea
                   placeholder="Add a note..."
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  className="bg-white border-slate-300 placeholder:text-slate-500 min-h-[100px]"
+                  className="bg-white border-border placeholder:text-muted-foreground min-h-[100px]"
                 />
                 <Button
                   onClick={handleAddNote}
@@ -636,11 +636,11 @@ export function ApplicationDetailPanel({
 
             {application.recruiterNotes && application.recruiterNotes.length > 0 ? (
               application.recruiterNotes.map((note: any, index: number) => (
-                <Card key={index} className="bg-slate-50 border-slate-200">
+                <Card key={index} className="bg-muted/50 border-border">
                   <CardContent className="p-4">
-                    <p className="text-slate-600 text-sm">{note.content || note}</p>
+                    <p className="text-muted-foreground text-sm">{note.content || note}</p>
                     {note.timestamp && (
-                      <p className="text-slate-500 text-xs mt-2">
+                      <p className="text-muted-foreground text-xs mt-2">
                         {new Date(note.timestamp).toLocaleString()}
                       </p>
                     )}
@@ -648,51 +648,51 @@ export function ApplicationDetailPanel({
                 </Card>
               ))
             ) : (
-              <p className="text-slate-500 text-sm text-center py-8">No notes yet</p>
+              <p className="text-muted-foreground text-sm text-center py-8">No notes yet</p>
             )}
           </TabsContent>
 
           {/* Interview Tab */}
           <TabsContent value="interview" className="space-y-3">
-            <Card className="bg-slate-50 border-slate-200">
+            <Card className="bg-muted/50 border-border">
               <CardHeader>
-                <CardTitle className="text-slate-900 text-base">Schedule Interview</CardTitle>
+                <CardTitle className="text-foreground text-base">Schedule Interview</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <Label className="text-slate-900">Date</Label>
+                  <Label className="text-foreground">Date</Label>
                   <Input
                     type="date"
                     value={interviewDate}
                     onChange={(e) => setInterviewDate(e.target.value)}
-                    className="bg-white border-slate-300"
+                    className="bg-white border-border"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-900">Time</Label>
+                  <Label className="text-foreground">Time</Label>
                   <Input
                     type="time"
                     value={interviewTime}
                     onChange={(e) => setInterviewTime(e.target.value)}
-                    className="bg-white border-slate-300"
+                    className="bg-white border-border"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-900">Location</Label>
+                  <Label className="text-foreground">Location</Label>
                   <Input
                     placeholder="Office, Zoom link, etc."
                     value={interviewLocation}
                     onChange={(e) => setInterviewLocation(e.target.value)}
-                    className="bg-white border-slate-300 placeholder:text-slate-500"
+                    className="bg-white border-border placeholder:text-muted-foreground"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-slate-900">Notes (optional)</Label>
+                  <Label className="text-foreground">Notes (optional)</Label>
                   <Textarea
                     placeholder="Additional interview details..."
                     value={interviewNotes}
                     onChange={(e) => setInterviewNotes(e.target.value)}
-                    className="bg-white border-slate-300 placeholder:text-slate-500"
+                    className="bg-white border-border placeholder:text-muted-foreground"
                   />
                 </div>
                 <Button
@@ -707,31 +707,31 @@ export function ApplicationDetailPanel({
             </Card>
 
             {application.interviewDate && (
-              <Card className="bg-slate-50 border-slate-200">
+              <Card className="bg-muted/50 border-border">
                 <CardHeader>
-                  <CardTitle className="text-slate-900 text-base">Current Interview</CardTitle>
+                  <CardTitle className="text-foreground text-base">Current Interview</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <div className="flex items-center gap-2 text-slate-600">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-4 w-4 text-primary" />
                     <span className="text-sm">{new Date(application.interviewDate).toLocaleDateString()}</span>
                   </div>
                   {application.interviewTime && (
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="h-4 w-4 text-primary" />
                       <span className="text-sm">{application.interviewTime}</span>
                     </div>
                   )}
                   {application.interviewLocation && (
-                    <div className="flex items-center gap-2 text-slate-600">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="h-4 w-4 text-primary" />
                       <span className="text-sm">{application.interviewLocation}</span>
                     </div>
                   )}
                   {application.interviewNotes && (
-                    <p className="text-slate-600 text-sm mt-3">{application.interviewNotes}</p>
+                    <p className="text-muted-foreground text-sm mt-3">{application.interviewNotes}</p>
                   )}
-                  <div className="pt-3 border-t border-slate-200 mt-3">
+                  <div className="pt-3 border-t border-border mt-3">
                     <Button
                       variant="outline"
                       size="sm"
@@ -743,7 +743,7 @@ export function ApplicationDetailPanel({
                       <Download className="h-4 w-4 mr-2" />
                       Add to Calendar (.ics)
                     </Button>
-                    <p className="text-xs text-slate-500 mt-2 text-center">
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
                       Share with interviewers and candidate
                     </p>
                   </div>
@@ -754,20 +754,20 @@ export function ApplicationDetailPanel({
 
           {/* Rating Tab */}
           <TabsContent value="rating" className="space-y-3">
-            <Card className="bg-slate-50 border-slate-200">
+            <Card className="bg-muted/50 border-border">
               <CardHeader>
-                <CardTitle className="text-slate-900 text-base">Candidate Rating</CardTitle>
+                <CardTitle className="text-foreground text-base">Candidate Rating</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <Label className="text-slate-900">Rating (1-5)</Label>
+                  <Label className="text-foreground">Rating (1-5)</Label>
                   <Input
                     type="number"
                     min="1"
                     max="5"
                     value={rating}
                     onChange={(e) => setRating(e.target.value)}
-                    className="bg-white border-slate-300"
+                    className="bg-white border-border"
                   />
                 </div>
                 <Button
@@ -779,9 +779,9 @@ export function ApplicationDetailPanel({
                   Set Rating
                 </Button>
                 {application.rating !== null && application.rating !== undefined && (
-                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-200">
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    <span className="text-slate-900 text-lg font-semibold">{application.rating}/5</span>
+                  <div className="flex items-center justify-center gap-2 pt-4 border-t border-border">
+                    <Star className="h-5 w-5 fill-yellow-400 text-warning" />
+                    <span className="text-foreground text-lg font-semibold">{application.rating}/5</span>
                   </div>
                 )}
               </CardContent>

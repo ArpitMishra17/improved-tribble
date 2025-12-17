@@ -35,19 +35,19 @@ export function AiPipelineSummary({
     )}>
       <CardContent className="py-3">
         <div className="flex items-start gap-3">
-          <Sparkles className="h-4 w-4 text-purple-500 mt-0.5 flex-shrink-0" />
+          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             {aiLoading ? (
-              <p className="text-sm text-slate-500">Analyzing pipeline...</p>
+              <p className="text-sm text-muted-foreground">Analyzing pipeline...</p>
             ) : (
-              <p className="text-sm text-slate-700 leading-relaxed">
+              <p className="text-sm text-foreground leading-relaxed">
                 {preGeneratedSummary || fallback}
               </p>
             )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {formattedDate && (
-              <span className="text-[10px] text-slate-400">{formattedDate}</span>
+              <span className="text-[10px] text-muted-foreground">{formattedDate}</span>
             )}
             <Badge variant="outline" className="text-[9px] uppercase tracking-wide px-1.5 py-0">
               AI

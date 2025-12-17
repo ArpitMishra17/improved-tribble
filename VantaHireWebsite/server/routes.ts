@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { insertContactSchema, jobs } from "@shared/schema";
 import { z } from "zod";
 import { getEmailService } from "./simpleEmailService";
@@ -20,6 +20,7 @@ import { registerJobsRoutes } from "./jobs.routes";
 import { registerApplicationsRoutes } from "./applications.routes";
 import { registerCommunicationsRoutes } from "./communications.routes";
 import { registerResumeRoutes } from "./resume.routes";
+import { registerProfileRoutes } from "./profile.routes";
 import { doubleCsrfProtection as csrfProtectionModule, generateToken as generateTokenModule } from "./csrf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -100,6 +101,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // Platform healthcheck endpoints (Railway, k8s, etc.)
+  app.get("/healthz", (_req, res) => {
+    res.status(200).send("ok");
+  });
+
+  app.get("/readyz", async (_req, res) => {
+    try {
+      await db.execute(sql`SELECT 1`);
+      res.status(200).json({ status: "ok" });
+    } catch (err) {
+      res.status(503).json({ status: "error" });
+    }
   });
 
   // Public client configuration (non-sensitive)
@@ -377,6 +392,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Resume text preview routes
   registerResumeRoutes(app);
 
+  // Register profile routes (user profiles, public recruiter profiles)
+  registerProfileRoutes(app, doubleCsrfProtection);
+
   // Register forms routes (recruiter-sent candidate forms feature)
   registerFormsRoutes(app, doubleCsrfProtection);
 
@@ -394,5 +412,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   const httpServer = createServer(app);
+
+  // Handle HTTP parse errors gracefully (malformed requests, health checks, bots)
+  httpServer.on('clientError', (err: NodeJS.ErrnoException, socket) => {
+    // Don't log ECONNRESET as it's common and harmless
+    if (err.code !== 'ECONNRESET') {
+      console.warn('HTTP client error:', err.message);
+    }
+    // Only respond if socket is writable
+    if (socket.writable) {
+      socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+    }
+  });
+
   return httpServer;
 }

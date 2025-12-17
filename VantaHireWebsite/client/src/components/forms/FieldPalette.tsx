@@ -45,12 +45,12 @@ function DraggableFieldType({ type, label, icon: Icon, description }: typeof FIE
             {...listeners}
             className="flex items-start gap-3"
           >
-            <div className="bg-purple-500/20 p-2 rounded-md">
-              <Icon className="w-4 h-4 text-purple-300" />
+            <div className="bg-primary/20 p-2 rounded-md">
+              <Icon className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-medium">{label}</p>
-              <p className="text-slate-400 text-xs mt-0.5">{description}</p>
+              <p className="text-muted-foreground text-xs mt-0.5">{description}</p>
             </div>
           </div>
         </CardContent>
@@ -61,11 +61,11 @@ function DraggableFieldType({ type, label, icon: Icon, description }: typeof FIE
 
 export function FieldPalette({ onAddField }: FieldPaletteProps) {
   return (
-    <div className="h-full bg-slate-900 border-r border-slate-700 overflow-y-auto">
+    <div className="h-full bg-card border-r border-border overflow-y-auto">
       <div className="p-4 space-y-4">
         <div>
           <h2 className="text-white font-semibold text-lg">Field Types</h2>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Drag fields to the canvas or click to add
           </p>
         </div>
@@ -79,7 +79,7 @@ export function FieldPalette({ onAddField }: FieldPaletteProps) {
         </div>
 
         {/* Field Presets Section */}
-        <div className="pt-4 border-t border-slate-700">
+        <div className="pt-4 border-t border-border">
           <h3 className="text-white font-medium text-sm mb-2">Quick Presets</h3>
           <div className="space-y-2">
             <Button
@@ -90,7 +90,7 @@ export function FieldPalette({ onAddField }: FieldPaletteProps) {
                 onAddField("email");
                 onAddField("yes_no");
               }}
-              className="w-full justify-start border-white/20 text-slate-300 hover:bg-white/10 hover:text-white text-xs"
+              className="w-full justify-start border-white/20 text-muted-foreground/50 hover:bg-white/10 hover:text-white text-xs"
             >
               Basic Contact Form
             </Button>
@@ -102,7 +102,7 @@ export function FieldPalette({ onAddField }: FieldPaletteProps) {
                 onAddField("long_text");
                 onAddField("file");
               }}
-              className="w-full justify-start border-white/20 text-slate-300 hover:bg-white/10 hover:text-white text-xs"
+              className="w-full justify-start border-white/20 text-muted-foreground/50 hover:bg-white/10 hover:text-white text-xs"
             >
               Document Submission
             </Button>
@@ -114,7 +114,7 @@ export function FieldPalette({ onAddField }: FieldPaletteProps) {
                 onAddField("date");
                 onAddField("yes_no");
               }}
-              className="w-full justify-start border-white/20 text-slate-300 hover:bg-white/10 hover:text-white text-xs"
+              className="w-full justify-start border-white/20 text-muted-foreground/50 hover:bg-white/10 hover:text-white text-xs"
             >
               Background Check
             </Button>

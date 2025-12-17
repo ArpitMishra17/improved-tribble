@@ -3,55 +3,59 @@ import { sql } from 'drizzle-orm';
 
 export async function ensureAtsSchema(): Promise<void> {
   console.log('🔧 Ensuring ATS schema exists...');
+  const lockId = Number(process.env.DB_MIGRATION_LOCK_ID || '72499101');
 
-  // Create base tables first (from schema.ts)
-  console.log('  Creating base tables (users, jobs, applications, etc.)...');
+  await db.transaction(async (db: any) => {
+    await db.execute(sql`SELECT pg_advisory_xact_lock(${lockId});`);
 
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      username TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL,
-      first_name TEXT,
-      last_name TEXT,
-      role TEXT NOT NULL DEFAULT 'candidate'
-    );
-  `);
+    // Create base tables first (from schema.ts)
+    console.log('  Creating base tables (users, jobs, applications, etc.)...');
 
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS contact_submissions (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL,
-      phone TEXT,
-      company TEXT,
-      location TEXT,
-      message TEXT NOT NULL,
-      submitted_at TIMESTAMP DEFAULT NOW() NOT NULL
-    );
-  `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        first_name TEXT,
+        last_name TEXT,
+        role TEXT NOT NULL DEFAULT 'candidate'
+      );
+    `);
 
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS jobs (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      location TEXT NOT NULL,
-      type TEXT NOT NULL,
-      description TEXT NOT NULL,
-      skills TEXT[],
-      deadline DATE,
-      posted_by INTEGER NOT NULL REFERENCES users(id),
-      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-      is_active BOOLEAN NOT NULL DEFAULT FALSE,
-      status TEXT NOT NULL DEFAULT 'pending',
-      review_comments TEXT,
-      expires_at TIMESTAMP,
-      reviewed_by INTEGER REFERENCES users(id),
-      reviewed_at TIMESTAMP,
-      slug TEXT,
-      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
-    );
-  `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS contact_submissions (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
+        company TEXT,
+        location TEXT,
+        message TEXT NOT NULL,
+        submitted_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS jobs (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        location TEXT NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        skills TEXT[],
+        deadline DATE,
+        posted_by INTEGER NOT NULL REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT FALSE,
+        status TEXT NOT NULL DEFAULT 'pending',
+        review_comments TEXT,
+        expires_at TIMESTAMP,
+        reviewed_by INTEGER REFERENCES users(id),
+        reviewed_at TIMESTAMP,
+        slug TEXT,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+    `);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS user_profiles (
@@ -702,6 +706,20 @@ export async function ensureAtsSchema(): Promise<void> {
     `);
   }
 
+  // Email Verification: Add verification columns to users table
+  console.log('  Adding email verification columns to users table...');
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT;`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires TIMESTAMP;`);
+
+  // Recruiter Profiles: Add profile columns to user_profiles table
+  console.log('  Adding recruiter profile columns to user_profiles table...');
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS display_name TEXT;`);
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS company TEXT;`);
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;`);
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE;`);
+
+  });
+
   console.log('✅ ATS schema ready');
 }
-

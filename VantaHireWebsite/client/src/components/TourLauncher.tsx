@@ -79,10 +79,10 @@ export function TourLauncher() {
       {/* Welcome Prompt for First-Time Users */}
       {showWelcomePrompt && (
         <div className="fixed bottom-20 right-6 z-[9999] animate-in slide-in-from-bottom-4 fade-in duration-300">
-          <div className="bg-[#1e1e2e] border border-purple-500/30 rounded-xl shadow-2xl shadow-purple-500/20 p-5 max-w-sm">
+          <div className="bg-[#1e1e2e] border border-primary/30 rounded-xl shadow-2xl shadow-purple-500/20 p-5 max-w-sm">
             <button
               onClick={handleDismissWelcome}
-              className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
+              className="absolute top-3 right-3 text-muted-foreground hover:text-white transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
@@ -95,14 +95,14 @@ export function TourLauncher() {
                 <h3 className="text-white font-semibold text-base mb-1">
                   Welcome to VantaHire!
                 </h3>
-                <p className="text-gray-400 text-sm mb-4">
+                <p className="text-muted-foreground text-sm mb-4">
                   Take a quick tour to learn how to make the most of your recruitment dashboard.
                 </p>
                 <div className="flex gap-2">
                   <Button
                     onClick={handleStartFullTour}
                     size="sm"
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    className="bg-primary hover:bg-primary/80 text-white"
                   >
                     <Play className="h-3 w-3 mr-1.5" />
                     Start Tour
@@ -111,7 +111,7 @@ export function TourLauncher() {
                     onClick={handleDismissWelcome}
                     size="sm"
                     variant="ghost"
-                    className="text-gray-400 hover:text-white hover:bg-white/10"
+                    className="text-muted-foreground hover:text-white hover:bg-white/10"
                   >
                     Maybe Later
                   </Button>
@@ -120,7 +120,7 @@ export function TourLauncher() {
             </div>
           </div>
           {/* Arrow pointer */}
-          <div className="absolute -bottom-2 right-8 w-4 h-4 bg-[#1e1e2e] border-r border-b border-purple-500/30 transform rotate-45" />
+          <div className="absolute -bottom-2 right-8 w-4 h-4 bg-[#1e1e2e] border-r border-b border-primary/30 transform rotate-45" />
         </div>
       )}
 
@@ -131,7 +131,7 @@ export function TourLauncher() {
             className={cn(
               "fixed bottom-6 right-6 z-[9998] rounded-full w-12 h-12 p-0 shadow-lg transition-all duration-300",
               "bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600",
-              "border border-purple-400/30 hover:border-purple-400/50",
+              "border border-primary/30 hover:border-primary/50",
               "hover:scale-110 hover:shadow-purple-500/30 hover:shadow-xl"
             )}
             aria-label="Open help guide"
@@ -144,21 +144,21 @@ export function TourLauncher() {
           align="end"
           alignOffset={-8}
           sideOffset={12}
-          className="w-72 bg-[#1e1e2e] border-purple-500/30 text-white"
+          className="w-72 bg-[#1e1e2e] border-primary/30 text-white"
         >
           <DropdownMenuLabel className="flex items-center justify-between py-3 px-4">
             <span className="text-base font-semibold">Help & Tours</span>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-muted-foreground">
               {completedCount}/{totalTours} completed
             </span>
           </DropdownMenuLabel>
 
-          <DropdownMenuSeparator className="bg-purple-500/20" />
+          <DropdownMenuSeparator className="bg-primary/20" />
 
           {/* Full Tour Option */}
           <DropdownMenuItem
             onClick={handleStartFullTour}
-            className="py-3 px-4 cursor-pointer hover:bg-purple-500/20 focus:bg-purple-500/20"
+            className="py-3 px-4 cursor-pointer hover:bg-primary/20 focus:bg-primary/20"
           >
             <div className="flex items-center gap-3 w-full">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
@@ -166,17 +166,17 @@ export function TourLauncher() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-sm">Full Platform Tour</div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-muted-foreground">
                   Complete walkthrough of all features
                 </div>
               </div>
-              <ChevronRight className="h-4 w-4 text-gray-500" />
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </DropdownMenuItem>
 
-          <DropdownMenuSeparator className="bg-purple-500/20" />
+          <DropdownMenuSeparator className="bg-primary/20" />
 
-          <DropdownMenuLabel className="py-2 px-4 text-xs text-gray-400 uppercase tracking-wide">
+          <DropdownMenuLabel className="py-2 px-4 text-xs text-muted-foreground uppercase tracking-wide">
             Quick Tours
           </DropdownMenuLabel>
 
@@ -187,15 +187,15 @@ export function TourLauncher() {
               <DropdownMenuItem
                 key={tour.id}
                 onClick={() => handleStartSpecificTour(tour.id)}
-                className="py-2.5 px-4 cursor-pointer hover:bg-purple-500/20 focus:bg-purple-500/20"
+                className="py-2.5 px-4 cursor-pointer hover:bg-primary/20 focus:bg-primary/20"
               >
                 <div className="flex items-center gap-3 w-full">
                   <div
                     className={cn(
                       "w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0",
                       isCompleted
-                        ? "bg-green-500/20 text-green-400"
-                        : "bg-purple-500/20 text-purple-400"
+                        ? "bg-success/20 text-success"
+                        : "bg-primary/20 text-primary"
                     )}
                   >
                     {isCompleted ? (
@@ -206,7 +206,7 @@ export function TourLauncher() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm truncate">{tour.title}</div>
-                    <div className="text-xs text-gray-400 truncate">
+                    <div className="text-xs text-muted-foreground truncate">
                       {tour.description}
                     </div>
                   </div>
@@ -215,12 +215,12 @@ export function TourLauncher() {
             );
           })}
 
-          <DropdownMenuSeparator className="bg-purple-500/20" />
+          <DropdownMenuSeparator className="bg-primary/20" />
 
           {/* Reset Tours Option */}
           <DropdownMenuItem
             onClick={resetTours}
-            className="py-2.5 px-4 cursor-pointer hover:bg-purple-500/20 focus:bg-purple-500/20 text-gray-400"
+            className="py-2.5 px-4 cursor-pointer hover:bg-primary/20 focus:bg-primary/20 text-muted-foreground"
           >
             <div className="flex items-center gap-3">
               <RefreshCw className="h-4 w-4" />

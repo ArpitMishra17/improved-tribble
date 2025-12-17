@@ -224,21 +224,21 @@ export function CandidateIntakeForm({
   const getStatusIcon = (status: SectionStatus) => {
     switch (status) {
       case "complete":
-        return <Check className="h-3 w-3 text-green-600" />;
+        return <Check className="h-3 w-3 text-success" />;
       case "incomplete":
-        return <Circle className="h-3 w-3 text-slate-400" />;
+        return <Circle className="h-3 w-3 text-muted-foreground" />;
       case "locked":
-        return <Lock className="h-3 w-3 text-slate-300" />;
+        return <Lock className="h-3 w-3 text-muted-foreground/50" />;
       case "error":
-        return <AlertCircle className="h-3 w-3 text-red-500" />;
+        return <AlertCircle className="h-3 w-3 text-destructive" />;
     }
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-3xl p-0 flex flex-col">
-        <SheetHeader className="px-6 py-4 border-b border-slate-200">
-          <SheetTitle className="text-slate-900">Add Candidate</SheetTitle>
+        <SheetHeader className="px-6 py-4 border-b border-border">
+          <SheetTitle className="text-foreground">Add Candidate</SheetTitle>
           <SheetDescription>
             Create a new application for this job posting
           </SheetDescription>
@@ -246,7 +246,7 @@ export function CandidateIntakeForm({
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Navigation */}
-          <nav className="w-48 border-r border-slate-200 bg-slate-50 p-4 space-y-1 shrink-0">
+          <nav className="w-48 border-r border-border bg-muted/50 p-4 space-y-1 shrink-0">
             {SECTIONS.map((section) => {
               const Icon = SECTION_ICONS[section.id];
               const status = sectionStatuses[section.id] ?? "incomplete";
@@ -265,8 +265,8 @@ export function CandidateIntakeForm({
                     isActive
                       ? "bg-primary text-white"
                       : isLocked
-                      ? "text-slate-300 cursor-not-allowed"
-                      : "text-slate-700 hover:bg-slate-100"
+                      ? "text-muted-foreground/50 cursor-not-allowed"
+                      : "text-foreground hover:bg-muted"
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -338,7 +338,7 @@ export function CandidateIntakeForm({
         </div>
 
         {/* Fixed Action Bar */}
-        <div className="px-6 py-4 border-t border-slate-200 bg-white flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-border bg-white flex items-center justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             <X className="h-4 w-4 mr-2" />
             Cancel

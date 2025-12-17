@@ -16,7 +16,7 @@ interface SubNavProps {
 
 export function SubNav({ items, activeId, onChange, className }: SubNavProps) {
   return (
-    <div className={cn("border-b border-slate-200 bg-white", className)}>
+    <div className={cn("border-b border-border bg-white", className)}>
       <nav className="flex gap-1 -mb-px overflow-x-auto" aria-label="Sub navigation">
         {items.map((item) => (
           <button
@@ -26,7 +26,7 @@ export function SubNav({ items, activeId, onChange, className }: SubNavProps) {
               "flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
               activeId === item.id
                 ? "border-primary text-primary"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
             )}
             aria-current={activeId === item.id ? "page" : undefined}
           >
@@ -38,7 +38,7 @@ export function SubNav({ items, activeId, onChange, className }: SubNavProps) {
                   "px-2 py-0.5 text-xs rounded-full",
                   activeId === item.id
                     ? "bg-primary/10 text-primary"
-                    : "bg-slate-100 text-slate-600"
+                    : "bg-muted text-muted-foreground"
                 )}
               >
                 {item.count}

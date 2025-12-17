@@ -61,7 +61,7 @@ function SortableFieldCard({ field, isSelected, onSelect, onRemove, onDuplicate,
             <button
               {...attributes}
               {...listeners}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-white mt-1 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-white mt-1 focus:outline-none focus:ring-2 focus:ring-purple-400 rounded"
               onClick={(e) => e.stopPropagation()}
               aria-label={`Drag to reorder ${field.label || 'field'}`}
             >
@@ -73,25 +73,25 @@ function SortableFieldCard({ field, isSelected, onSelect, onRemove, onDuplicate,
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs border-purple-400/50 text-purple-300">
+                    <Badge variant="outline" className="text-xs border-primary/50 text-primary">
                       {FIELD_TYPE_LABELS[field.type] || field.type}
                     </Badge>
                     {field.required && (
-                      <Badge variant="outline" className="text-xs border-blue-400/50 text-blue-300">
+                      <Badge variant="outline" className="text-xs border-info/50 text-info">
                         Required
                       </Badge>
                     )}
                   </div>
                   <p className="text-white text-sm font-medium mt-1 truncate">
-                    {field.label || <span className="text-slate-500 italic">Untitled field</span>}
+                    {field.label || <span className="text-muted-foreground italic">Untitled field</span>}
                   </p>
                   {field.type === "select" && field.options && (
-                    <p className="text-slate-400 text-xs mt-1 truncate">
+                    <p className="text-muted-foreground text-xs mt-1 truncate">
                       Options: {field.options}
                     </p>
                   )}
                   {hasError && (
-                    <div className="flex items-center gap-1 text-red-400 text-xs mt-1">
+                    <div className="flex items-center gap-1 text-destructive text-xs mt-1">
                       <AlertCircle className="w-3 h-3" />
                       <span>This field has errors</span>
                     </div>
@@ -106,7 +106,7 @@ function SortableFieldCard({ field, isSelected, onSelect, onRemove, onDuplicate,
                 variant="ghost"
                 size="sm"
                 onClick={onDuplicate}
-                className="h-7 w-7 p-0 text-slate-400 hover:text-white hover:bg-white/10"
+                className="h-7 w-7 p-0 text-muted-foreground hover:text-white hover:bg-white/10"
                 title="Duplicate field"
               >
                 <Copy className="w-3.5 h-3.5" />
@@ -115,7 +115,7 @@ function SortableFieldCard({ field, isSelected, onSelect, onRemove, onDuplicate,
                 variant="ghost"
                 size="sm"
                 onClick={onRemove}
-                className="h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-red-900/20"
                 title="Delete field"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -163,8 +163,8 @@ export function FormCanvas({
     <div
       ref={setNodeRef}
       className={cn(
-        "h-full bg-slate-800 overflow-y-auto transition-colors",
-        isOver && "bg-slate-800/80"
+        "h-full bg-muted overflow-y-auto transition-colors",
+        isOver && "bg-muted/80"
       )}
     >
       <div className="p-6">
@@ -176,20 +176,20 @@ export function FormCanvas({
               className={cn(
                 "text-xs",
                 fields.length >= 50
-                  ? "border-red-400 text-red-400"
+                  ? "border-red-400 text-destructive"
                   : fields.length >= 40
-                  ? "border-amber-400 text-amber-400"
-                  : "border-slate-500 text-slate-400"
+                  ? "border-amber-400 text-warning"
+                  : "border-slate-500 text-muted-foreground"
               )}
             >
               {fields.length} / 50 fields
             </Badge>
           </div>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Drag fields from palette or reorder existing fields. Click to edit properties.
           </p>
           {fields.length >= 50 && (
-            <p className="text-red-400 text-xs mt-2">
+            <p className="text-destructive text-xs mt-2">
               Maximum field limit reached. Remove fields to add more.
             </p>
           )}
@@ -198,10 +198,10 @@ export function FormCanvas({
         {fields.length === 0 ? (
           <Card className={cn(
             "bg-white/5 border-white/10 border-dashed transition-colors",
-            isOver && "border-purple-400 bg-purple-500/10"
+            isOver && "border-primary bg-primary/10"
           )}>
             <CardContent className="py-12 text-center">
-              <p className="text-slate-400">No fields yet. Drag fields from the palette or click to add.</p>
+              <p className="text-muted-foreground">No fields yet. Drag fields from the palette or click to add.</p>
             </CardContent>
           </Card>
         ) : (

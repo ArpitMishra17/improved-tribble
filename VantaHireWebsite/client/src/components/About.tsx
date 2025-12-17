@@ -107,16 +107,16 @@ const About = () => {
     >
       {/* Premium background decorations */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-purple-500/20 rounded-full blur-[50px] animate-pulse-slow"></div>
-      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-[50px] animate-pulse-slow" 
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/20 rounded-full blur-[50px] animate-pulse-slow"></div>
+      <div className="absolute top-0 right-0 w-96 h-96 bg-info/20 rounded-full blur-[50px] animate-pulse-slow" 
            style={{ animationDelay: '1.2s' }}></div>
-      <div className="absolute top-1/2 left-1/4 w-72 h-72 bg-pink-500/10 rounded-full blur-[40px] animate-pulse-slow"
+      <div className="absolute top-1/2 left-1/4 w-72 h-72 bg-primary/10 rounded-full blur-[40px] animate-pulse-slow"
            style={{ animationDelay: '0.6s' }}></div>
            
       {/* Animated particles */}
-      <div className="absolute w-3 h-3 bg-blue-300/40 rounded-full top-1/3 right-1/3 animate-float-path" 
+      <div className="absolute w-3 h-3 bg-info/50/40 rounded-full top-1/3 right-1/3 animate-float-path" 
           style={{animationDuration: '20s'}}></div>
-      <div className="absolute w-2 h-2 bg-purple-300/40 rounded-full bottom-1/4 left-1/4 animate-float-path" 
+      <div className="absolute w-2 h-2 bg-primary/70/40 rounded-full bottom-1/4 left-1/4 animate-float-path" 
           style={{animationDelay: '0.8s', animationDuration: '16s'}}></div>
       
       <div className="container mx-auto px-4 relative z-10">

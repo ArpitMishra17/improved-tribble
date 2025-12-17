@@ -84,35 +84,35 @@ export function ResumePreviewModal({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'submitted': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'reviewed': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'shortlisted': return 'bg-green-50 text-green-700 border-green-200';
-      case 'rejected': return 'bg-red-50 text-red-700 border-red-200';
-      default: return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/30';
+      case 'submitted': return 'bg-warning/10 text-warning-foreground border-warning/30';
+      case 'reviewed': return 'bg-info/10 text-info-foreground border-info/30';
+      case 'shortlisted': return 'bg-success/10 text-success-foreground border-success/30';
+      case 'rejected': return 'bg-destructive/10 text-destructive border-destructive/30';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getFitBadgeColor = (label: string) => {
     const colorMap: Record<string, string> = {
-      'Exceptional': 'bg-green-50 text-green-700 border-green-200',
-      'Strong': 'bg-blue-50 text-blue-700 border-blue-200',
-      'Good': 'bg-purple-50 text-purple-700 border-purple-200',
-      'Partial': 'bg-amber-50 text-amber-700 border-amber-200',
-      'Low': 'bg-red-50 text-red-700 border-red-200',
+      'Exceptional': 'bg-success/10 text-success-foreground border-success/30',
+      'Strong': 'bg-info/10 text-info-foreground border-info/30',
+      'Good': 'bg-primary/10 text-primary border-primary/30',
+      'Partial': 'bg-warning/10 text-warning-foreground border-warning/30',
+      'Low': 'bg-destructive/10 text-destructive border-destructive/30',
     };
-    return colorMap[label] || 'bg-slate-100 text-slate-600 border-slate-200';
+    return colorMap[label] || 'bg-muted text-muted-foreground border-border';
   };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-6xl w-[95vw] h-[90vh] max-h-[90vh] p-0 gap-0 flex flex-col">
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b border-slate-200 shrink-0">
+        <DialogHeader className="px-6 py-4 border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3">
-                <DialogTitle className="text-xl font-semibold text-slate-900">
+                <DialogTitle className="text-xl font-semibold text-foreground">
                   {applicationName}
                 </DialogTitle>
                 {status && (
@@ -127,9 +127,9 @@ export function ResumePreviewModal({
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-slate-500 mt-1">{applicationEmail}</p>
+              <p className="text-sm text-muted-foreground mt-1">{applicationEmail}</p>
               {jobTitle && (
-                <p className="text-sm text-slate-600 mt-0.5">Applied for: {jobTitle}</p>
+                <p className="text-sm text-muted-foreground mt-0.5">Applied for: {jobTitle}</p>
               )}
             </div>
           </div>
@@ -138,12 +138,12 @@ export function ResumePreviewModal({
         {/* Main Content - Two Column Layout */}
         <div className="flex-1 flex overflow-hidden" data-testid="resume-review-modal">
           {/* Left: Resume Preview */}
-          <div className="flex-1 flex flex-col border-r border-slate-200">
+          <div className="flex-1 flex flex-col border-r border-border">
             {/* Resume Actions Bar */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0 bg-slate-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0 bg-muted/50">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-slate-500" />
-                <span className="text-sm text-slate-600">
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
                   {resumeUrl?.split('/').pop() || 'Resume'}
                 </span>
               </div>
@@ -173,7 +173,7 @@ export function ResumePreviewModal({
 
             {/* Resume Preview */}
             <div className="flex-1 overflow-hidden p-4" data-testid="resume-preview-pane">
-              <div className="h-full border border-slate-200 rounded-lg overflow-hidden bg-slate-50" data-testid="resume-preview-frame">
+              <div className="h-full border border-border rounded-lg overflow-hidden bg-muted/50" data-testid="resume-preview-frame">
                 {fullResumeUrl ? (
                   isPdf ? (
                     <iframe
@@ -189,8 +189,8 @@ export function ResumePreviewModal({
                     >
                       {/* Fallback for non-PDF files */}
                       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                        <FileText className="h-16 w-16 text-slate-300 mb-4" />
-                        <p className="text-slate-600 mb-4">
+                        <FileText className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                        <p className="text-muted-foreground mb-4">
                           Unable to preview this file type in browser.
                         </p>
                         <Button onClick={() => window.open(fullResumeUrl, '_blank')}>
@@ -202,15 +202,15 @@ export function ResumePreviewModal({
                   )
                 ) : resumeText ? (
                   <div className="h-full p-4 overflow-auto bg-white">
-                    <p className="text-xs uppercase tracking-wide text-slate-500 mb-2">Resume text</p>
-                    <pre className="whitespace-pre-wrap text-sm text-slate-800 font-sans leading-relaxed">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Resume text</p>
+                    <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">
                       {resumeText}
                     </pre>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                    <AlertCircle className="h-16 w-16 text-slate-300 mb-4" />
-                    <p className="text-slate-500">No resume available for this application</p>
+                    <AlertCircle className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                    <p className="text-muted-foreground">No resume available for this application</p>
                   </div>
                 )}
               </div>
@@ -218,7 +218,7 @@ export function ResumePreviewModal({
           </div>
 
           {/* Right: Review Panel */}
-          <div className="w-80 flex flex-col bg-slate-50">
+          <div className="w-80 flex flex-col bg-muted/50">
             <div className="p-4 flex-1 overflow-auto">
               {/* AI Fit Analysis */}
               {aiFitReasons && Array.isArray(aiFitReasons) && aiFitReasons.length > 0 && (
@@ -227,7 +227,7 @@ export function ResumePreviewModal({
                     <Brain className="w-4 h-4 text-primary" />
                     <span className="text-primary font-medium text-sm">AI Analysis</span>
                   </div>
-                  <ul className="text-slate-600 text-sm space-y-1">
+                  <ul className="text-muted-foreground text-sm space-y-1">
                     {aiFitReasons.slice(0, 4).map((reason: string, idx: number) => (
                       <li key={idx} className="flex items-start gap-2">
                         <span className="text-primary mt-0.5">•</span>
@@ -240,7 +240,7 @@ export function ResumePreviewModal({
 
               {/* Review Notes */}
               <div className="mb-4">
-                <label className="text-slate-900 text-sm font-medium mb-2 block">
+                <label className="text-foreground text-sm font-medium mb-2 block">
                   Review Notes
                 </label>
                 <Textarea
@@ -252,13 +252,13 @@ export function ResumePreviewModal({
               </div>
 
               {/* Quick Actions Info */}
-              <div className="text-xs text-slate-500 mb-4">
+              <div className="text-xs text-muted-foreground mb-4">
                 <p>Choose an action below to update the candidate's status and move them through the pipeline.</p>
               </div>
             </div>
 
             {/* Action Buttons - Fixed at Bottom */}
-            <div className="p-4 border-t border-slate-200 bg-white space-y-2">
+            <div className="p-4 border-t border-border bg-white space-y-2">
               <Button
                 className="w-full"
                 onClick={handleMoveToScreening}

@@ -128,12 +128,12 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
   const getHealthBadgeClasses = (status: JobHealthSummary["status"]) => {
     switch (status) {
       case "green":
-        return "bg-green-50 text-green-700 border-green-200";
+        return "bg-success/10 text-success-foreground border-success/30";
       case "amber":
-        return "bg-amber-50 text-amber-700 border-amber-200";
+        return "bg-warning/10 text-warning-foreground border-warning/30";
       case "red":
       default:
-        return "bg-red-50 text-red-700 border-red-200";
+        return "bg-destructive/10 text-destructive border-destructive/30";
     }
   };
 
@@ -142,11 +142,11 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
       {/* Header with Filters */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-blue-600" />
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-info" />
             Hiring Metrics
           </h2>
-          <p className="text-slate-600 text-sm mt-1">
+          <p className="text-muted-foreground text-sm mt-1">
             Track time-to-fill, stage efficiency, and conversion rates
           </p>
         </div>
@@ -163,7 +163,7 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
 
       {/* Date Range Filters */}
       {showFilters && (
-        <Card className="bg-slate-50 border-slate-200">
+        <Card className="bg-muted/50 border-border">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -216,14 +216,14 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
 
       {isLoading ? (
         <div className="text-center py-12">
-          <Clock className="h-12 w-12 mx-auto mb-3 text-slate-300 animate-spin" />
-          <p className="text-slate-600">Loading metrics...</p>
+          <Clock className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50 animate-spin" />
+          <p className="text-muted-foreground">Loading metrics...</p>
         </div>
       ) : !metrics ? (
-        <Card className="bg-white border-slate-200">
+        <Card className="bg-white border-border">
           <CardContent className="py-12 text-center">
-            <BarChart3 className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-            <p className="text-slate-600">No metrics data available.</p>
+            <BarChart3 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-muted-foreground">No metrics data available.</p>
           </CardContent>
         </Card>
       ) : (
@@ -231,78 +231,78 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
           {/* KPI Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Average Time to Fill */}
-            <Card className="bg-white border-slate-200 shadow-sm">
+            <Card className="bg-white border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Avg Time to Fill
                 </CardTitle>
-                <Clock className="h-4 w-4 text-blue-600" />
+                <Clock className="h-4 w-4 text-info" />
               </CardHeader>
               <CardContent>
                 {metrics.timeToFill.overall !== null ? (
                   <>
-                    <div className="text-2xl font-bold text-slate-900">
+                    <div className="text-2xl font-bold text-foreground">
                       {metrics.timeToFill.overall} days
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       From application to hire
                     </p>
                   </>
                 ) : (
-                  <div className="text-sm text-slate-500">No hires yet</div>
+                  <div className="text-sm text-muted-foreground">No hires yet</div>
                 )}
               </CardContent>
             </Card>
 
             {/* Total Hires */}
-            <Card className="bg-white border-slate-200 shadow-sm">
+            <Card className="bg-white border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Hires
                 </CardTitle>
-                <Users className="h-4 w-4 text-green-600" />
+                <Users className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-2xl font-bold text-foreground">
                   {metrics.totalHires}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Successful placements
                 </p>
               </CardContent>
             </Card>
 
             {/* Total Applications */}
-            <Card className="bg-white border-slate-200 shadow-sm">
+            <Card className="bg-white border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Applications
                 </CardTitle>
-                <Target className="h-4 w-4 text-purple-600" />
+                <Target className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-2xl font-bold text-foreground">
                   {metrics.totalApplications}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Candidates reviewed
                 </p>
               </CardContent>
             </Card>
 
             {/* Conversion Rate */}
-            <Card className="bg-white border-slate-200 shadow-sm">
+            <Card className="bg-white border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
                   Conversion Rate
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-orange-600" />
+                <TrendingUp className="h-4 w-4 text-warning" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-slate-900">
+                <div className="text-2xl font-bold text-foreground">
                   {metrics.conversionRate}%
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Applications to hires
                 </p>
               </CardContent>
@@ -311,7 +311,7 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
 
           {/* Time to Fill by Job */}
           {!jobId && metrics.timeToFill.byJob.length > 0 && (
-            <Card className="bg-white border-slate-200">
+            <Card className="bg-white border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Time to Fill by Job</CardTitle>
                 <CardDescription>
@@ -335,14 +335,14 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                           {job.jobTitle}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge variant="outline" className="bg-info/10 text-info-foreground border-info/30">
                             {job.averageDays} days
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           {job.hiredCount}
                         </TableCell>
-                        <TableCell className="text-right text-sm text-slate-600">
+                        <TableCell className="text-right text-sm text-muted-foreground">
                           {job.oldestHireDate && job.newestHireDate ? (
                             <>
                               {new Date(job.oldestHireDate).toLocaleDateString()} -{" "}
@@ -362,7 +362,7 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
 
           {/* Time in Stage */}
           {metrics.timeInStage.length > 0 && (
-            <Card className="bg-white border-slate-200">
+            <Card className="bg-white border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Time in Stage Breakdown</CardTitle>
                 <CardDescription>
@@ -393,22 +393,22 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                               variant="outline"
                               className={
                                 stage.averageDays <= 3
-                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  ? "bg-success/10 text-success-foreground border-success/30"
                                   : stage.averageDays <= 7
-                                  ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                                  : "bg-orange-50 text-orange-700 border-orange-200"
+                                  ? "bg-warning/10 text-warning-foreground border-warning/30"
+                                  : "bg-warning/10 text-warning-foreground border-warning/30"
                               }
                             >
                               {stage.averageDays} days
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right text-sm text-slate-600">
+                          <TableCell className="text-right text-sm text-muted-foreground">
                             {stage.minDays}
                           </TableCell>
-                          <TableCell className="text-right text-sm text-slate-600">
+                          <TableCell className="text-right text-sm text-muted-foreground">
                             {stage.maxDays}
                           </TableCell>
-                          <TableCell className="text-right text-sm text-slate-600">
+                          <TableCell className="text-right text-sm text-muted-foreground">
                             {stage.transitionCount}
                           </TableCell>
                         </TableRow>
@@ -417,7 +417,7 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                 </Table>
                 {metrics.timeInStage.filter((s) => s.transitionCount > 0)
                   .length === 0 && (
-                  <p className="text-center text-slate-500 py-8">
+                  <p className="text-center text-muted-foreground py-8">
                     No stage transition data available yet.
                   </p>
                 )}
@@ -432,10 +432,10 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
               nudges.staleCandidates.length > 0) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Jobs Needing Attention */}
-                <Card className="bg-white border-slate-200">
+                <Card className="bg-white border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-orange-500" />
+                      <AlertCircle className="h-4 w-4 text-warning" />
                       Jobs Needing Attention
                     </CardTitle>
                     <CardDescription>
@@ -444,7 +444,7 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                   </CardHeader>
                   <CardContent>
                     {nudges.jobsNeedingAttention.length === 0 ? (
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-muted-foreground">
                         All tracked jobs look healthy right now.
                       </p>
                     ) : (
@@ -452,16 +452,16 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                         {nudges.jobsNeedingAttention.map((job) => (
                           <div
                             key={job.jobId}
-                            className="flex items-start justify-between gap-3 p-3 border border-slate-200 rounded-md bg-slate-50"
+                            className="flex items-start justify-between gap-3 p-3 border border-border rounded-md bg-muted/50"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-slate-900 text-sm">
+                              <p className="font-medium text-foreground text-sm">
                                 {job.jobTitle}
                               </p>
-                              <p className="text-xs text-slate-600 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {job.reason}
                               </p>
-                              <p className="text-xs text-slate-500 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {job.totalApplications} applications •{" "}
                                 {job.daysSincePosted} days active
                               </p>
@@ -486,10 +486,10 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                 </Card>
 
                 {/* Stale Candidates */}
-                <Card className="bg-white border-slate-200">
+                <Card className="bg-white border-border">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-slate-600" />
+                      <Clock className="h-4 w-4 text-muted-foreground" />
                       Stale Candidates
                     </CardTitle>
                     <CardDescription>
@@ -498,7 +498,7 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                   </CardHeader>
                   <CardContent>
                     {nudges.staleCandidates.length === 0 ? (
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-muted-foreground">
                         No stale candidates detected based on current thresholds.
                       </p>
                     ) : (
@@ -506,20 +506,20 @@ export function HiringMetricsPanel({ jobId }: HiringMetricsPanelProps) {
                         {nudges.staleCandidates.map((item) => (
                           <div
                             key={item.jobId}
-                            className="flex items-start justify-between gap-3 p-3 border border-slate-200 rounded-md bg-slate-50"
+                            className="flex items-start justify-between gap-3 p-3 border border-border rounded-md bg-muted/50"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-slate-900 text-sm">
+                              <p className="font-medium text-foreground text-sm">
                                 {item.jobTitle}
                               </p>
-                              <p className="text-xs text-slate-600 mt-1">
+                              <p className="text-xs text-muted-foreground mt-1">
                                 {item.count} candidate
                                 {item.count === 1 ? "" : "s"} waiting on action
                               </p>
                             </div>
                             <Badge
                               variant="outline"
-                              className="bg-amber-50 text-amber-700 border-amber-200 text-xs font-medium"
+                              className="bg-warning/10 text-warning-foreground border-warning/30 text-xs font-medium"
                             >
                               {item.oldestStaleDays}+ days
                             </Badge>

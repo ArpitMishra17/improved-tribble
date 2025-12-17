@@ -100,18 +100,18 @@ export function JdAiAnalysisDrawer({
         </SheetHeader>
         <div className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-slate-600">
-              Title: <span className="font-medium text-slate-900">{title || "Untitled role"}</span>
+            <div className="text-sm text-muted-foreground">
+              Title: <span className="font-medium text-foreground">{title || "Untitled role"}</span>
             </div>
             <Button size="sm" onClick={runAnalysis} disabled={loading || !description}>
               {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Analyze JD"}
             </Button>
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           {!analysis && !error && (
-            <Card className="border-slate-200">
+            <Card className="border-border">
               <CardHeader>
                 <CardTitle className="text-base">AI suggestions will appear here</CardTitle>
                 <CardDescription>Click “Analyze JD” to get clarity and SEO feedback.</CardDescription>
@@ -128,12 +128,12 @@ export function JdAiAnalysisDrawer({
                   { label: "Inclusion", value: analysis.inclusion_score },
                   { label: "SEO", value: analysis.seo_score },
                 ].map((item) => (
-                  <Card key={item.label} className="border-slate-200">
+                  <Card key={item.label} className="border-border">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-xs font-medium text-slate-600">{item.label}</CardTitle>
+                      <CardTitle className="text-xs font-medium text-muted-foreground">{item.label}</CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="text-xl font-semibold text-slate-900">{item.value}</div>
+                      <div className="text-xl font-semibold text-foreground">{item.value}</div>
                     </CardContent>
                   </Card>
                 ))}
@@ -142,8 +142,8 @@ export function JdAiAnalysisDrawer({
               <Separator />
 
               <div className="space-y-2">
-                <div className="text-sm font-semibold text-slate-900">Suggestions</div>
-                <ul className="list-disc pl-4 space-y-1 text-sm text-slate-700">
+                <div className="text-sm font-semibold text-foreground">Suggestions</div>
+                <ul className="list-disc pl-4 space-y-1 text-sm text-foreground">
                   {(analysis.suggestions.length ? analysis.suggestions : ["Clarify must-have vs nice-to-have", "Add 4-6 bullets for responsibilities", "List location/remote policy explicitly"] ).map((s, idx) => (
                     <li key={idx}>{s}</li>
                   ))}
@@ -152,7 +152,7 @@ export function JdAiAnalysisDrawer({
 
               {analysis.bias_flags.length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-sm font-semibold text-slate-900">Possible bias terms</div>
+                  <div className="text-sm font-semibold text-foreground">Possible bias terms</div>
                   <div className="flex flex-wrap gap-2">
                     {analysis.bias_flags.map((flag, idx) => (
                       <Badge key={idx} variant="outline" className="text-xs">
@@ -165,7 +165,7 @@ export function JdAiAnalysisDrawer({
 
               {analysis.seo_keywords.length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-sm font-semibold text-slate-900">Add these keywords</div>
+                  <div className="text-sm font-semibold text-foreground">Add these keywords</div>
                   <div className="flex flex-wrap gap-2">
                     {analysis.seo_keywords.slice(0, 6).map((kw, idx) => (
                       <Badge key={idx} variant="secondary" className="text-xs">
@@ -180,12 +180,12 @@ export function JdAiAnalysisDrawer({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <div className="text-sm font-semibold text-slate-900">Original JD</div>
-                  <Textarea value={description} readOnly className="h-64 bg-slate-50" />
+                  <div className="text-sm font-semibold text-foreground">Original JD</div>
+                  <Textarea value={description} readOnly className="h-64 bg-muted/50" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-semibold text-slate-900">AI rewrite</div>
+                    <div className="text-sm font-semibold text-foreground">AI rewrite</div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={copyRewrite}>
                         <Copy className="h-4 w-4 mr-1" />

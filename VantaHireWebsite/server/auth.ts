@@ -2,12 +2,14 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes, timingSafeEqual, createHash } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { getEmailService } from "./simpleEmailService";
+import rateLimit from "express-rate-limit";
 
 declare global {
   namespace Express {
@@ -16,6 +18,74 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+
+// Generate a secure verification token and its hash
+function generateVerificationToken(): { token: string; hash: string } {
+  const token = randomBytes(32).toString('hex');
+  const hash = createHash('sha256').update(token).digest('hex');
+  return { token, hash };
+}
+
+// Hash a token for lookup
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+// Rate limiter for resend verification endpoint
+const resendVerificationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // 3 requests per window
+  message: { error: 'Too many verification email requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Send verification email
+async function sendVerificationEmail(email: string, token: string, firstName?: string | null): Promise<boolean> {
+  const emailService = await getEmailService();
+  if (!emailService) {
+    console.error('Email service not available');
+    return false;
+  }
+
+  const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+  const verifyUrl = `${baseUrl}/verify-email/${token}`;
+  const name = firstName || 'there';
+
+  try {
+    await emailService.sendEmail({
+      to: email,
+      subject: 'Verify your VantaHire account',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #1a1a1a;">Welcome to VantaHire!</h2>
+          <p>Hi ${name},</p>
+          <p>Thanks for signing up. Please verify your email address to get started.</p>
+          <p style="margin: 30px 0;">
+            <a href="${verifyUrl}"
+               style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Verify Email
+            </a>
+          </p>
+          <p style="color: #666; font-size: 14px;">
+            Or copy this link: <a href="${verifyUrl}">${verifyUrl}</a>
+          </p>
+          <p style="color: #666; font-size: 14px;">
+            This link expires in 24 hours.
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+          <p style="color: #999; font-size: 12px;">
+            If you didn't create an account, you can safely ignore this email.
+          </p>
+        </div>
+      `,
+    });
+    return true;
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+    return false;
+  }
+}
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -169,18 +239,20 @@ export function setupAuth(app: Express) {
         role
       });
 
-      req.login(user, (err) => {
-        if (err) {
-          next(err);
-          return;
-        }
-        res.status(201).json({
-          id: user.id,
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role
-        });
+      // Generate verification token and save hash
+      const { token, hash } = generateVerificationToken();
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      await storage.setVerificationToken(user.id, hash, expires);
+
+      // Send verification email (fire-and-forget, don't block registration)
+      sendVerificationEmail(username, token, firstName).catch((err) => {
+        console.error('Failed to send verification email:', err);
+      });
+
+      // Don't auto-login - require email verification first
+      res.status(201).json({
+        message: 'Registration successful. Please check your email to verify your account.',
+        requiresVerification: true,
       });
     } catch (error) {
       next(error);
@@ -196,6 +268,16 @@ export function setupAuth(app: Express) {
       }
       if (!user) {
         res.status(401).json({ error: "Invalid username or password" });
+        return;
+      }
+
+      // Block unverified recruiters from logging in
+      if (user.role === 'recruiter' && !user.emailVerified) {
+        res.status(403).json({
+          error: "Please verify your email before logging in",
+          code: "EMAIL_NOT_VERIFIED",
+          email: user.username,
+        });
         return;
       }
 
@@ -261,7 +343,78 @@ export function setupAuth(app: Express) {
       username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role
+      role: user.role,
+      emailVerified: user.emailVerified,
     });
+  });
+
+  // Email verification endpoint
+  app.get("/api/verify-email/:token", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { token } = req.params;
+      if (!token || token.length !== 64) {
+        res.status(400).json({ error: "Invalid verification token" });
+        return;
+      }
+
+      const tokenHash = hashToken(token);
+      const user = await storage.getUserByVerificationToken(tokenHash);
+
+      if (!user) {
+        res.status(400).json({ error: "Invalid or expired verification token" });
+        return;
+      }
+
+      // Check if token has expired
+      if (user.emailVerificationExpires && new Date(user.emailVerificationExpires) < new Date()) {
+        res.status(400).json({ error: "Verification token has expired. Please request a new one." });
+        return;
+      }
+
+      // Verify the email
+      await storage.verifyUserEmail(user.id);
+
+      res.json({
+        message: "Email verified successfully. You can now log in.",
+        verified: true,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Resend verification email endpoint (rate-limited)
+  app.post("/api/resend-verification", resendVerificationLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ error: "Email is required" });
+        return;
+      }
+
+      const user = await storage.getUserByUsername(email);
+      if (!user) {
+        // Don't reveal if user exists - always return success message
+        res.json({ message: "If an account exists with this email, a verification link has been sent." });
+        return;
+      }
+
+      if (user.emailVerified) {
+        res.json({ message: "Email is already verified. You can log in." });
+        return;
+      }
+
+      // Generate new verification token
+      const { token, hash } = generateVerificationToken();
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      await storage.setVerificationToken(user.id, hash, expires);
+
+      // Send verification email
+      await sendVerificationEmail(email, token, user.firstName);
+
+      res.json({ message: "If an account exists with this email, a verification link has been sent." });
+    } catch (error) {
+      next(error);
+    }
   });
 }
