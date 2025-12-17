@@ -1,20 +1,8 @@
 import { createHash } from "crypto";
 import { redisGet, redisSet } from "./redis";
-import Groq from "groq-sdk";
 import { isAIEnabled } from "../aiJobAnalyzer";
-
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-let groqClient: Groq | null = null;
-
-function getGroq(): Groq {
-  if (!GROQ_API_KEY) {
-    throw new Error("Groq API key not configured");
-  }
-  if (!groqClient) {
-    groqClient = new Groq({ apiKey: GROQ_API_KEY });
-  }
-  return groqClient;
-}
+import { getGroqClient } from "./groqClient";
+import { DashboardInsightsResponseSchema, safeParseAiResponse } from "./aiResponseSchemas";
 
 export interface DashboardAiPayload {
   pipelineHealthScore: { score: number; tag: string };
@@ -76,7 +64,7 @@ Return JSON with this exact structure:
   "jobs": [{"jobId": <number>, "nextAction": "short action max 18 words"}]
 }`;
 
-  const client = getGroq();
+  const client = getGroqClient();
   const resp = await client.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     messages: [
@@ -88,26 +76,15 @@ Return JSON with this exact structure:
   });
   const text = resp.choices[0]?.message?.content?.trim() || "";
 
-  // Parse JSON response
-  let summary = "AI summary unavailable.";
-  let dropoffExplanation = "AI drop-off explanation unavailable.";
-  let jobs: Array<{ jobId: number; nextAction: string }> = payload.jobsNeedingAttention.map(j => ({ jobId: j.jobId, nextAction: "" }));
+  // Parse JSON response with Zod validation
+  const parsed = safeParseAiResponse(DashboardInsightsResponseSchema, text, 'dashboard-insights');
 
-  try {
-    // Strip markdown code fences if present
-    const jsonStr = text.replace(/^```json\s*|```$/g, "").trim();
-    const parsed = JSON.parse(jsonStr);
-    if (parsed.summary) summary = parsed.summary;
-    if (parsed.dropoffExplanation) dropoffExplanation = parsed.dropoffExplanation;
-    if (Array.isArray(parsed.jobs)) {
-      jobs = payload.jobsNeedingAttention.map(j => {
-        const found = parsed.jobs.find((pj: any) => pj.jobId === j.jobId);
-        return { jobId: j.jobId, nextAction: found?.nextAction || "" };
-      });
-    }
-  } catch (e) {
-    console.warn("[AI dashboard] Failed to parse JSON response:", e, text);
-  }
+  const summary = parsed.summary || "AI summary unavailable.";
+  const dropoffExplanation = parsed.dropoffExplanation || "AI drop-off explanation unavailable.";
+  const jobs = payload.jobsNeedingAttention.map(j => {
+    const found = (parsed.jobs ?? []).find(pj => pj.jobId === j.jobId);
+    return { jobId: j.jobId, nextAction: found?.nextAction || "" };
+  });
 
   const result: DashboardAiInsights = {
     summary: summary || "AI summary unavailable.",

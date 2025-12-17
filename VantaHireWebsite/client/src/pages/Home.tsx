@@ -29,7 +29,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="public-theme min-h-screen">
+    <div className="public-theme min-h-screen bg-background text-foreground">
       <CircuitBackground />
       <div className="relative z-10">
         <Header />

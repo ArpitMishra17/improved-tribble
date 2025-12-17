@@ -209,11 +209,11 @@ export default function ClientsPage() {
         {/* Header */}
         <div className="flex items-center justify-between pt-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground flex items-center gap-2">
               <Building2 className="w-7 h-7 text-primary" />
               Clients
             </h1>
-            <p className="text-slate-500 text-sm md:text-base">
+            <p className="text-muted-foreground text-sm md:text-base">
               Manage client organizations for agency and multi-company recruiting.
             </p>
           </div>
@@ -228,12 +228,12 @@ export default function ClientsPage() {
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search by name, domain, or contact..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-white"
+                  className="pl-10 bg-card"
                 />
               </div>
             </div>
@@ -243,8 +243,8 @@ export default function ClientsPage() {
         {/* Clients Table */}
         <Card className="shadow-sm" data-tour="clients-list">
           <CardHeader>
-            <CardTitle className="text-slate-900">Client List</CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardTitle className="text-foreground">Client List</CardTitle>
+            <CardDescription className="text-muted-foreground">
               All clients you manage for job postings and analytics.
             </CardDescription>
           </CardHeader>
@@ -255,41 +255,41 @@ export default function ClientsPage() {
               </div>
             ) : filteredClients.length === 0 ? (
               <div className="text-center py-12">
-                <Building2 className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 mb-2">No clients yet</p>
-                <p className="text-slate-500 text-sm">
+                <Building2 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">No clients yet</p>
+                <p className="text-muted-foreground text-sm">
                   Add clients to organize roles by company and simplify reporting.
                 </p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-200 hover:bg-slate-50">
-                    <TableHead className="text-slate-600">Name</TableHead>
-                    <TableHead className="text-slate-600">Domain</TableHead>
-                    <TableHead className="text-slate-600">Primary Contact</TableHead>
-                    <TableHead className="text-slate-600">Email</TableHead>
-                    <TableHead className="text-slate-600 hidden md:table-cell">
+                  <TableRow className="border-border hover:bg-muted/50">
+                    <TableHead className="text-muted-foreground">Name</TableHead>
+                    <TableHead className="text-muted-foreground">Domain</TableHead>
+                    <TableHead className="text-muted-foreground">Primary Contact</TableHead>
+                    <TableHead className="text-muted-foreground">Email</TableHead>
+                    <TableHead className="text-muted-foreground hidden md:table-cell">
                       Notes
                     </TableHead>
-                    <TableHead className="text-slate-600 text-right">
+                    <TableHead className="text-muted-foreground text-right">
                       Roles
                     </TableHead>
-                    <TableHead className="text-slate-600 text-right">
+                    <TableHead className="text-muted-foreground text-right">
                       Applications
                     </TableHead>
-                    <TableHead className="text-slate-600 text-right">
+                    <TableHead className="text-muted-foreground text-right">
                       Actions
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredClients.map((client) => (
-                    <TableRow key={client.id} className="border-slate-200 hover:bg-slate-50">
-                      <TableCell className="text-slate-900 font-medium">
+                    <TableRow key={client.id} className="border-border hover:bg-muted/50">
+                      <TableCell className="text-foreground font-medium">
                         {client.name}
                       </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {client.domain ? (
                           <a
                             href={
@@ -304,37 +304,37 @@ export default function ClientsPage() {
                             {client.domain}
                           </a>
                         ) : (
-                          <span className="text-slate-400 text-xs">Not set</span>
+                          <span className="text-muted-foreground text-xs">Not set</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {client.primaryContactName ? (
                           client.primaryContactName
                         ) : (
-                          <span className="text-slate-400 text-xs">Not set</span>
+                          <span className="text-muted-foreground text-xs">Not set</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {client.primaryContactEmail ? (
                           <span className="inline-flex items-center gap-1">
-                            <Mail className="w-3 h-3 text-slate-400" />
+                            <Mail className="w-3 h-3 text-muted-foreground" />
                             {client.primaryContactEmail}
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-xs">Not set</span>
+                          <span className="text-muted-foreground text-xs">Not set</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-slate-600 text-xs hidden md:table-cell max-w-xs">
+                      <TableCell className="text-muted-foreground text-xs hidden md:table-cell max-w-xs">
                         {client.notes ? (
                           <span className="line-clamp-2">{client.notes}</span>
                         ) : (
-                          <span className="text-slate-400">–</span>
+                          <span className="text-muted-foreground">–</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right text-sm text-slate-600">
+                      <TableCell className="text-right text-sm text-muted-foreground">
                         {metricsByClientId.get(client.id)?.rolesCount ?? 0}
                       </TableCell>
-                      <TableCell className="text-right text-sm text-slate-600">
+                      <TableCell className="text-right text-sm text-muted-foreground">
                         {metricsByClientId.get(client.id)?.totalApplications ?? 0}
                       </TableCell>
                       <TableCell className="text-right">

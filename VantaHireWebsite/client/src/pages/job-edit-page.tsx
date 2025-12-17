@@ -111,8 +111,8 @@ export default function JobEditPage() {
         <div className="container mx-auto px-4 py-8">
           <Card className="shadow-sm">
             <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Job Not Found</h3>
-              <p className="text-slate-500">The requested job could not be found.</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Job Not Found</h3>
+              <p className="text-muted-foreground">The requested job could not be found.</p>
             </CardContent>
           </Card>
         </div>
@@ -143,7 +143,7 @@ export default function JobEditPage() {
           {/* Edit Form */}
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-slate-900">Edit Job Details</CardTitle>
+              <CardTitle className="text-foreground">Edit Job Details</CardTitle>
               <CardDescription>Update the job posting information</CardDescription>
             </CardHeader>
             <CardContent>

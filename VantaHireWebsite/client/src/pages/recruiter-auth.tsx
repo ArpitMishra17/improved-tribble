@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, Users, TrendingUp, Shield } from "lucide-react";
+import { Briefcase, Users, TrendingUp, Shield, Mail, CheckCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -15,12 +15,12 @@ export default function RecruiterAuth() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const [loginData, setLoginData] = useState({
     username: "",
     password: ""
   });
-  
+
   const [registerData, setRegisterData] = useState({
     username: "",
     password: "",
@@ -28,6 +28,12 @@ export default function RecruiterAuth() {
     lastName: "",
     role: "recruiter"
   });
+
+  // State for email verification flow
+  const [verificationNeeded, setVerificationNeeded] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   // Redirect if already logged in as recruiter or admin (shared portal)
   useEffect(() => {
@@ -41,27 +47,67 @@ export default function RecruiterAuth() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Allow recruiters and admins to use the recruiter portal
-    loginMutation.mutate({ ...loginData, expectedRole: ['recruiter', 'super_admin'] });
+    try {
+      // Allow recruiters and admins to use the recruiter portal
+      await loginMutation.mutateAsync({ ...loginData, expectedRole: ['recruiter', 'super_admin'] });
+    } catch (error: any) {
+      // Check if this is an email verification error
+      const errorData = error?.response?.data || error;
+      if (errorData?.code === 'EMAIL_NOT_VERIFIED' || error?.message?.includes('verify your email')) {
+        setVerificationNeeded(true);
+        setVerificationEmail(errorData?.email || loginData.username);
+      }
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    registerMutation.mutate(registerData);
+    const result = await registerMutation.mutateAsync(registerData);
+    // Check if registration requires verification
+    if ('requiresVerification' in result && result.requiresVerification) {
+      setRegistrationSuccess(true);
+      setVerificationEmail(registerData.username);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!verificationEmail || resendLoading) return;
+
+    setResendLoading(true);
+    try {
+      const response = await fetch('/api/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verificationEmail }),
+      });
+      const data = await response.json();
+      toast({
+        title: "Verification email sent",
+        description: data.message || "Please check your inbox.",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to send verification email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
-    <div className="public-theme min-h-screen">
+    <div className="public-theme min-h-screen bg-background text-foreground">
       <Header />
       <div className="container mx-auto px-4 pt-32 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Hero Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
                 Recruiter Portal
               </h1>
-              <p className="text-xl text-white/80 leading-relaxed">
+              <p className="text-xl text-muted-foreground leading-relaxed">
                 Access powerful tools to manage your job postings, review applications, and find the perfect candidates for your organization.
               </p>
             </div>
@@ -72,8 +118,8 @@ export default function RecruiterAuth() {
                   <Briefcase className="h-8 w-8 text-[#7B38FB]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Job Management</h3>
-                  <p className="text-white/70 text-sm">Post, edit, and manage your job listings with ease</p>
+                  <h3 className="text-foreground font-semibold mb-2">Job Management</h3>
+                  <p className="text-muted-foreground text-sm">Post, edit, and manage your job listings with ease</p>
                 </div>
               </div>
 
@@ -82,8 +128,8 @@ export default function RecruiterAuth() {
                   <Users className="h-8 w-8 text-[#FF5BA8]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Application Review</h3>
-                  <p className="text-white/70 text-sm">Review, shortlist, and manage candidate applications</p>
+                  <h3 className="text-foreground font-semibold mb-2">Application Review</h3>
+                  <p className="text-muted-foreground text-sm">Review, shortlist, and manage candidate applications</p>
                 </div>
               </div>
 
@@ -92,8 +138,8 @@ export default function RecruiterAuth() {
                   <TrendingUp className="h-8 w-8 text-[#00D2FF]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Analytics</h3>
-                  <p className="text-white/70 text-sm">Track job performance and application metrics</p>
+                  <h3 className="text-foreground font-semibold mb-2">Analytics</h3>
+                  <p className="text-muted-foreground text-sm">Track job performance and application metrics</p>
                 </div>
               </div>
 
@@ -102,14 +148,14 @@ export default function RecruiterAuth() {
                   <Shield className="h-8 w-8 text-[#90EE90]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Secure Access</h3>
-                  <p className="text-white/70 text-sm">Enterprise-grade security for your recruitment data</p>
+                  <h3 className="text-foreground font-semibold mb-2">Secure Access</h3>
+                  <p className="text-muted-foreground text-sm">Enterprise-grade security for your recruitment data</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-4">
-              <p className="text-white/60 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Looking for candidate access? <Button variant="link" className="text-[#7B38FB] p-0 h-auto" onClick={() => setLocation("/candidate-auth")}>
                   Go to Candidate Login
                 </Button>
@@ -119,20 +165,101 @@ export default function RecruiterAuth() {
 
           {/* Right Column - Auth Form */}
           <div className="flex justify-center">
-            <Card className="w-full max-w-md bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="w-full max-w-md bg-muted/50 backdrop-blur-sm border-border">
+              {/* Registration Success State */}
+              {registrationSuccess && (
+                <>
+                  <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                      <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
+                        <CheckCircle className="h-8 w-8 text-success" />
+                      </div>
+                    </div>
+                    <CardTitle className="text-foreground text-2xl">Check Your Email</CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                      We've sent a verification link to <span className="text-foreground font-medium">{verificationEmail}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-muted-foreground text-sm text-center">
+                      Click the link in the email to verify your account and start using VantaHire.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={handleResendVerification}
+                        disabled={resendLoading}
+                        className="w-full border-border text-foreground hover:bg-muted/50"
+                      >
+                        {resendLoading ? "Sending..." : "Resend Verification Email"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { setRegistrationSuccess(false); setVerificationEmail(""); }}
+                        className="w-full text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      >
+                        Back to Login
+                      </Button>
+                    </div>
+                  </CardContent>
+                </>
+              )}
+
+              {/* Email Verification Needed State (from login attempt) */}
+              {verificationNeeded && !registrationSuccess && (
+                <>
+                  <CardHeader className="text-center">
+                    <div className="flex justify-center mb-4">
+                      <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center">
+                        <Mail className="h-8 w-8 text-warning" />
+                      </div>
+                    </div>
+                    <CardTitle className="text-foreground text-2xl">Verify Your Email</CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                      Please verify your email address before signing in.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-muted-foreground text-sm text-center">
+                      Check your inbox at <span className="text-foreground font-medium">{verificationEmail}</span> for a verification link.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={handleResendVerification}
+                        disabled={resendLoading}
+                        className="w-full border-border text-foreground hover:bg-muted/50"
+                      >
+                        {resendLoading ? "Sending..." : "Resend Verification Email"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { setVerificationNeeded(false); setVerificationEmail(""); }}
+                        className="w-full text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                      >
+                        Back to Login
+                      </Button>
+                    </div>
+                  </CardContent>
+                </>
+              )}
+
+              {/* Normal Auth Form */}
+              {!registrationSuccess && !verificationNeeded && (
+              <>
               <CardHeader className="text-center">
-                <CardTitle className="text-white text-2xl">Recruiter Access</CardTitle>
-                <CardDescription className="text-white/70">
+                <CardTitle className="text-foreground text-2xl">Recruiter Access</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Sign in to your recruiter account or create a new one
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="login" className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-2 bg-white/10">
-                    <TabsTrigger value="login" className="data-[state=active]:bg-white/20 text-white">
+                  <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                    <TabsTrigger value="login" className="data-[state=active]:bg-muted/60 text-foreground">
                       Sign In
                     </TabsTrigger>
-                    <TabsTrigger value="register" className="data-[state=active]:bg-white/20 text-white">
+                    <TabsTrigger value="register" className="data-[state=active]:bg-muted/60 text-foreground">
                       Register
                     </TabsTrigger>
                   </TabsList>
@@ -140,25 +267,25 @@ export default function RecruiterAuth() {
                   <TabsContent value="login">
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="username" className="text-white">Username</Label>
+                        <Label htmlFor="username" className="text-foreground">Username</Label>
                         <Input
                           id="username"
                           type="text"
                           value={loginData.username}
                           onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Enter your username"
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white">Password</Label>
+                        <Label htmlFor="password" className="text-foreground">Password</Label>
                         <Input
                           id="password"
                           type="password"
                           value={loginData.password}
                           onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Enter your password"
                           required
                         />
@@ -177,50 +304,50 @@ export default function RecruiterAuth() {
                     <form onSubmit={handleRegister} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="firstName" className="text-white">First Name</Label>
+                          <Label htmlFor="firstName" className="text-foreground">First Name</Label>
                           <Input
                             id="firstName"
                             type="text"
                             value={registerData.firstName}
                             onChange={(e) => setRegisterData(prev => ({ ...prev, firstName: e.target.value }))}
-                            className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                            className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                             placeholder="First name"
                             required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="lastName" className="text-white">Last Name</Label>
+                          <Label htmlFor="lastName" className="text-foreground">Last Name</Label>
                           <Input
                             id="lastName"
                             type="text"
                             value={registerData.lastName}
                             onChange={(e) => setRegisterData(prev => ({ ...prev, lastName: e.target.value }))}
-                            className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                            className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                             placeholder="Last name"
                             required
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="regUsername" className="text-white">Username</Label>
+                        <Label htmlFor="regUsername" className="text-foreground">Username</Label>
                         <Input
                           id="regUsername"
                           type="text"
                           value={registerData.username}
                           onChange={(e) => setRegisterData(prev => ({ ...prev, username: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Choose a username"
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="regPassword" className="text-white">Password</Label>
+                        <Label htmlFor="regPassword" className="text-foreground">Password</Label>
                         <Input
                           id="regPassword"
                           type="password"
                           value={registerData.password}
                           onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Create a password"
                           required
                         />
@@ -236,6 +363,8 @@ export default function RecruiterAuth() {
                   </TabsContent>
                 </Tabs>
               </CardContent>
+              </>
+              )}
             </Card>
           </div>
         </div>

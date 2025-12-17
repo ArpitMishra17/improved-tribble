@@ -8,23 +8,23 @@ export default function TermsOfServicePage() {
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <FileText className="w-10 h-10 text-purple-400" />
-            <h1 className="text-4xl font-bold text-white">Terms of Service</h1>
+            <FileText className="w-10 h-10 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Terms of Service</h1>
           </div>
-          <p className="text-slate-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Last Updated: January 2025
           </p>
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Scale className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Scale className="w-5 h-5 text-primary" />
                 Agreement to Terms
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 These Terms of Service ("Terms") govern your access to and use of VantaHire, an applicant
                 tracking system and recruitment platform operated by Deori RecruiterHub Solutions OPC Pvt Ltd
@@ -41,16 +41,16 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
                 User Accounts and Roles
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">Account Types</h3>
+                <h3 className="text-foreground font-semibold mb-2">Account Types</h3>
                 <p className="mb-2">VantaHire offers different account types:</p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li><strong>Candidates:</strong> Individuals seeking employment who can apply to job postings</li>
@@ -60,7 +60,7 @@ export default function TermsOfServicePage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Account Registration</h3>
+                <h3 className="text-foreground font-semibold mb-2">Account Registration</h3>
                 <p>To use VantaHire, you must:</p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Be at least 18 years of age</li>
@@ -72,7 +72,7 @@ export default function TermsOfServicePage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Account Termination</h3>
+                <h3 className="text-foreground font-semibold mb-2">Account Termination</h3>
                 <p>
                   We reserve the right to suspend or terminate your account at any time for violation of
                   these Terms, fraudulent activity, or any other reason we deem appropriate.
@@ -81,11 +81,11 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Acceptable Use</CardTitle>
+              <CardTitle className="text-foreground">Acceptable Use</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>You agree to use VantaHire only for lawful purposes. You may not:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Violate any applicable laws or regulations</li>
@@ -102,13 +102,13 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Content and Intellectual Property</CardTitle>
+              <CardTitle className="text-foreground">Content and Intellectual Property</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">Your Content</h3>
+                <h3 className="text-foreground font-semibold mb-2">Your Content</h3>
                 <p>
                   You retain ownership of content you submit to VantaHire (resumes, applications, job postings, etc.).
                   By submitting content, you grant us a non-exclusive, worldwide, royalty-free license to use,
@@ -117,7 +117,7 @@ export default function TermsOfServicePage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Our Content</h3>
+                <h3 className="text-foreground font-semibold mb-2">Our Content</h3>
                 <p>
                   VantaHire's platform, design, features, and functionality are owned by Deori RecruiterHub
                   Solutions OPC Pvt Ltd and are protected by copyright, trademark, and other intellectual
@@ -126,7 +126,7 @@ export default function TermsOfServicePage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">AI-Generated Content</h3>
+                <h3 className="text-foreground font-semibold mb-2">AI-Generated Content</h3>
                 <p>
                   AI-generated fit scores, recommendations, and analysis are provided for informational
                   purposes only. We do not guarantee their accuracy and they should not be the sole basis
@@ -136,13 +136,13 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Job Postings and Applications</CardTitle>
+              <CardTitle className="text-foreground">Job Postings and Applications</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">For Recruiters</h3>
+                <h3 className="text-foreground font-semibold mb-2">For Recruiters</h3>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Job postings must be accurate and comply with employment laws</li>
                   <li>You may not post discriminatory job listings</li>
@@ -153,7 +153,7 @@ export default function TermsOfServicePage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">For Candidates</h3>
+                <h3 className="text-foreground font-semibold mb-2">For Candidates</h3>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Applications must contain truthful and accurate information</li>
                   <li>You may not submit fraudulent credentials or resumes</li>
@@ -164,11 +164,11 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Payment and Subscriptions</CardTitle>
+              <CardTitle className="text-foreground">Payment and Subscriptions</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 VantaHire may offer paid features or subscription plans in the future. If you purchase
                 a subscription:
@@ -182,16 +182,16 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-yellow-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-warning" />
                 Disclaimers and Limitations
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">No Warranty</h3>
+                <h3 className="text-foreground font-semibold mb-2">No Warranty</h3>
                 <p>
                   VantaHire is provided "as is" without warranties of any kind, either express or implied.
                   We do not guarantee that our services will be uninterrupted, error-free, or secure.
@@ -199,7 +199,7 @@ export default function TermsOfServicePage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Limitation of Liability</h3>
+                <h3 className="text-foreground font-semibold mb-2">Limitation of Liability</h3>
                 <p>
                   To the maximum extent permitted by law, Deori RecruiterHub Solutions OPC Pvt Ltd shall
                   not be liable for any indirect, incidental, special, consequential, or punitive damages
@@ -208,7 +208,7 @@ export default function TermsOfServicePage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Third-Party Services</h3>
+                <h3 className="text-foreground font-semibold mb-2">Third-Party Services</h3>
                 <p>
                   VantaHire may integrate with third-party services (Google Cloud, OpenAI, etc.).
                   We are not responsible for the availability or content of third-party services.
@@ -217,11 +217,11 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Indemnification</CardTitle>
+              <CardTitle className="text-foreground">Indemnification</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 You agree to indemnify and hold harmless Deori RecruiterHub Solutions OPC Pvt Ltd,
                 its officers, directors, employees, and agents from any claims, damages, losses, or
@@ -236,11 +236,11 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Governing Law and Disputes</CardTitle>
+              <CardTitle className="text-foreground">Governing Law and Disputes</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 These Terms are governed by the laws of India. Any disputes arising from these Terms or
                 your use of VantaHire shall be resolved through binding arbitration in accordance with
@@ -252,11 +252,11 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Severability</CardTitle>
+              <CardTitle className="text-foreground">Severability</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 If any provision of these Terms is found to be unenforceable or invalid, that provision
                 will be limited or eliminated to the minimum extent necessary, and the remaining provisions
@@ -265,16 +265,16 @@ export default function TermsOfServicePage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Contact Information</CardTitle>
+              <CardTitle className="text-foreground">Contact Information</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 If you have questions about these Terms of Service, please contact us:
               </p>
-              <div className="bg-slate-800 p-4 rounded-lg space-y-2">
-                <p><strong className="text-white">Deori RecruiterHub Solutions OPC Pvt Ltd</strong></p>
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <p><strong className="text-foreground">Deori RecruiterHub Solutions OPC Pvt Ltd</strong></p>
                 <p>Email: legal@vantahire.com</p>
                 <p>Subject: Terms of Service Inquiry</p>
               </div>

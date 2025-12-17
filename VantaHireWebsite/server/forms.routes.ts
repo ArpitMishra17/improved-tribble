@@ -13,6 +13,7 @@ import { upload, uploadToGCS } from "./gcs-storage";
 import type { FormSnapshot, FormFieldSnapshot, FormAnswer, FileUploadResult } from "@shared/forms.types";
 import { parseFormSnapshot, isValidFieldType, parseSelectOptions, normalizeYesNoValue } from "@shared/forms.types";
 import { generateFormQuestions, isAIEnabled } from "./aiJobAnalyzer";
+import { calculateAiCost } from './lib/aiMatchingEngine';
 import { aiAnalysisRateLimit } from "./rateLimit";
 
 // Environment configuration
@@ -206,13 +207,8 @@ export function registerFormsRoutes(app: Express, csrfProtection?: (req: Request
 
         const durationMs = Date.now() - startTime;
 
-        // Calculate cost using Groq pricing for llama-3.3-70b-versatile
-        const PRICE_PER_1M_INPUT_TOKENS = 0.59;
-        const PRICE_PER_1M_OUTPUT_TOKENS = 0.79;
-        const costUsd = (
-          (result.tokensUsed.input / 1_000_000) * PRICE_PER_1M_INPUT_TOKENS +
-          (result.tokensUsed.output / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS
-        ).toFixed(8);
+        // Calculate cost using shared Groq pricing
+        const costUsd = calculateAiCost(result.tokensUsed.input, result.tokensUsed.output);
 
         // Track AI usage for billing/analytics
         await db.insert(userAiUsage).values({

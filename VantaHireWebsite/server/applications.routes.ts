@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { db } from './db';
 import { storage } from './storage';
 import { requireAuth, requireRole } from './auth';
+import { calculateAiCost } from './lib/aiMatchingEngine';
 import {
   insertApplicationSchema,
   recruiterAddApplicationSchema,
@@ -1092,12 +1093,13 @@ export function registerApplicationsRoutes(
         }
       }
 
-      const effectiveText = resumeText || application.coverLetter || job.description || '';
+      // Prefer resume text, fall back to cover letter only (not job description - that's not candidate content)
+      const effectiveText = resumeText || application.coverLetter || '';
 
       if (!effectiveText) {
         res.status(400).json({
-          error: 'Resume text not available',
-          message: 'We could not find any candidate text to summarize. Please ensure a resume or cover letter is available.',
+          error: 'No candidate content available',
+          message: 'We could not find any candidate text to summarize. Please ensure a resume or cover letter is available for this application.',
         });
         return;
       }
@@ -1111,12 +1113,7 @@ export function registerApplicationsRoutes(
       );
       const durationMs = Date.now() - startTime;
 
-      const PRICE_PER_1M_INPUT_TOKENS = 0.59;
-      const PRICE_PER_1M_OUTPUT_TOKENS = 0.79;
-      const costUsd = (
-        (summaryResult.tokensUsed.input / 1_000_000) * PRICE_PER_1M_INPUT_TOKENS +
-        (summaryResult.tokensUsed.output / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS
-      ).toFixed(8);
+      const costUsd = calculateAiCost(summaryResult.tokensUsed.input, summaryResult.tokensUsed.output);
 
       await db
         .update(applications)

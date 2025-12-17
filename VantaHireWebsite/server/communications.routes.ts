@@ -21,6 +21,7 @@ import {
 } from '@shared/schema';
 import { sendTemplatedEmail } from './emailTemplateService';
 import { isAIEnabled, generateEmailDraft } from './aiJobAnalyzer';
+import { calculateAiCost } from './lib/aiMatchingEngine';
 import { aiAnalysisRateLimit } from './rateLimit';
 import type { CsrfMiddleware } from './types/routes';
 
@@ -215,13 +216,8 @@ export function registerCommunicationsRoutes(
 
       const durationMs = Date.now() - startTime;
 
-      // 5. Calculate cost using Groq pricing for llama-3.3-70b-versatile
-      const PRICE_PER_1M_INPUT_TOKENS = 0.59;
-      const PRICE_PER_1M_OUTPUT_TOKENS = 0.79;
-      const costUsd = (
-        (draftResult.tokensUsed.input / 1_000_000) * PRICE_PER_1M_INPUT_TOKENS +
-        (draftResult.tokensUsed.output / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS
-      ).toFixed(8);
+      // 5. Calculate cost using shared Groq pricing
+      const costUsd = calculateAiCost(draftResult.tokensUsed.input, draftResult.tokensUsed.output);
 
       // 6. Track AI usage for billing/analytics
       await db.insert(userAiUsage).values({

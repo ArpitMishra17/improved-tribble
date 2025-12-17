@@ -73,10 +73,10 @@ export default function MyJobsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'approved': return 'bg-green-50 text-green-700 border-green-200';
-      case 'rejected': return 'bg-red-50 text-red-700 border-red-200';
-      default: return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'pending': return 'bg-warning/10 text-warning-foreground border-warning/30';
+      case 'approved': return 'bg-success/10 text-success-foreground border-success/30';
+      case 'rejected': return 'bg-destructive/10 text-destructive border-destructive/30';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -119,8 +119,8 @@ export default function MyJobsPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">My Jobs</h1>
-              <p className="text-slate-500 text-sm md:text-base">Manage your job postings, status, and applications</p>
+              <h1 className="text-2xl md:text-3xl font-semibold text-foreground">My Jobs</h1>
+              <p className="text-muted-foreground text-sm md:text-base">Manage your job postings, status, and applications</p>
             </div>
             <Button onClick={() => setLocation("/jobs/post")} data-tour="post-job-button">
               <Plus className="h-4 w-4 mr-2" />
@@ -138,7 +138,7 @@ export default function MyJobsPage() {
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               placeholder="Search by title, company, or location..."
               value={searchQuery}
@@ -150,7 +150,7 @@ export default function MyJobsPage() {
           {/* Jobs List */}
           <Card className="shadow-sm" data-tour="jobs-list">
             <CardHeader>
-              <CardTitle className="text-slate-900 text-lg">
+              <CardTitle className="text-foreground text-lg">
                 Job Postings ({filteredJobs.length})
               </CardTitle>
               <CardDescription>
@@ -161,8 +161,8 @@ export default function MyJobsPage() {
               <div className="space-y-4">
                 {filteredJobs.length === 0 ? (
                   <div className="text-center py-8">
-                    <Briefcase className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                    <p className="text-slate-500 mb-2">
+                    <Briefcase className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">
                       {searchQuery || activeTab !== "all"
                         ? "No jobs match your filters"
                         : "No job postings yet"}
@@ -178,40 +178,40 @@ export default function MyJobsPage() {
                   filteredJobs.map((job) => (
                     <div
                       key={job.id}
-                      className="p-4 rounded-lg bg-slate-50 border border-slate-200"
+                      className="p-4 rounded-lg bg-muted/50 border border-border"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="text-slate-900 font-medium text-lg">{job.title}</h3>
-                          <p className="text-slate-600">{job.company} • {job.location}</p>
+                          <h3 className="text-foreground font-medium text-lg">{job.title}</h3>
+                          <p className="text-muted-foreground">{job.company} • {job.location}</p>
                           {job.hiringManager && (
-                            <p className="text-slate-500 text-sm mt-1">
+                            <p className="text-muted-foreground text-sm mt-1">
                               Hiring Manager: {job.hiringManager.firstName && job.hiringManager.lastName
                                 ? `${job.hiringManager.firstName} ${job.hiringManager.lastName}`
                                 : job.hiringManager.username}
                             </p>
                           )}
                           {!job.hiringManager && (
-                            <p className="text-slate-400 text-sm mt-1">Hiring Manager: —</p>
+                            <p className="text-muted-foreground text-sm mt-1">Hiring Manager: —</p>
                           )}
-                          <p className="text-slate-500 text-sm mt-1">{job.type}</p>
+                          <p className="text-muted-foreground text-sm mt-1">{job.type}</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge className={getStatusColor(job.status)}>
                             {job.status}
                           </Badge>
                           {job.isActive && (
-                            <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Badge className="bg-info/10 text-info-foreground border-info/30">
                               Live
                             </Badge>
                           )}
                         </div>
                       </div>
 
-                      <p className="text-slate-600 text-sm mb-3 line-clamp-2">{job.description}</p>
+                      <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{job.description}</p>
 
                       <div className="flex items-center justify-between">
-                        <span className="text-slate-500 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           {job.applicationCount || 0} applications
                         </span>
 
@@ -229,7 +229,7 @@ export default function MyJobsPage() {
                               size="sm"
                               onClick={() => publishJobMutation.mutate({ jobId: job.id, isActive: true })}
                               disabled={publishJobMutation.isPending}
-                              className="bg-green-600 hover:bg-green-700 text-white"
+                              className="bg-success hover:bg-success/80 text-foreground"
                             >
                               <Play className="h-4 w-4 mr-1" />
                               {publishJobMutation.isPending ? 'Publishing...' : 'Publish'}

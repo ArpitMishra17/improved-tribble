@@ -536,22 +536,22 @@ export default function AdminSuperDashboard() {
 
   const getStatusConfig = (status: string) => {
     const configs = {
-      submitted: { color: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock, label: "Submitted" },
-      reviewed: { color: "bg-yellow-50 text-yellow-700 border-yellow-200", icon: Eye, label: "Under Review" },
-      shortlisted: { color: "bg-green-50 text-green-700 border-green-200", icon: UserCheck, label: "Shortlisted" },
-      rejected: { color: "bg-red-50 text-red-700 border-red-200", icon: XCircle, label: "Rejected" },
-      downloaded: { color: "bg-purple-50 text-purple-700 border-purple-200", icon: Download, label: "Downloaded" },
-      pending: { color: "bg-orange-50 text-orange-700 border-orange-200", icon: AlertCircle, label: "Pending Review" },
-      approved: { color: "bg-green-50 text-green-700 border-green-200", icon: CheckCircle, label: "Approved" },
+      submitted: { color: "bg-info/10 text-info-foreground border-info/20", icon: Clock, label: "Submitted" },
+      reviewed: { color: "bg-warning/10 text-warning-foreground border-yellow-200", icon: Eye, label: "Under Review" },
+      shortlisted: { color: "bg-success/10 text-success-foreground border-success/20", icon: UserCheck, label: "Shortlisted" },
+      rejected: { color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle, label: "Rejected" },
+      downloaded: { color: "bg-primary/10 text-primary border-primary/30", icon: Download, label: "Downloaded" },
+      pending: { color: "bg-warning/10 text-warning-foreground border-warning/30", icon: AlertCircle, label: "Pending Review" },
+      approved: { color: "bg-success/10 text-success-foreground border-success/20", icon: CheckCircle, label: "Approved" },
     };
     return configs[status as keyof typeof configs] || configs.submitted;
   };
 
   const getRoleColor = (role: string) => {
     const colors = {
-      admin: "bg-red-50 text-red-700 border-red-200",
-      recruiter: "bg-purple-50 text-purple-700 border-purple-200",
-      candidate: "bg-blue-50 text-blue-700 border-blue-200",
+      admin: "bg-destructive/10 text-destructive border-destructive/20",
+      recruiter: "bg-primary/10 text-primary border-primary/30",
+      candidate: "bg-info/10 text-info-foreground border-info/20",
     };
     return colors[role as keyof typeof colors] || colors.candidate;
   };
@@ -572,11 +572,11 @@ export default function AdminSuperDashboard() {
   const getOutcomeBadge = (outcome: string) => {
     switch (outcome) {
       case "success":
-        return <Badge className="bg-green-100 text-green-800">Success</Badge>;
+        return <Badge className="bg-success/20 text-success-foreground">Success</Badge>;
       case "failed":
-        return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
+        return <Badge className="bg-red-100 text-destructive">Failed</Badge>;
       case "skipped":
-        return <Badge className="bg-yellow-100 text-yellow-800">Skipped</Badge>;
+        return <Badge className="bg-yellow-100 text-warning-foreground">Skipped</Badge>;
       default:
         return <Badge variant="outline">{outcome}</Badge>;
     }
@@ -592,8 +592,8 @@ export default function AdminSuperDashboard() {
               <Shield className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Admin Super Dashboard</h1>
-              <p className="text-slate-500">Complete platform control and management</p>
+              <h1 className="text-3xl font-bold text-foreground">Admin Super Dashboard</h1>
+              <p className="text-muted-foreground">Complete platform control and management</p>
             </div>
           </div>
 
@@ -613,12 +613,12 @@ export default function AdminSuperDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-tour="admin-stats">
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">Total Jobs</CardTitle>
-              <Briefcase className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Jobs</CardTitle>
+              <Briefcase className="h-4 w-4 text-info-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stats?.totalJobs || 0}</div>
-              <p className="text-xs text-slate-500">
+              <div className="text-2xl font-bold text-foreground">{stats?.totalJobs || 0}</div>
+              <p className="text-xs text-muted-foreground">
                 {stats?.activeJobs || 0} active, {stats?.pendingJobs || 0} pending
               </p>
             </CardContent>
@@ -626,23 +626,23 @@ export default function AdminSuperDashboard() {
 
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">Total Applications</CardTitle>
-              <FileText className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Applications</CardTitle>
+              <FileText className="h-4 w-4 text-success-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stats?.totalApplications || 0}</div>
-              <p className="text-xs text-slate-500">Across all jobs</p>
+              <div className="text-2xl font-bold text-foreground">{stats?.totalApplications || 0}</div>
+              <p className="text-xs text-muted-foreground">Across all jobs</p>
             </CardContent>
           </Card>
 
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-purple-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{stats?.totalUsers || 0}</div>
-              <p className="text-xs text-slate-500">
+              <div className="text-2xl font-bold text-foreground">{stats?.totalUsers || 0}</div>
+              <p className="text-xs text-muted-foreground">
                 {stats?.totalRecruiters || 0} recruiters
               </p>
             </CardContent>
@@ -650,12 +650,12 @@ export default function AdminSuperDashboard() {
 
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-500">Platform Activity</CardTitle>
-              <Activity className="h-4 w-4 text-orange-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Platform Activity</CardTitle>
+              <Activity className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">Live</div>
-              <p className="text-xs text-slate-500">System operational</p>
+              <div className="text-2xl font-bold text-foreground">Live</div>
+              <p className="text-xs text-muted-foreground">System operational</p>
             </CardContent>
           </Card>
         </div>
@@ -671,7 +671,7 @@ export default function AdminSuperDashboard() {
               <AlertCircle className="h-4 w-4" />
               Pending
               {stats?.pendingJobs && stats.pendingJobs > 0 && (
-                <Badge className="ml-1 bg-orange-500 text-white text-xs px-1.5 py-0.5">
+                <Badge className="ml-1 bg-warning/100 text-foreground text-xs px-1.5 py-0.5">
                   {stats.pendingJobs}
                 </Badge>
               )}
@@ -750,57 +750,57 @@ export default function AdminSuperDashboard() {
               <>
                 {/* Ops KPI Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-tour="ops-kpis">
-                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-success/20">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-green-700 font-medium">Hires</p>
+                          <p className="text-sm text-success-foreground font-medium">Hires</p>
                           <p className="text-3xl font-bold text-green-900">{opsSummary?.kpis?.hires ?? 0}</p>
                         </div>
                         <div className="p-3 bg-green-200 rounded-full">
-                          <CheckCircle className="w-6 h-6 text-green-700" />
+                          <CheckCircle className="w-6 h-6 text-success-foreground" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-info/20">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-blue-700 font-medium">Offers Out</p>
+                          <p className="text-sm text-info-foreground font-medium">Offers Out</p>
                           <p className="text-3xl font-bold text-blue-900">{opsSummary?.kpis?.offersOut ?? 0}</p>
                         </div>
                         <div className="p-3 bg-blue-200 rounded-full">
-                          <Send className="w-6 h-6 text-blue-700" />
+                          <Send className="w-6 h-6 text-info-foreground" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-primary/30">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-purple-700 font-medium">In Pipeline</p>
+                          <p className="text-sm text-primary font-medium">In Pipeline</p>
                           <p className="text-3xl font-bold text-purple-900">{opsSummary?.kpis?.inPipeline ?? 0}</p>
                         </div>
                         <div className="p-3 bg-purple-200 rounded-full">
-                          <Users className="w-6 h-6 text-purple-700" />
+                          <Users className="w-6 h-6 text-primary" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className={`bg-gradient-to-br ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "from-red-50 to-red-100 border-red-200" : "from-slate-50 to-slate-100 border-slate-200"}`}>
+                  <Card className={`bg-gradient-to-br ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "from-red-50 to-red-100 border-destructive/20" : "from-slate-50 to-slate-100 border-border"}`}>
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className={`text-sm font-medium ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-red-700" : "text-slate-700"}`}>SLA Warnings</p>
-                          <p className={`text-3xl font-bold ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-red-900" : "text-slate-900"}`}>{opsSummary?.kpis?.slaWarnings ?? 0}</p>
+                          <p className={`text-sm font-medium ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-destructive" : "text-muted-foreground"}`}>SLA Warnings</p>
+                          <p className={`text-3xl font-bold ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-red-900" : "text-foreground"}`}>{opsSummary?.kpis?.slaWarnings ?? 0}</p>
                         </div>
                         <div className={`p-3 rounded-full ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "bg-red-200" : "bg-slate-200"}`}>
-                          <AlertTriangle className={`w-6 h-6 ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-red-700" : "text-slate-700"}`} />
+                          <AlertTriangle className={`w-6 h-6 ${(opsSummary?.kpis?.slaWarnings ?? 0) > 0 ? "text-destructive" : "text-muted-foreground"}`} />
                         </div>
                       </div>
                     </CardContent>
@@ -809,7 +809,7 @@ export default function AdminSuperDashboard() {
 
                 {/* Ops Sub-tabs */}
                 <Tabs defaultValue="funnel" className="space-y-4">
-                  <TabsList className="bg-slate-100" data-tour="ops-subtabs">
+                  <TabsList className="bg-muted" data-tour="ops-subtabs">
                     <TabsTrigger value="funnel" className="flex items-center gap-2">
                       <TrendingUp className="w-4 h-4" />
                       Pipeline
@@ -867,7 +867,7 @@ export default function AdminSuperDashboard() {
                                 return (
                                   <div key={stage.id} className="relative">
                                     <div className="flex items-center gap-3">
-                                      <div className="w-24 text-sm font-medium text-slate-700 truncate">
+                                      <div className="w-24 text-sm font-medium text-muted-foreground truncate">
                                         {stage.name}
                                       </div>
                                       <div className="flex-1 relative h-10">
@@ -879,12 +879,12 @@ export default function AdminSuperDashboard() {
                                             minWidth: '60px',
                                           }}
                                         >
-                                          <span className="text-white font-bold text-sm">
+                                          <span className="text-foreground font-bold text-sm">
                                             {stage.count}
                                           </span>
                                         </div>
                                       </div>
-                                      <div className="w-12 text-right text-sm text-slate-500">
+                                      <div className="w-12 text-right text-sm text-muted-foreground">
                                         {percentage}%
                                       </div>
                                     </div>
@@ -895,7 +895,7 @@ export default function AdminSuperDashboard() {
                             {(opsSummary?.funnel?.stages ?? []).some(s => s.type === 'terminal') && (
                               <>
                                 <div className="border-t pt-3 mt-4">
-                                  <p className="text-xs text-slate-500 mb-3 font-medium uppercase tracking-wider">
+                                  <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wider">
                                     Final Outcomes
                                   </p>
                                 </div>
@@ -916,7 +916,7 @@ export default function AdminSuperDashboard() {
                                           <p className="text-2xl font-bold" style={{ color: stage.color }}>
                                             {stage.count}
                                           </p>
-                                          <p className="text-sm text-slate-600">{stage.name}</p>
+                                          <p className="text-sm text-muted-foreground">{stage.name}</p>
                                           <p className="text-xs text-slate-400">{percentage}%</p>
                                         </div>
                                       );
@@ -926,8 +926,8 @@ export default function AdminSuperDashboard() {
                             )}
                           </div>
                         ) : (
-                          <div className="text-center py-8 text-slate-500">
-                            <TrendingUp className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                          <div className="text-center py-8 text-muted-foreground">
+                            <TrendingUp className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
                             <p>No pipeline stages configured</p>
                           </div>
                         )}
@@ -941,45 +941,45 @@ export default function AdminSuperDashboard() {
                       <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-base flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-blue-600" />
+                            <Clock className="w-4 h-4 text-info-foreground" />
                             Avg Time to First Touch
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-3xl font-bold text-slate-900">
+                          <p className="text-3xl font-bold text-foreground">
                             {(opsSummary?.sla?.avgTimeToFirstTouchHours ?? 0).toFixed(1)}h
                           </p>
-                          <p className="text-sm text-slate-500">Hours from application to first review</p>
+                          <p className="text-sm text-muted-foreground">Hours from application to first review</p>
                         </CardContent>
                       </Card>
 
-                      <Card className={(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "border-red-200 bg-red-50/50" : ""}>
+                      <Card className={(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "border-destructive/20 bg-destructive/10/50" : ""}>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-base flex items-center gap-2">
-                            <AlertTriangle className={`w-4 h-4 ${(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "text-red-600" : "text-slate-600"}`} />
+                            <AlertTriangle className={`w-4 h-4 ${(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "text-destructive" : "text-muted-foreground"}`} />
                             Overdue Applications
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className={`text-3xl font-bold ${(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "text-red-900" : "text-slate-900"}`}>
+                          <p className={`text-3xl font-bold ${(opsSummary?.sla?.overdueApplications ?? 0) > 0 ? "text-red-900" : "text-foreground"}`}>
                             {opsSummary?.sla?.overdueApplications ?? 0}
                           </p>
-                          <p className="text-sm text-slate-500">No response after 48 hours</p>
+                          <p className="text-sm text-muted-foreground">No response after 48 hours</p>
                         </CardContent>
                       </Card>
 
-                      <Card className={(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "border-orange-200 bg-orange-50/50" : ""}>
+                      <Card className={(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "border-warning/30 bg-warning/10/50" : ""}>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-base flex items-center gap-2">
-                            <Clock className={`w-4 h-4 ${(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "text-orange-600" : "text-slate-600"}`} />
+                            <Clock className={`w-4 h-4 ${(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}`} />
                             Pending Feedback
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className={`text-3xl font-bold ${(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "text-orange-900" : "text-slate-900"}`}>
+                          <p className={`text-3xl font-bold ${(opsSummary?.sla?.overdueInterviews ?? 0) > 0 ? "text-orange-900" : "text-foreground"}`}>
                             {opsSummary?.sla?.overdueInterviews ?? 0}
                           </p>
-                          <p className="text-sm text-slate-500">Interviews without feedback &gt;5 days</p>
+                          <p className="text-sm text-muted-foreground">Interviews without feedback &gt;5 days</p>
                         </CardContent>
                       </Card>
                     </div>
@@ -1001,11 +1001,11 @@ export default function AdminSuperDashboard() {
                               (opsSummary?.automation?.settings ?? []).map((setting) => (
                                 <div key={setting.key} className="flex items-center justify-between py-2 border-b last:border-0">
                                   <div className="flex-1 pr-4">
-                                    <p className="text-sm font-medium text-slate-900">
+                                    <p className="text-sm font-medium text-foreground">
                                       {formatAutomationKey(setting.key)}
                                     </p>
                                     {setting.description && (
-                                      <p className="text-xs text-slate-500">{setting.description}</p>
+                                      <p className="text-xs text-muted-foreground">{setting.description}</p>
                                     )}
                                   </div>
                                   <Switch
@@ -1021,7 +1021,7 @@ export default function AdminSuperDashboard() {
                                 </div>
                               ))
                             ) : (
-                              <p className="text-sm text-slate-500">No automation settings configured</p>
+                              <p className="text-sm text-muted-foreground">No automation settings configured</p>
                             )}
                           </div>
                         </CardContent>
@@ -1036,16 +1036,16 @@ export default function AdminSuperDashboard() {
                         </CardHeader>
                         <CardContent>
                           <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div className="text-center p-3 bg-green-50 rounded-lg">
-                              <p className="text-2xl font-bold text-green-700">{opsSummary?.automation?.summary?.success ?? 0}</p>
-                              <p className="text-xs text-green-600">Success</p>
+                            <div className="text-center p-3 bg-success/10 rounded-lg">
+                              <p className="text-2xl font-bold text-success-foreground">{opsSummary?.automation?.summary?.success ?? 0}</p>
+                              <p className="text-xs text-success-foreground">Success</p>
                             </div>
-                            <div className="text-center p-3 bg-red-50 rounded-lg">
-                              <p className="text-2xl font-bold text-red-700">{opsSummary?.automation?.summary?.failed ?? 0}</p>
-                              <p className="text-xs text-red-600">Failed</p>
+                            <div className="text-center p-3 bg-destructive/10 rounded-lg">
+                              <p className="text-2xl font-bold text-destructive">{opsSummary?.automation?.summary?.failed ?? 0}</p>
+                              <p className="text-xs text-destructive">Failed</p>
                             </div>
-                            <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                              <p className="text-2xl font-bold text-yellow-700">{opsSummary?.automation?.summary?.skipped ?? 0}</p>
+                            <div className="text-center p-3 bg-warning/10 rounded-lg">
+                              <p className="text-2xl font-bold text-warning-foreground">{opsSummary?.automation?.summary?.skipped ?? 0}</p>
                               <p className="text-xs text-yellow-600">Skipped</p>
                             </div>
                           </div>
@@ -1054,8 +1054,8 @@ export default function AdminSuperDashboard() {
                               (opsSummary?.automation?.recentEvents ?? []).slice(0, 5).map((event) => (
                                 <div key={event.id} className="flex items-center justify-between py-2 border-b last:border-0 text-sm">
                                   <div>
-                                    <p className="font-medium text-slate-900">{formatAutomationKey(event.automationKey)}</p>
-                                    <p className="text-xs text-slate-500">
+                                    <p className="font-medium text-foreground">{formatAutomationKey(event.automationKey)}</p>
+                                    <p className="text-xs text-muted-foreground">
                                       {event.targetType} #{event.targetId} • {new Date(event.triggeredAt).toLocaleString()}
                                     </p>
                                   </div>
@@ -1063,7 +1063,7 @@ export default function AdminSuperDashboard() {
                                 </div>
                               ))
                             ) : (
-                              <p className="text-sm text-slate-500 text-center py-4">No automation events recorded</p>
+                              <p className="text-sm text-muted-foreground text-center py-4">No automation events recorded</p>
                             )}
                           </div>
                         </CardContent>
@@ -1083,16 +1083,16 @@ export default function AdminSuperDashboard() {
                         </CardHeader>
                         <CardContent>
                           <div className="flex items-center gap-4 mb-4">
-                            <div className="flex-1 p-3 bg-green-50 rounded-lg text-center">
-                              <p className="text-2xl font-bold text-green-700">{opsSummary?.health?.email?.sent ?? 0}</p>
-                              <p className="text-xs text-green-600">Sent</p>
+                            <div className="flex-1 p-3 bg-success/10 rounded-lg text-center">
+                              <p className="text-2xl font-bold text-success-foreground">{opsSummary?.health?.email?.sent ?? 0}</p>
+                              <p className="text-xs text-success-foreground">Sent</p>
                             </div>
-                            <div className="flex-1 p-3 bg-red-50 rounded-lg text-center">
-                              <p className="text-2xl font-bold text-red-700">{opsSummary?.health?.email?.failed ?? 0}</p>
-                              <p className="text-xs text-red-600">Failed</p>
+                            <div className="flex-1 p-3 bg-destructive/10 rounded-lg text-center">
+                              <p className="text-2xl font-bold text-destructive">{opsSummary?.health?.email?.failed ?? 0}</p>
+                              <p className="text-xs text-destructive">Failed</p>
                             </div>
-                            <div className="flex-1 p-3 bg-blue-50 rounded-lg text-center">
-                              <p className="text-2xl font-bold text-blue-700">
+                            <div className="flex-1 p-3 bg-info/10 rounded-lg text-center">
+                              <p className="text-2xl font-bold text-info-foreground">
                                 {(() => {
                                   const sent = opsSummary?.health?.email?.sent ?? 0;
                                   const failed = opsSummary?.health?.email?.failed ?? 0;
@@ -1101,17 +1101,17 @@ export default function AdminSuperDashboard() {
                                     : 100;
                                 })()}%
                               </p>
-                              <p className="text-xs text-blue-600">Success Rate</p>
+                              <p className="text-xs text-info-foreground">Success Rate</p>
                             </div>
                           </div>
                           {(opsSummary?.health?.email?.recentFailures?.length ?? 0) > 0 && (
                             <div className="border-t pt-3">
-                              <p className="text-sm font-medium text-red-700 mb-2">Recent Failures</p>
+                              <p className="text-sm font-medium text-destructive mb-2">Recent Failures</p>
                               <div className="space-y-2 max-h-32 overflow-y-auto">
                                 {(opsSummary?.health?.email?.recentFailures ?? []).map((failure) => (
-                                  <div key={failure.id} className="text-xs p-2 bg-red-50 rounded">
-                                    <p className="font-medium text-red-800 truncate">{failure.recipientEmail}</p>
-                                    <p className="text-red-600 truncate">{failure.errorMessage || "Unknown error"}</p>
+                                  <div key={failure.id} className="text-xs p-2 bg-destructive/10 rounded">
+                                    <p className="font-medium text-destructive truncate">{failure.recipientEmail}</p>
+                                    <p className="text-destructive truncate">{failure.errorMessage || "Unknown error"}</p>
                                   </div>
                                 ))}
                               </div>
@@ -1129,16 +1129,16 @@ export default function AdminSuperDashboard() {
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-4">
-                            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg">
                               <div className="flex items-center gap-2">
-                                <CheckCircle className="w-5 h-5 text-green-600" />
-                                <span className="font-medium text-green-800">System Status</span>
+                                <CheckCircle className="w-5 h-5 text-success-foreground" />
+                                <span className="font-medium text-success-foreground">System Status</span>
                               </div>
-                              <Badge className="bg-green-100 text-green-800">Healthy</Badge>
+                              <Badge className="bg-success/20 text-success-foreground">Healthy</Badge>
                             </div>
-                            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                              <span className="text-sm text-slate-600">Last Updated</span>
-                              <span className="text-sm font-medium text-slate-900">
+                            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <span className="text-sm text-muted-foreground">Last Updated</span>
+                              <span className="text-sm font-medium text-foreground">
                                 {new Date(opsSummary.generatedAt).toLocaleString()}
                               </span>
                             </div>
@@ -1169,8 +1169,8 @@ export default function AdminSuperDashboard() {
                                 return (
                                   <div key={reason} className="space-y-1">
                                     <div className="flex items-center justify-between text-sm">
-                                      <span className="font-medium text-slate-700">{formatRejectionReason(reason)}</span>
-                                      <span className="text-slate-500">{count} ({percentage}%)</span>
+                                      <span className="font-medium text-muted-foreground">{formatRejectionReason(reason)}</span>
+                                      <span className="text-muted-foreground">{count} ({percentage}%)</span>
                                     </div>
                                     <Progress value={percentage} className="h-2" />
                                   </div>
@@ -1178,8 +1178,8 @@ export default function AdminSuperDashboard() {
                               })}
                           </div>
                         ) : (
-                          <div className="text-center py-8 text-slate-500">
-                            <XCircle className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                          <div className="text-center py-8 text-muted-foreground">
+                            <XCircle className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
                             <p>No rejection data available</p>
                           </div>
                         )}
@@ -1203,13 +1203,13 @@ export default function AdminSuperDashboard() {
                         <CardContent>
                           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {(opsSummary?.clients ?? []).map(client => (
-                              <Card key={client.id} className="bg-slate-50 border-slate-200 hover:border-primary/50 transition-colors">
+                              <Card key={client.id} className="bg-muted/50 border-border hover:border-primary/50 transition-colors">
                                 <CardContent className="pt-4">
                                   <div className="flex items-start justify-between mb-3">
                                     <div>
-                                      <h3 className="font-semibold text-slate-900">{client.name}</h3>
+                                      <h3 className="font-semibold text-foreground">{client.name}</h3>
                                       {client.domain && (
-                                        <p className="text-xs text-slate-500">{client.domain}</p>
+                                        <p className="text-xs text-muted-foreground">{client.domain}</p>
                                       )}
                                     </div>
                                     <Badge variant="outline" className="text-xs">
@@ -1218,21 +1218,21 @@ export default function AdminSuperDashboard() {
                                   </div>
 
                                   <div className="grid grid-cols-3 gap-2 text-center">
-                                    <div className="p-2 bg-blue-50 rounded">
-                                      <p className="text-lg font-bold text-blue-700">{client.inPipeline}</p>
-                                      <p className="text-xs text-blue-600">In Pipeline</p>
+                                    <div className="p-2 bg-info/10 rounded">
+                                      <p className="text-lg font-bold text-info-foreground">{client.inPipeline}</p>
+                                      <p className="text-xs text-info-foreground">In Pipeline</p>
                                     </div>
-                                    <div className="p-2 bg-green-50 rounded">
-                                      <p className="text-lg font-bold text-green-700">{client.hired}</p>
-                                      <p className="text-xs text-green-600">Hired</p>
+                                    <div className="p-2 bg-success/10 rounded">
+                                      <p className="text-lg font-bold text-success-foreground">{client.hired}</p>
+                                      <p className="text-xs text-success-foreground">Hired</p>
                                     </div>
-                                    <div className="p-2 bg-slate-100 rounded">
-                                      <p className="text-lg font-bold text-slate-700">{client.rejected}</p>
-                                      <p className="text-xs text-slate-600">Rejected</p>
+                                    <div className="p-2 bg-muted rounded">
+                                      <p className="text-lg font-bold text-muted-foreground">{client.rejected}</p>
+                                      <p className="text-xs text-muted-foreground">Rejected</p>
                                     </div>
                                   </div>
 
-                                  <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-slate-500">
+                                  <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">
                                     <span>{client.totalJobs} total jobs</span>
                                   </div>
                                 </CardContent>
@@ -1246,8 +1246,8 @@ export default function AdminSuperDashboard() {
                 </Tabs>
               </>
             ) : (
-              <div className="text-center py-20 text-slate-500">
-                <AlertTriangle className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+              <div className="text-center py-20 text-muted-foreground">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
                 <p>Failed to load operations data</p>
                 <Button variant="outline" className="mt-4" onClick={() => refetchOps()}>
                   Retry
@@ -1258,46 +1258,46 @@ export default function AdminSuperDashboard() {
 
           {/* Pending Approval Tab */}
           <TabsContent value="pending" className="space-y-6">
-            <Card className="shadow-sm border-orange-200" data-tour="pending-jobs">
-              <CardHeader className="bg-orange-50">
+            <Card className="shadow-sm border-warning/30" data-tour="pending-jobs">
+              <CardHeader className="bg-warning/10">
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-orange-600" />
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-warning" />
                       Jobs Pending Approval
                     </CardTitle>
-                    <CardDescription className="text-slate-900/70">
+                    <CardDescription className="text-foreground/70">
                       Review and approve or decline job postings before they go live
                     </CardDescription>
                   </div>
-                  <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                  <Badge variant="outline" className="bg-warning/20 text-warning-foreground border-orange-300">
                     {jobs?.filter(j => j.status === 'pending').length || 0} pending
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
                 {jobsLoading ? (
-                  <div className="text-center py-8 text-slate-900/70">Loading jobs...</div>
+                  <div className="text-center py-8 text-foreground/70">Loading jobs...</div>
                 ) : (
                   <div className="space-y-4">
                     {jobs?.filter(j => j.status === 'pending').length === 0 ? (
-                      <div className="text-center py-12 text-slate-500">
-                        <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
+                      <div className="text-center py-12 text-muted-foreground">
+                        <CheckCircle className="h-12 w-12 mx-auto mb-4 text-success" />
                         <p className="text-lg font-medium">All caught up!</p>
                         <p className="text-sm">No jobs pending approval</p>
                       </div>
                     ) : (
                       jobs?.filter(j => j.status === 'pending').map((job) => (
-                        <div key={job.id} data-testid="job-row" data-job-id={job.id} className="border border-orange-200 rounded-lg p-4 bg-white hover:bg-orange-50/50 transition-colors">
+                        <div key={job.id} data-testid="job-row" data-job-id={job.id} className="border border-warning/30 rounded-lg p-4 bg-card hover:bg-warning/10/50 transition-colors">
                           <div className="flex justify-between items-start">
                             <div className="space-y-2 flex-1">
                               <div className="flex items-center space-x-3">
-                                <h3 className="text-lg font-semibold text-slate-900">{job.title}</h3>
-                                <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                                <h3 className="text-lg font-semibold text-foreground">{job.title}</h3>
+                                <Badge className="bg-warning/20 text-warning-foreground border-warning/30">
                                   Pending Review
                                 </Badge>
                               </div>
-                              <div className="flex items-center space-x-4 text-sm text-slate-900/70">
+                              <div className="flex items-center space-x-4 text-sm text-foreground/70">
                                 <span className="flex items-center space-x-1">
                                   <MapPin className="h-4 w-4" />
                                   <span>{job.company} • {job.location}</span>
@@ -1311,7 +1311,7 @@ export default function AdminSuperDashboard() {
                                   <span>{job.type}</span>
                                 </span>
                               </div>
-                              <p className="text-slate-900/60 text-sm">
+                              <p className="text-foreground/60 text-sm">
                                 Posted by: {job.postedBy.firstName} {job.postedBy.lastName} ({job.postedBy.username})
                               </p>
                             </div>
@@ -1320,7 +1320,7 @@ export default function AdminSuperDashboard() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setSelectedJob(job)}
-                                className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                                className="border-border text-muted-foreground hover:bg-muted"
                               >
                                 <Eye className="h-4 w-4 mr-1" />
                                 Review
@@ -1329,7 +1329,7 @@ export default function AdminSuperDashboard() {
                                 size="sm"
                                 onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'approved' })}
                                 disabled={reviewJobMutation.isPending}
-                                className="bg-green-600 hover:bg-green-700 text-white"
+                                className="bg-success hover:bg-success/80 text-foreground"
                                 data-testid="approve-job"
                               >
                                 <CheckCircle className="h-4 w-4 mr-1" />
@@ -1340,7 +1340,7 @@ export default function AdminSuperDashboard() {
                                 size="sm"
                                 onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'declined' })}
                                 disabled={reviewJobMutation.isPending}
-                                className="border-red-300 text-red-700 hover:bg-red-50"
+                                className="border-red-300 text-destructive hover:bg-destructive/10"
                                 data-testid="decline-job"
                               >
                                 <XCircle className="h-4 w-4 mr-1" />
@@ -1363,27 +1363,27 @@ export default function AdminSuperDashboard() {
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <CardTitle className="text-slate-900">Jobs Management</CardTitle>
-                    <CardDescription className="text-slate-900/70">
+                    <CardTitle className="text-foreground">Jobs Management</CardTitle>
+                    <CardDescription className="text-foreground/70">
                       View, edit, and manage all platform jobs
                     </CardDescription>
                   </div>
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     <div className="flex items-center space-x-2">
-                      <Search className="h-4 w-4 text-slate-900/50" />
+                      <Search className="h-4 w-4 text-foreground/50" />
                       <Input
                         placeholder="Search jobs..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-white border-slate-300"
+                        className="bg-card border-border"
                       />
                     </div>
                     <Select value={jobFilter} onValueChange={setJobFilter}>
-                      <SelectTrigger className="bg-white border-slate-300">
+                      <SelectTrigger className="bg-card border-border">
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-slate-200">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="all">All Jobs</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
@@ -1396,23 +1396,23 @@ export default function AdminSuperDashboard() {
               </CardHeader>
               <CardContent>
                 {jobsLoading ? (
-                  <div className="text-center py-8 text-slate-900/70">Loading jobs...</div>
+                  <div className="text-center py-8 text-foreground/70">Loading jobs...</div>
                 ) : (
                   <div className="space-y-4">
                     {filteredJobs?.map((job) => (
-                      <div key={job.id} data-testid="job-row" data-job-id={job.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div key={job.id} data-testid="job-row" data-job-id={job.id} className="border border-border rounded-lg p-4 bg-muted/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-slate-900">{job.title}</h3>
+                              <h3 className="text-lg font-semibold text-foreground">{job.title}</h3>
                               <Badge className={getStatusConfig(job.status).color}>
                                 {getStatusConfig(job.status).label}
                               </Badge>
-                              <Badge className={job.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}>
+                              <Badge className={job.isActive ? "bg-success/10 text-success-foreground" : "bg-destructive/10 text-destructive"}>
                                 {job.isActive ? "Active" : "Inactive"}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-slate-900/70">
+                            <div className="flex items-center space-x-4 text-sm text-foreground/70">
                               <span className="flex items-center space-x-1">
                                 <MapPin className="h-4 w-4" />
                                 <span>{job.company} • {job.location}</span>
@@ -1426,13 +1426,13 @@ export default function AdminSuperDashboard() {
                                 <span>{job.applicationCount} applications</span>
                               </span>
                             </div>
-                            <p className="text-slate-900/60 text-sm">
+                            <p className="text-foreground/60 text-sm">
                               Posted by: {job.postedBy.firstName} {job.postedBy.lastName} ({job.postedBy.username})
                             </p>
                             {/* Show review info for reviewed jobs */}
                             {(job.status === 'approved' || job.status === 'declined') && job.reviewedAt && (
-                              <div className="mt-2 p-2 rounded bg-slate-50 border border-slate-200" data-testid="reviewed-by">
-                                <p className="text-xs text-slate-600">
+                              <div className="mt-2 p-2 rounded bg-muted/50 border border-border" data-testid="reviewed-by">
+                                <p className="text-xs text-muted-foreground">
                                   <span className="font-medium">{job.status === 'approved' ? 'Approved' : 'Declined'}</span>
                                   {job.reviewedBy && (
                                     <span> by {job.reviewedBy.firstName} {job.reviewedBy.lastName}</span>
@@ -1440,7 +1440,7 @@ export default function AdminSuperDashboard() {
                                   <span> on {format(new Date(job.reviewedAt), "MMM d, yyyy 'at' h:mm a")}</span>
                                 </p>
                                 {job.reviewComments && (
-                                  <p className="text-xs text-slate-500 mt-1 italic">"{job.reviewComments}"</p>
+                                  <p className="text-xs text-muted-foreground mt-1 italic">"{job.reviewComments}"</p>
                                 )}
                               </div>
                             )}
@@ -1452,7 +1452,7 @@ export default function AdminSuperDashboard() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'approved' })}
-                                  className="border-green-600 text-green-700 hover:bg-green-50 bg-white"
+                                  className="border-green-600 text-success-foreground hover:bg-success/10 bg-card"
                                   data-testid="approve-job"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
@@ -1462,7 +1462,7 @@ export default function AdminSuperDashboard() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => reviewJobMutation.mutate({ id: job.id, status: 'declined' })}
-                                  className="border-red-600 text-red-700 hover:bg-red-50 bg-white"
+                                  className="border-red-600 text-destructive hover:bg-destructive/10 bg-card"
                                   data-testid="decline-job"
                                 >
                                   <XCircle className="h-4 w-4 mr-1" />
@@ -1474,7 +1474,7 @@ export default function AdminSuperDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedJob(job)}
-                              className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                              className="border-border text-muted-foreground hover:bg-muted"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
@@ -1483,7 +1483,7 @@ export default function AdminSuperDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => updateJobMutation.mutate({ id: job.id, isActive: !job.isActive })}
-                              className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                              className="border-border text-muted-foreground hover:bg-muted"
                             >
                               {job.isActive ? "Deactivate" : "Activate"}
                             </Button>
@@ -1492,23 +1492,23 @@ export default function AdminSuperDashboard() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="border-red-600 text-red-700 hover:bg-red-50 bg-white"
+                                  className="border-red-600 text-destructive hover:bg-destructive/10 bg-card"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-white border-slate-200">
+                              <AlertDialogContent className="bg-card border-border">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle className="text-slate-900">Delete Job</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-slate-900/70">
+                                  <AlertDialogTitle className="text-foreground">Delete Job</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-foreground/70">
                                     Are you sure you want to delete "{job.title}"? This action cannot be undone and will remove all associated applications.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel className="bg-white border-slate-300">Cancel</AlertDialogCancel>
+                                  <AlertDialogCancel className="bg-card border-border">Cancel</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={() => deleteJobMutation.mutate(job.id)}
-                                    className="bg-red-600 hover:bg-red-700"
+                                    className="bg-destructive hover:bg-destructive/80"
                                   >
                                     Delete
                                   </AlertDialogAction>
@@ -1531,27 +1531,27 @@ export default function AdminSuperDashboard() {
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <CardTitle className="text-slate-900">Applications Management</CardTitle>
-                    <CardDescription className="text-slate-900/70">
+                    <CardTitle className="text-foreground">Applications Management</CardTitle>
+                    <CardDescription className="text-foreground/70">
                       Review and manage all job applications
                     </CardDescription>
                   </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="flex items-center space-x-2">
-                        <Search className="h-4 w-4 text-slate-900/50" />
+                        <Search className="h-4 w-4 text-foreground/50" />
                         <Input
                           placeholder="Search applications..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-white border-slate-300"
+                        className="bg-card border-border"
                       />
                     </div>
                       <Select value={applicationFilter} onValueChange={setApplicationFilter}>
-                        <SelectTrigger className="bg-white border-slate-300">
+                        <SelectTrigger className="bg-card border-border">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-200">
+                        <SelectContent className="bg-card border-border">
                           <SelectItem value="all">All Applications</SelectItem>
                           <SelectItem value="submitted">Submitted</SelectItem>
                           <SelectItem value="reviewed">Under Review</SelectItem>
@@ -1560,11 +1560,11 @@ export default function AdminSuperDashboard() {
                         </SelectContent>
                       </Select>
                       <Select value={applicationStageFilter} onValueChange={setApplicationStageFilter}>
-                        <SelectTrigger className="bg-white border-slate-300">
+                        <SelectTrigger className="bg-card border-border">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue placeholder="Stage" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-200">
+                        <SelectContent className="bg-card border-border">
                           <SelectItem value="all">All Stages</SelectItem>
                           <SelectItem value="unassigned">Unassigned</SelectItem>
                           {pipelineStages
@@ -1582,25 +1582,25 @@ export default function AdminSuperDashboard() {
                 </CardHeader>
               <CardContent>
                 {applicationsLoading ? (
-                  <div className="text-center py-8 text-slate-900/70">Loading applications...</div>
+                  <div className="text-center py-8 text-foreground/70">Loading applications...</div>
                 ) : (
                   <div className="space-y-4">
                     {filteredApplications?.map((application) => (
-                      <div key={application.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div key={application.id} className="border border-border rounded-lg p-4 bg-muted/50">
                         <div className="flex justify-between items-start">
                         <div className="space-y-2 flex-1">
                           <div className="flex items-center space-x-3">
-                            <h3 className="text-lg font-semibold text-slate-900">{application.fullName}</h3>
+                            <h3 className="text-lg font-semibold text-foreground">{application.fullName}</h3>
                             <Badge className={getStatusConfig(application.status).color}>
                               {getStatusConfig(application.status).label}
                             </Badge>
                             {application.stageName && (
-                              <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
                                 {application.stageName}
                               </Badge>
                             )}
                           </div>
-                            <div className="flex items-center space-x-4 text-sm text-slate-900/70">
+                            <div className="flex items-center space-x-4 text-sm text-foreground/70">
                               <span>{application.email}</span>
                               <span>{application.phone}</span>
                               <span className="flex items-center space-x-1">
@@ -1608,11 +1608,11 @@ export default function AdminSuperDashboard() {
                                 <span>{format(new Date(application.appliedAt), "MMM d, yyyy")}</span>
                               </span>
                             </div>
-                            <p className="text-slate-900/60 text-sm">
+                            <p className="text-foreground/60 text-sm">
                               Applied for: {application.job.title} at {application.job.company}
                             </p>
                             {application.notes && (
-                              <p className="text-slate-900/60 text-sm bg-slate-100 p-2 rounded">
+                              <p className="text-foreground/60 text-sm bg-muted p-2 rounded">
                                 Notes: {application.notes}
                               </p>
                             )}
@@ -1622,7 +1622,7 @@ export default function AdminSuperDashboard() {
                               variant="outline"
                               size="sm"
                               onClick={() => setSelectedApplication(application)}
-                              className="border-slate-200 text-slate-900 hover:bg-slate-100"
+                              className="border-border text-foreground hover:bg-muted"
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View
@@ -1631,10 +1631,10 @@ export default function AdminSuperDashboard() {
                               value={application.status}
                               onValueChange={(status) => updateApplicationMutation.mutate({ id: application.id, status })}
                             >
-                              <SelectTrigger className="w-32 bg-white border-slate-300">
+                              <SelectTrigger className="w-32 bg-card border-border">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="bg-white border-slate-200">
+                              <SelectContent className="bg-card border-border">
                                 <SelectItem value="submitted">Submitted</SelectItem>
                                 <SelectItem value="reviewed">Under Review</SelectItem>
                                 <SelectItem value="shortlisted">Shortlisted</SelectItem>
@@ -1657,27 +1657,27 @@ export default function AdminSuperDashboard() {
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                   <div>
-                    <CardTitle className="text-slate-900">Users Management</CardTitle>
-                    <CardDescription className="text-slate-900/70">
+                    <CardTitle className="text-foreground">Users Management</CardTitle>
+                    <CardDescription className="text-foreground/70">
                       Manage user roles and permissions
                     </CardDescription>
                   </div>
                   <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                     <div className="flex items-center space-x-2">
-                      <Search className="h-4 w-4 text-slate-900/50" />
+                      <Search className="h-4 w-4 text-foreground/50" />
                       <Input
                         placeholder="Search users..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-white border-slate-300"
+                        className="bg-card border-border"
                       />
                     </div>
                     <Select value={userFilter} onValueChange={setUserFilter}>
-                      <SelectTrigger className="bg-white border-slate-300">
+                      <SelectTrigger className="bg-card border-border">
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-slate-200">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="all">All Users</SelectItem>
                         <SelectItem value="admin">Admins</SelectItem>
                         <SelectItem value="recruiter">Recruiters</SelectItem>
@@ -1689,22 +1689,22 @@ export default function AdminSuperDashboard() {
               </CardHeader>
               <CardContent>
                 {usersLoading ? (
-                  <div className="text-center py-8 text-slate-900/70">Loading users...</div>
+                  <div className="text-center py-8 text-foreground/70">Loading users...</div>
                 ) : (
                   <div className="space-y-4">
                     {filteredUsers?.map((user) => (
-                      <div key={user.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div key={user.id} className="border border-border rounded-lg p-4 bg-muted/50">
                         <div className="flex justify-between items-start">
                           <div className="space-y-2 flex-1">
                             <div className="flex items-center space-x-3">
-                              <h3 className="text-lg font-semibold text-slate-900">
+                              <h3 className="text-lg font-semibold text-foreground">
                                 {user.firstName} {user.lastName}
                               </h3>
                               <Badge className={getRoleColor(user.role)}>
                                 {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-slate-900/70">
+                            <div className="flex items-center space-x-4 text-sm text-foreground/70">
                               <span>{user.username}</span>
                               <span className="flex items-center space-x-1">
                                 <Calendar className="h-4 w-4" />
@@ -1718,7 +1718,7 @@ export default function AdminSuperDashboard() {
                               )}
                             </div>
                             {user.profile && (
-                              <div className="text-slate-900/60 text-sm space-y-1">
+                              <div className="text-foreground/60 text-sm space-y-1">
                                 {user.profile.location && (
                                   <p className="flex items-center space-x-1">
                                     <MapPin className="h-3 w-3" />
@@ -1736,10 +1736,10 @@ export default function AdminSuperDashboard() {
                               value={user.role}
                               onValueChange={(role) => updateUserRoleMutation.mutate({ id: user.id, role })}
                             >
-                              <SelectTrigger className="w-32 bg-white border-slate-300">
+                              <SelectTrigger className="w-32 bg-card border-border">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent className="bg-white border-slate-200">
+                              <SelectContent className="bg-card border-border">
                                 <SelectItem value="candidate">Candidate</SelectItem>
                                 <SelectItem value="recruiter">Recruiter</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
@@ -1762,17 +1762,17 @@ export default function AdminSuperDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-info-foreground" />
                       Time to Fill by Job
                     </CardTitle>
-                    <CardDescription className="text-slate-600">
+                    <CardDescription className="text-muted-foreground">
                       Average days from posting to hire (last 90 days)
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {metricsLoading ? (
-                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                      <div className="text-center py-4 text-muted-foreground">Loading...</div>
                     ) : hiringMetrics?.timeToFill.byJob?.length ? (
                       <Table>
                         <TableHeader>
@@ -1793,12 +1793,12 @@ export default function AdminSuperDashboard() {
                         </TableBody>
                       </Table>
                     ) : (
-                      <div className="text-center py-4 text-slate-500">No hiring data yet</div>
+                      <div className="text-center py-4 text-muted-foreground">No hiring data yet</div>
                     )}
                     {hiringMetrics?.timeToFill.overall && (
                       <div className="mt-4 pt-4 border-t text-sm">
-                        <span className="text-slate-600">Overall average: </span>
-                        <span className="font-semibold text-slate-900">{hiringMetrics.timeToFill.overall.toFixed(1)} days</span>
+                        <span className="text-muted-foreground">Overall average: </span>
+                        <span className="font-semibold text-foreground">{hiringMetrics.timeToFill.overall.toFixed(1)} days</span>
                       </div>
                     )}
                   </CardContent>
@@ -1806,17 +1806,17 @@ export default function AdminSuperDashboard() {
 
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-purple-600" />
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-primary" />
                       Time in Stage Breakdown
                     </CardTitle>
-                    <CardDescription className="text-slate-600">
+                    <CardDescription className="text-muted-foreground">
                       Average days candidates spend in each stage
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {metricsLoading ? (
-                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                      <div className="text-center py-4 text-muted-foreground">Loading...</div>
                     ) : hiringMetrics?.timeInStage?.length ? (
                       <Table>
                         <TableHeader>
@@ -1839,7 +1839,7 @@ export default function AdminSuperDashboard() {
                         </TableBody>
                       </Table>
                     ) : (
-                      <div className="text-center py-4 text-slate-500">No stage transition data yet</div>
+                      <div className="text-center py-4 text-muted-foreground">No stage transition data yet</div>
                     )}
                   </CardContent>
                 </Card>
@@ -1848,17 +1848,17 @@ export default function AdminSuperDashboard() {
               {/* Source Performance */}
               <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-slate-900 flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-green-600" />
+                  <CardTitle className="text-foreground flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-success-foreground" />
                     Source Performance
                   </CardTitle>
-                  <CardDescription className="text-slate-600">
+                  <CardDescription className="text-muted-foreground">
                     Application sources and their conversion rates (last 90 days)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {sourcePerfLoading ? (
-                    <div className="text-center py-4 text-slate-500">Loading...</div>
+                    <div className="text-center py-4 text-muted-foreground">Loading...</div>
                   ) : sourcePerformance?.length ? (
                     <Table>
                       <TableHeader>
@@ -1878,7 +1878,7 @@ export default function AdminSuperDashboard() {
                             <TableCell className="text-right">{row.shortlist}</TableCell>
                             <TableCell className="text-right">{row.hires}</TableCell>
                             <TableCell className="text-right">
-                              <Badge variant={row.conversion >= 10 ? "default" : "secondary"} className={row.conversion >= 10 ? "bg-green-100 text-green-800" : ""}>
+                              <Badge variant={row.conversion >= 10 ? "default" : "secondary"} className={row.conversion >= 10 ? "bg-success/20 text-success-foreground" : ""}>
                                 {row.conversion}%
                               </Badge>
                             </TableCell>
@@ -1887,7 +1887,7 @@ export default function AdminSuperDashboard() {
                       </TableBody>
                     </Table>
                   ) : (
-                    <div className="text-center py-4 text-slate-500">No source data available</div>
+                    <div className="text-center py-4 text-muted-foreground">No source data available</div>
                   )}
                 </CardContent>
               </Card>
@@ -1896,17 +1896,17 @@ export default function AdminSuperDashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
-                      <Users className="h-5 w-5 text-blue-600" />
+                    <CardTitle className="text-foreground flex items-center gap-2">
+                      <Users className="h-5 w-5 text-info-foreground" />
                       Recruiter Performance
                     </CardTitle>
-                    <CardDescription className="text-slate-600">
+                    <CardDescription className="text-muted-foreground">
                       Recruiter activity and response times
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {teamPerfLoading ? (
-                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                      <div className="text-center py-4 text-muted-foreground">Loading...</div>
                     ) : teamPerformance?.recruiters?.length ? (
                       <Table>
                         <TableHeader>
@@ -1931,24 +1931,24 @@ export default function AdminSuperDashboard() {
                         </TableBody>
                       </Table>
                     ) : (
-                      <div className="text-center py-4 text-slate-500">No recruiter data yet</div>
+                      <div className="text-center py-4 text-muted-foreground">No recruiter data yet</div>
                     )}
                   </CardContent>
                 </Card>
 
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                    <CardTitle className="text-foreground flex items-center gap-2">
                       <Crown className="h-5 w-5 text-amber-600" />
                       Hiring Manager Performance
                     </CardTitle>
-                    <CardDescription className="text-slate-600">
+                    <CardDescription className="text-muted-foreground">
                       Feedback turnaround and pending reviews
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {teamPerfLoading ? (
-                      <div className="text-center py-4 text-slate-500">Loading...</div>
+                      <div className="text-center py-4 text-muted-foreground">Loading...</div>
                     ) : teamPerformance?.hiringManagers?.length ? (
                       <Table>
                         <TableHeader>
@@ -1969,7 +1969,7 @@ export default function AdminSuperDashboard() {
                               </TableCell>
                               <TableCell className="text-right">
                                 {row.waitingCount > 0 ? (
-                                  <Badge className="bg-orange-100 text-orange-800">{row.waitingCount}</Badge>
+                                  <Badge className="bg-warning/20 text-orange-800">{row.waitingCount}</Badge>
                                 ) : (
                                   '0'
                                 )}
@@ -1979,39 +1979,39 @@ export default function AdminSuperDashboard() {
                         </TableBody>
                       </Table>
                     ) : (
-                      <div className="text-center py-4 text-slate-500">No hiring manager data yet</div>
+                      <div className="text-center py-4 text-muted-foreground">No hiring manager data yet</div>
                     )}
                   </CardContent>
                 </Card>
               </div>
 
               {/* Summary Stats */}
-              <Card className="shadow-sm bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+              <Card className="shadow-sm bg-gradient-to-r from-blue-50 to-purple-50 border-info/20">
                 <CardContent className="py-6">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                     <div>
-                      <div className="text-3xl font-bold text-blue-700">
+                      <div className="text-3xl font-bold text-info-foreground">
                         {hiringMetrics?.totalApplications ?? 0}
                       </div>
-                      <div className="text-sm text-slate-600">Total Applications</div>
+                      <div className="text-sm text-muted-foreground">Total Applications</div>
                     </div>
                     <div>
-                      <div className="text-3xl font-bold text-green-700">
+                      <div className="text-3xl font-bold text-success-foreground">
                         {hiringMetrics?.totalHires ?? 0}
                       </div>
-                      <div className="text-sm text-slate-600">Total Hires</div>
+                      <div className="text-sm text-muted-foreground">Total Hires</div>
                     </div>
                     <div>
-                      <div className="text-3xl font-bold text-purple-700">
+                      <div className="text-3xl font-bold text-primary">
                         {hiringMetrics?.conversionRate?.toFixed(1) ?? 0}%
                       </div>
-                      <div className="text-sm text-slate-600">Conversion Rate</div>
+                      <div className="text-sm text-muted-foreground">Conversion Rate</div>
                     </div>
                     <div>
                       <div className="text-3xl font-bold text-amber-700">
                         {hiringMetrics?.timeToFill.overall?.toFixed(0) ?? '—'}
                       </div>
-                      <div className="text-sm text-slate-600">Avg Time to Fill (days)</div>
+                      <div className="text-sm text-muted-foreground">Avg Time to Fill (days)</div>
                     </div>
                   </div>
                 </CardContent>
@@ -2023,38 +2023,38 @@ export default function AdminSuperDashboard() {
           <TabsContent value="logs" className="space-y-6">
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle className="text-slate-900">System Activity Logs</CardTitle>
-                <CardDescription className="text-slate-900/70">
+                <CardTitle className="text-foreground">System Activity Logs</CardTitle>
+                <CardDescription className="text-foreground/70">
                   Monitor platform activity and system events
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <div className="border border-border rounded-lg p-4 bg-muted/50">
                     <div className="flex items-center space-x-3 text-sm">
                       <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-slate-900/70">{format(new Date(), "MMM d, yyyy HH:mm")}</span>
-                      <span className="text-slate-900">System</span>
-                      <span className="text-green-600">Platform operational - All systems running</span>
+                      <span className="text-foreground/70">{format(new Date(), "MMM d, yyyy HH:mm")}</span>
+                      <span className="text-foreground">System</span>
+                      <span className="text-success-foreground">Platform operational - All systems running</span>
                     </div>
                   </div>
-                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <div className="border border-border rounded-lg p-4 bg-muted/50">
                     <div className="flex items-center space-x-3 text-sm">
                       <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="text-slate-900/70">{format(new Date(Date.now() - 300000), "MMM d, yyyy HH:mm")}</span>
-                      <span className="text-slate-900">Database</span>
-                      <span className="text-blue-600">User profiles table created successfully</span>
+                      <span className="text-foreground/70">{format(new Date(Date.now() - 300000), "MMM d, yyyy HH:mm")}</span>
+                      <span className="text-foreground">Database</span>
+                      <span className="text-info-foreground">User profiles table created successfully</span>
                     </div>
                   </div>
-                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <div className="border border-border rounded-lg p-4 bg-muted/50">
                     <div className="flex items-center space-x-3 text-sm">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <span className="text-slate-900/70">{format(new Date(Date.now() - 600000), "MMM d, yyyy HH:mm")}</span>
-                      <span className="text-slate-900">Jobs</span>
-                      <span className="text-purple-600">Job scheduler activated - Daily cleanup at 2 AM</span>
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      <span className="text-foreground/70">{format(new Date(Date.now() - 600000), "MMM d, yyyy HH:mm")}</span>
+                      <span className="text-foreground">Jobs</span>
+                      <span className="text-primary">Job scheduler activated - Daily cleanup at 2 AM</span>
                     </div>
                   </div>
-                  <div className="text-center py-4 text-slate-900/50">
+                  <div className="text-center py-4 text-foreground/50">
                     Real-time system monitoring active
                   </div>
                 </div>
@@ -2067,37 +2067,37 @@ export default function AdminSuperDashboard() {
       {/* Job Detail Dialog */}
       {selectedJob && (
         <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
-          <DialogContent className="bg-white border-slate-200 max-w-2xl">
+          <DialogContent className="bg-card border-border max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-slate-900">{selectedJob.title}</DialogTitle>
-              <DialogDescription className="text-slate-900/70">
+              <DialogTitle className="text-foreground">{selectedJob.title}</DialogTitle>
+              <DialogDescription className="text-foreground/70">
                 {selectedJob.company} • {selectedJob.location}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-slate-900/70">Status:</span>
+                  <span className="text-foreground/70">Status:</span>
                   <Badge className={`ml-2 ${getStatusConfig(selectedJob.status).color}`}>
                     {getStatusConfig(selectedJob.status).label}
                   </Badge>
                 </div>
                 <div>
-                  <span className="text-slate-900/70">Active:</span>
-                  <Badge className={`ml-2 ${selectedJob.isActive ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                  <span className="text-foreground/70">Active:</span>
+                  <Badge className={`ml-2 ${selectedJob.isActive ? "bg-success/10 text-success-foreground" : "bg-destructive/10 text-destructive"}`}>
                     {selectedJob.isActive ? "Yes" : "No"}
                   </Badge>
                 </div>
-                <div className="text-slate-900/70">
-                  Applications: <span className="text-slate-900">{selectedJob.applicationCount}</span>
+                <div className="text-foreground/70">
+                  Applications: <span className="text-foreground">{selectedJob.applicationCount}</span>
                 </div>
-                <div className="text-slate-900/70">
-                  Posted: <span className="text-slate-900">{format(new Date(selectedJob.createdAt), "MMM d, yyyy")}</span>
+                <div className="text-foreground/70">
+                  Posted: <span className="text-foreground">{format(new Date(selectedJob.createdAt), "MMM d, yyyy")}</span>
                 </div>
               </div>
               <div>
-                <span className="text-slate-900/70">Posted by:</span>
-                <span className="text-slate-900 ml-2">
+                <span className="text-foreground/70">Posted by:</span>
+                <span className="text-foreground ml-2">
                   {selectedJob.postedBy.firstName} {selectedJob.postedBy.lastName} ({selectedJob.postedBy.username})
                 </span>
               </div>
@@ -2106,7 +2106,7 @@ export default function AdminSuperDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => setSelectedJob(null)}
-                className="border-slate-200 text-slate-900 hover:bg-slate-100"
+                className="border-border text-foreground hover:bg-muted"
               >
                 Close
               </Button>
@@ -2118,43 +2118,43 @@ export default function AdminSuperDashboard() {
       {/* Application Detail Dialog */}
       {selectedApplication && (
         <Dialog open={!!selectedApplication} onOpenChange={() => setSelectedApplication(null)}>
-          <DialogContent className="bg-white border-slate-200 max-w-2xl">
+          <DialogContent className="bg-card border-border max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-slate-900">{selectedApplication.fullName}</DialogTitle>
-              <DialogDescription className="text-slate-900/70">
+              <DialogTitle className="text-foreground">{selectedApplication.fullName}</DialogTitle>
+              <DialogDescription className="text-foreground/70">
                 Application for {selectedApplication.job.title} at {selectedApplication.job.company}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-slate-900/70">
-                  Email: <span className="text-slate-900">{selectedApplication.email}</span>
+                <div className="text-foreground/70">
+                  Email: <span className="text-foreground">{selectedApplication.email}</span>
                 </div>
-                <div className="text-slate-900/70">
-                  Phone: <span className="text-slate-900">{selectedApplication.phone}</span>
+                <div className="text-foreground/70">
+                  Phone: <span className="text-foreground">{selectedApplication.phone}</span>
                 </div>
-                <div className="text-slate-900/70">
+                <div className="text-foreground/70">
                   Status: 
                   <Badge className={`ml-2 ${getStatusConfig(selectedApplication.status).color}`}>
                     {getStatusConfig(selectedApplication.status).label}
                   </Badge>
                 </div>
-                <div className="text-slate-900/70">
-                  Applied: <span className="text-slate-900">{format(new Date(selectedApplication.appliedAt), "MMM d, yyyy")}</span>
+                <div className="text-foreground/70">
+                  Applied: <span className="text-foreground">{format(new Date(selectedApplication.appliedAt), "MMM d, yyyy")}</span>
                 </div>
               </div>
               {selectedApplication.coverLetter && (
                 <div>
-                  <span className="text-slate-900/70 block mb-2">Cover Letter:</span>
-                  <div className="bg-slate-100 p-3 rounded text-slate-900 text-sm max-h-32 overflow-y-auto">
+                  <span className="text-foreground/70 block mb-2">Cover Letter:</span>
+                  <div className="bg-muted p-3 rounded text-foreground text-sm max-h-32 overflow-y-auto">
                     {selectedApplication.coverLetter}
                   </div>
                 </div>
               )}
               {selectedApplication.notes && (
                 <div>
-                  <span className="text-slate-900/70 block mb-2">Recruiter Notes:</span>
-                  <div className="bg-slate-100 p-3 rounded text-slate-900 text-sm">
+                  <span className="text-foreground/70 block mb-2">Recruiter Notes:</span>
+                  <div className="bg-muted p-3 rounded text-foreground text-sm">
                     {selectedApplication.notes}
                   </div>
                 </div>
@@ -2164,7 +2164,7 @@ export default function AdminSuperDashboard() {
               <Button 
                 variant="outline" 
                 onClick={() => setSelectedApplication(null)}
-                className="border-slate-200 text-slate-900 hover:bg-slate-100"
+                className="border-border text-foreground hover:bg-muted"
               >
                 Close
               </Button>

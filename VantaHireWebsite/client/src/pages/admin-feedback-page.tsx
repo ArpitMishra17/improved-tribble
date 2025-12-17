@@ -96,24 +96,24 @@ export default function AdminFeedbackPage() {
   const getRecommendationBadge = (recommendation: string | null) => {
     switch (recommendation) {
       case "advance":
-        return <Badge className="bg-green-100 text-green-700 border-0"><ThumbsUp className="w-3 h-3 mr-1" />Advance</Badge>;
+        return <Badge className="bg-success/20 text-success-foreground border-0"><ThumbsUp className="w-3 h-3 mr-1" />Advance</Badge>;
       case "hold":
-        return <Badge className="bg-amber-100 text-amber-700 border-0"><Minus className="w-3 h-3 mr-1" />Hold</Badge>;
+        return <Badge className="bg-warning/20 text-warning-foreground border-0"><Minus className="w-3 h-3 mr-1" />Hold</Badge>;
       case "reject":
-        return <Badge className="bg-red-100 text-red-700 border-0"><ThumbsDown className="w-3 h-3 mr-1" />Reject</Badge>;
+        return <Badge className="bg-destructive/20 text-destructive border-0"><ThumbsDown className="w-3 h-3 mr-1" />Reject</Badge>;
       default:
         return <Badge variant="secondary">—</Badge>;
     }
   };
 
   const getScoreStars = (score: number | null) => {
-    if (!score) return <span className="text-slate-400">—</span>;
+    if (!score) return <span className="text-muted-foreground">—</span>;
     return (
       <div className="flex items-center gap-1">
         {[1, 2, 3, 4, 5].map((s) => (
           <Star
             key={s}
-            className={`w-4 h-4 ${s <= score ? "text-amber-400 fill-amber-400" : "text-slate-200"}`}
+            className={`w-4 h-4 ${s <= score ? "text-warning fill-amber-400" : "text-slate-200"}`}
           />
         ))}
       </div>
@@ -130,11 +130,11 @@ export default function AdminFeedbackPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
                 <MessageSquare className="w-8 h-8 text-primary" />
                 Feedback Analytics
               </h1>
-              <p className="text-slate-500 mt-1">Analyze candidate evaluation feedback patterns</p>
+              <p className="text-muted-foreground mt-1">Analyze candidate evaluation feedback patterns</p>
             </div>
             <Select value={dateRange} onValueChange={setDateRange}>
               <SelectTrigger className="w-[150px]">
@@ -155,8 +155,8 @@ export default function AdminFeedbackPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Total Feedback</p>
-                    <p className="text-2xl font-bold text-slate-900">{stats.totalFeedback}</p>
+                    <p className="text-sm text-muted-foreground">Total Feedback</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalFeedback}</p>
                   </div>
                   <MessageSquare className="w-8 h-8 text-primary opacity-50" />
                 </div>
@@ -166,13 +166,13 @@ export default function AdminFeedbackPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Avg Score</p>
+                    <p className="text-sm text-muted-foreground">Avg Score</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-amber-600">{stats.avgScore}</p>
-                      <span className="text-slate-400">/ 5</span>
+                      <p className="text-2xl font-bold text-warning">{stats.avgScore}</p>
+                      <span className="text-muted-foreground">/ 5</span>
                     </div>
                   </div>
-                  <Star className="w-8 h-8 text-amber-500 opacity-50" />
+                  <Star className="w-8 h-8 text-warning opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -180,14 +180,14 @@ export default function AdminFeedbackPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Advance Rate</p>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-sm text-muted-foreground">Advance Rate</p>
+                    <p className="text-2xl font-bold text-success">
                       {totalRecommendations > 0
                         ? Math.round((stats.byRecommendation.advance / totalRecommendations) * 100)
                         : 0}%
                     </p>
                   </div>
-                  <ThumbsUp className="w-8 h-8 text-green-500 opacity-50" />
+                  <ThumbsUp className="w-8 h-8 text-success opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -195,14 +195,14 @@ export default function AdminFeedbackPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Reject Rate</p>
-                    <p className="text-2xl font-bold text-red-600">
+                    <p className="text-sm text-muted-foreground">Reject Rate</p>
+                    <p className="text-2xl font-bold text-destructive">
                       {totalRecommendations > 0
                         ? Math.round((stats.byRecommendation.reject / totalRecommendations) * 100)
                         : 0}%
                     </p>
                   </div>
-                  <ThumbsDown className="w-8 h-8 text-red-500 opacity-50" />
+                  <ThumbsDown className="w-8 h-8 text-destructive opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -224,46 +224,46 @@ export default function AdminFeedbackPage() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
                       <div className="w-24 flex items-center gap-2">
-                        <ThumbsUp className="w-4 h-4 text-green-600" />
+                        <ThumbsUp className="w-4 h-4 text-success" />
                         <span className="text-sm">Advance</span>
                       </div>
                       <div className="flex-1">
                         <Progress
                           value={totalRecommendations > 0 ? (stats.byRecommendation.advance / totalRecommendations) * 100 : 0}
-                          className="h-3 bg-green-100"
+                          className="h-3 bg-success/20"
                         />
                       </div>
-                      <span className="w-12 text-right font-semibold text-green-600">
+                      <span className="w-12 text-right font-semibold text-success">
                         {stats.byRecommendation.advance}
                       </span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="w-24 flex items-center gap-2">
-                        <Minus className="w-4 h-4 text-amber-600" />
+                        <Minus className="w-4 h-4 text-warning" />
                         <span className="text-sm">Hold</span>
                       </div>
                       <div className="flex-1">
                         <Progress
                           value={totalRecommendations > 0 ? (stats.byRecommendation.hold / totalRecommendations) * 100 : 0}
-                          className="h-3 bg-amber-100"
+                          className="h-3 bg-warning/20"
                         />
                       </div>
-                      <span className="w-12 text-right font-semibold text-amber-600">
+                      <span className="w-12 text-right font-semibold text-warning">
                         {stats.byRecommendation.hold}
                       </span>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="w-24 flex items-center gap-2">
-                        <ThumbsDown className="w-4 h-4 text-red-600" />
+                        <ThumbsDown className="w-4 h-4 text-destructive" />
                         <span className="text-sm">Reject</span>
                       </div>
                       <div className="flex-1">
                         <Progress
                           value={totalRecommendations > 0 ? (stats.byRecommendation.reject / totalRecommendations) * 100 : 0}
-                          className="h-3 bg-red-100"
+                          className="h-3 bg-destructive/20"
                         />
                       </div>
-                      <span className="w-12 text-right font-semibold text-red-600">
+                      <span className="w-12 text-right font-semibold text-destructive">
                         {stats.byRecommendation.reject}
                       </span>
                     </div>
@@ -291,16 +291,16 @@ export default function AdminFeedbackPage() {
                       return (
                         <div key={score} className="flex items-center gap-3">
                           <div className="w-20 flex items-center gap-1">
-                            <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                            <Star className="w-4 h-4 text-warning fill-amber-400" />
                             <span className="text-sm font-medium">{score}</span>
                           </div>
-                          <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
                             <div
                               className="h-full bg-amber-400 rounded-full transition-all"
                               style={{ width: `${percent}%` }}
                             />
                           </div>
-                          <span className="w-8 text-right text-sm text-slate-600">{count}</span>
+                          <span className="w-8 text-right text-sm text-muted-foreground">{count}</span>
                         </div>
                       );
                     })}
@@ -322,7 +322,7 @@ export default function AdminFeedbackPage() {
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
               ) : feedback.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
+                <div className="text-center py-12 text-muted-foreground">
                   <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No feedback found for this period</p>
                 </div>
@@ -346,12 +346,12 @@ export default function AdminFeedbackPage() {
                           <span className="text-sm">{record.reviewerName || "Unknown"}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-slate-600 line-clamp-1 max-w-xs">
+                          <span className="text-sm text-muted-foreground line-clamp-1 max-w-xs">
                             {record.notes || "—"}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-slate-500">
+                          <span className="text-sm text-muted-foreground">
                             {new Date(record.createdAt).toLocaleDateString()}
                           </span>
                         </TableCell>

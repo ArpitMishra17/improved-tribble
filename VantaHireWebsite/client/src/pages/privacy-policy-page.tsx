@@ -8,23 +8,23 @@ export default function PrivacyPolicyPage() {
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Shield className="w-10 h-10 text-purple-400" />
-            <h1 className="text-4xl font-bold text-white">Privacy Policy</h1>
+            <Shield className="w-10 h-10 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Privacy Policy</h1>
           </div>
-          <p className="text-slate-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Last Updated: January 2025
           </p>
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
                 Introduction
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 VantaHire, a unit of Deori RecruiterHub Solutions OPC Pvt Ltd ("we," "our," or "us"),
                 is committed to protecting your privacy. This Privacy Policy explains how we collect,
@@ -38,16 +38,16 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Database className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Database className="w-5 h-5 text-primary" />
                 Information We Collect
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">Personal Information</h3>
+                <h3 className="text-foreground font-semibold mb-2">Personal Information</h3>
                 <p className="mb-2">When you register or use our services, we may collect:</p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Name, email address, and contact information</li>
@@ -60,7 +60,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Automatically Collected Information</h3>
+                <h3 className="text-foreground font-semibold mb-2">Automatically Collected Information</h3>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>IP address, browser type, and device information</li>
                   <li>Usage data and interaction patterns</li>
@@ -70,7 +70,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">AI-Generated Data</h3>
+                <h3 className="text-foreground font-semibold mb-2">AI-Generated Data</h3>
                 <p>
                   Our platform uses AI to analyze resumes and match candidates with jobs. This analysis
                   generates fit scores and recommendations, which are stored with your application data.
@@ -79,14 +79,14 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Eye className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Eye className="w-5 h-5 text-primary" />
                 How We Use Your Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>We use the collected information for:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li>Processing and managing job applications</li>
@@ -102,16 +102,16 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Lock className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Lock className="w-5 h-5 text-primary" />
                 Data Sharing and Disclosure
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">With Recruiters and Employers</h3>
+                <h3 className="text-foreground font-semibold mb-2">With Recruiters and Employers</h3>
                 <p>
                   When you apply for a job, your application data, resume, and AI fit scores are shared
                   with the recruiter or employer posting that position. They can view, download, and
@@ -120,7 +120,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Service Providers</h3>
+                <h3 className="text-foreground font-semibold mb-2">Service Providers</h3>
                 <p>We may share your information with trusted third-party service providers who assist us in:</p>
                 <ul className="list-disc list-inside space-y-1 ml-4">
                   <li>Cloud storage and hosting (Google Cloud Storage)</li>
@@ -131,7 +131,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Legal Requirements</h3>
+                <h3 className="text-foreground font-semibold mb-2">Legal Requirements</h3>
                 <p>
                   We may disclose your information if required by law, court order, or government request,
                   or to protect our rights, property, or safety.
@@ -139,7 +139,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">We Do Not Sell Your Data</h3>
+                <h3 className="text-foreground font-semibold mb-2">We Do Not Sell Your Data</h3>
                 <p>
                   We do not sell, rent, or trade your personal information to third parties for marketing purposes.
                 </p>
@@ -147,14 +147,14 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Shield className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
                 Data Security
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 We implement industry-standard security measures to protect your information, including:
               </p>
@@ -173,11 +173,11 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Your Rights</CardTitle>
+              <CardTitle className="text-foreground">Your Rights</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>You have the right to:</p>
               <ul className="list-disc list-inside space-y-2 ml-4">
                 <li><strong>Access:</strong> Request a copy of your personal data</li>
@@ -193,11 +193,11 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Data Retention</CardTitle>
+              <CardTitle className="text-foreground">Data Retention</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 We retain your personal information for as long as necessary to provide our services and
                 comply with legal obligations. Specifically:
@@ -211,14 +211,14 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Cookies and Tracking</CardTitle>
+              <CardTitle className="text-foreground">Cookies and Tracking</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 We use cookies and similar tracking technologies to enhance your experience.
-                For detailed information, please see our <a href="/cookie-policy" className="text-purple-400 hover:text-purple-300 underline">Cookie Policy</a>.
+                For detailed information, please see our <a href="/cookie-policy" className="text-primary hover:text-primary underline">Cookie Policy</a>.
               </p>
               <p>
                 You can manage your cookie preferences through our Cookie Consent banner or your browser settings.
@@ -226,11 +226,11 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Children's Privacy</CardTitle>
+              <CardTitle className="text-foreground">Children's Privacy</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 VantaHire is not intended for individuals under the age of 18. We do not knowingly collect
                 personal information from children. If we become aware that we have collected data from a
@@ -239,11 +239,11 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Changes to This Policy</CardTitle>
+              <CardTitle className="text-foreground">Changes to This Policy</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 We may update this Privacy Policy from time to time. We will notify you of any significant
                 changes by posting the new policy on this page and updating the "Last Updated" date.
@@ -254,19 +254,19 @@ export default function PrivacyPolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Mail className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Mail className="w-5 h-5 text-primary" />
                 Contact Us
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground/50 space-y-4">
               <p>
                 If you have questions about this Privacy Policy or our data practices, please contact us:
               </p>
-              <div className="bg-slate-800 p-4 rounded-lg space-y-2">
-                <p><strong className="text-white">Deori RecruiterHub Solutions OPC Pvt Ltd</strong></p>
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <p><strong className="text-foreground">Deori RecruiterHub Solutions OPC Pvt Ltd</strong></p>
                 <p>Email: privacy@vantahire.com</p>
                 <p>Subject: Privacy Policy Inquiry</p>
               </div>

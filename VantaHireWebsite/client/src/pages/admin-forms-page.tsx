@@ -257,11 +257,11 @@ export default function AdminFormsPage() {
         {/* Header */}
         <div className="flex items-center justify-between pt-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground flex items-center gap-2">
               <FileText className="w-7 h-7 text-primary" />
               Form Templates
             </h1>
-            <p className="text-slate-500 mt-1">
+            <p className="text-muted-foreground mt-1">
               Create and manage custom forms to send to candidates
             </p>
           </div>
@@ -278,8 +278,8 @@ export default function AdminFormsPage() {
         {/* Templates Table */}
         <Card className="shadow-sm" data-tour="forms-list">
           <CardHeader>
-            <CardTitle className="text-slate-900">Templates</CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardTitle className="text-foreground">Templates</CardTitle>
+            <CardDescription className="text-muted-foreground">
               {user?.role === 'super_admin'
                 ? 'All form templates (published and drafts)'
                 : 'Published templates and your own drafts'}
@@ -292,35 +292,35 @@ export default function AdminFormsPage() {
               </div>
             ) : templates.length === 0 ? (
               <div className="text-center py-12">
-                <FileText className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 mb-2">No templates yet</p>
-                <p className="text-slate-500 text-sm">
+                <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">No templates yet</p>
+                <p className="text-muted-foreground text-sm">
                   Create your first template to get started
                 </p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-200 hover:bg-slate-50">
-                    <TableHead className="text-slate-600">Template Name</TableHead>
-                    <TableHead className="text-slate-600">Status</TableHead>
-                    <TableHead className="text-slate-600">Fields</TableHead>
-                    <TableHead className="text-slate-600">Created By</TableHead>
-                    <TableHead className="text-slate-600">Updated</TableHead>
-                    <TableHead className="text-slate-600 text-right">Actions</TableHead>
+                  <TableRow className="border-border hover:bg-muted/50">
+                    <TableHead className="text-muted-foreground">Template Name</TableHead>
+                    <TableHead className="text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-muted-foreground">Fields</TableHead>
+                    <TableHead className="text-muted-foreground">Created By</TableHead>
+                    <TableHead className="text-muted-foreground">Updated</TableHead>
+                    <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {templates.map((template) => (
                     <TableRow
                       key={template.id}
-                      className="border-slate-200 hover:bg-slate-50"
+                      className="border-border hover:bg-muted/50"
                     >
                       <TableCell>
                         <div>
-                          <p className="text-slate-900 font-medium">{template.name}</p>
+                          <p className="text-foreground font-medium">{template.name}</p>
                           {template.description && (
-                            <p className="text-slate-500 text-sm mt-1">
+                            <p className="text-muted-foreground text-sm mt-1">
                               {template.description.length > 60
                                 ? `${template.description.slice(0, 60)}...`
                                 : template.description}
@@ -332,20 +332,20 @@ export default function AdminFormsPage() {
                         <Badge
                           className={
                             template.isPublished
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                              ? "bg-success/10 text-success-foreground border-success/30"
+                              : "bg-warning/10 text-warning-foreground border-warning/30"
                           }
                         >
                           {template.isPublished ? "Published" : "Draft"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-slate-600">
+                      <TableCell className="text-muted-foreground">
                         {template.fields.length} fields
                       </TableCell>
-                      <TableCell className="text-slate-500 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {template.createdBy === user?.id ? "You" : `ID: ${template.createdBy}`}
                       </TableCell>
-                      <TableCell className="text-slate-500 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {new Date(template.updatedAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
@@ -369,7 +369,7 @@ export default function AdminFormsPage() {
                               size="sm"
                               onClick={() => handleTogglePublish(template)}
                               disabled={togglePublishMutation.isPending}
-                              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted"
                               title={template.isPublished ? "Unpublish" : "Publish"}
                             >
                               {template.isPublished ? (
@@ -385,7 +385,7 @@ export default function AdminFormsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(template)}
-                              className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                              className="text-muted-foreground hover:text-foreground hover:bg-muted"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -397,7 +397,7 @@ export default function AdminFormsPage() {
                               size="sm"
                               onClick={() => handleDelete(template)}
                               disabled={deleteMutation.isPending}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -421,19 +421,19 @@ export default function AdminFormsPage() {
                 Are you sure you want to delete "{templateToDelete?.name}"? This action cannot
                 be undone.
                 {templateToDelete && (
-                  <p className="mt-2 text-sm text-amber-600">
+                  <p className="mt-2 text-sm text-warning">
                     Note: Templates with existing invitations cannot be deleted.
                   </p>
                 )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-white text-slate-700 border-slate-300 hover:bg-slate-100">
+              <AlertDialogCancel className="bg-card text-foreground border-border hover:bg-muted">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => templateToDelete && deleteMutation.mutate(templateToDelete.id)}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-destructive hover:bg-destructive/80"
               >
                 {deleteMutation.isPending ? (
                   <>
@@ -463,12 +463,12 @@ export default function AdminFormsPage() {
 
             {/* Quota Info */}
             {invitationQuota && (
-              <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg text-sm">
-                <span className="text-slate-600">Daily limit:</span>
-                <span className="font-medium text-slate-900">
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
+                <span className="text-muted-foreground">Daily limit:</span>
+                <span className="font-medium text-foreground">
                   {invitationQuota.used} / {invitationQuota.limit} used
                 </span>
-                <span className="text-slate-500">
+                <span className="text-muted-foreground">
                   ({invitationQuota.remaining} remaining)
                 </span>
               </div>
@@ -476,7 +476,7 @@ export default function AdminFormsPage() {
 
             {/* Email Input Section */}
             <div className="space-y-3">
-              <Label htmlFor="emailInput" className="text-slate-700">
+              <Label htmlFor="emailInput" className="text-foreground">
                 Add Email Addresses
               </Label>
               <Textarea
@@ -521,29 +521,29 @@ export default function AdminFormsPage() {
             {emailList.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-slate-700">
+                  <Label className="text-foreground">
                     Recipients ({emailList.length})
                   </Label>
                   {duplicateEmails.length > 0 && (
-                    <span className="flex items-center gap-1 text-sm text-amber-600">
+                    <span className="flex items-center gap-1 text-sm text-warning">
                       <AlertTriangle className="w-4 h-4" />
                       {duplicateEmails.length} duplicate(s) removed
                     </span>
                   )}
                 </div>
-                <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
+                <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-2 space-y-1">
                   {emailList.map((email, index) => (
                     <div
                       key={`${email}-${index}`}
-                      className="flex items-center justify-between py-1 px-2 bg-slate-50 rounded text-sm"
+                      className="flex items-center justify-between py-1 px-2 bg-muted/50 rounded text-sm"
                     >
-                      <span className="text-slate-700">{email}</span>
+                      <span className="text-foreground">{email}</span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveEmail(email)}
-                        className="h-6 w-6 p-0 text-slate-400 hover:text-red-500"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                       >
                         <X className="w-3 h-3" />
                       </Button>
@@ -555,10 +555,10 @@ export default function AdminFormsPage() {
 
             {/* Progress Display */}
             {bulkInviteProgress && (
-              <div className="space-y-3 p-4 bg-slate-50 rounded-lg">
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">Sending invitations...</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="text-muted-foreground">Sending invitations...</span>
+                  <span className="font-medium text-foreground">
                     {bulkInviteProgress.sent} / {bulkInviteProgress.total}
                   </span>
                 </div>
@@ -569,19 +569,19 @@ export default function AdminFormsPage() {
                 {bulkInviteProgress.sent === bulkInviteProgress.total && (
                   <div className="space-y-2 mt-3">
                     <div className="flex items-center gap-4 text-sm">
-                      <span className="flex items-center gap-1 text-green-600">
+                      <span className="flex items-center gap-1 text-success">
                         <CheckCircle className="w-4 h-4" />
                         {bulkInviteProgress.results.filter(r => r.status === 'sent').length} sent
                       </span>
                       {bulkInviteProgress.results.filter(r => r.status === 'failed').length > 0 && (
-                        <span className="flex items-center gap-1 text-red-600">
+                        <span className="flex items-center gap-1 text-destructive">
                           <AlertTriangle className="w-4 h-4" />
                           {bulkInviteProgress.results.filter(r => r.status === 'failed').length} failed
                         </span>
                       )}
                     </div>
                     {bulkInviteProgress.results.filter(r => r.status === 'failed').length > 0 && (
-                      <div className="text-xs text-red-600 max-h-24 overflow-y-auto">
+                      <div className="text-xs text-destructive max-h-24 overflow-y-auto">
                         {bulkInviteProgress.results
                           .filter(r => r.status === 'failed')
                           .map((r, i) => (

@@ -10,16 +10,13 @@
  * - Server-side label derivation
  */
 
-import Groq from 'groq-sdk';
 import { db } from '../db';
 import { applications, userAiUsage } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { redisGet, redisSet, redisIncr, redisDecr } from './redis';
 import { formatDigestForPrompt, JDDigest } from './jdDigest';
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || '',
-});
+import { getGroqClient } from './groqClient';
+import { FitScoreResponseSchema, safeParseAiResponse } from './aiResponseSchemas';
 
 const FIT_MODEL = 'llama-3.3-70b-versatile';
 const DAILY_AI_BUDGET_USD = parseFloat(process.env.DAILY_AI_BUDGET_USD || '100');
@@ -30,8 +27,16 @@ const STALENESS_TTL_DAYS = 7;
 // Groq pricing (as of Jan 2025) - Llama 3.3 70B Versatile
 // Source: https://groq.com/pricing
 // Configurable via env vars for flexibility
-const PRICE_PER_1M_INPUT_TOKENS = parseFloat(process.env.AI_PRICE_INPUT_PER_1M || '0.59');
-const PRICE_PER_1M_OUTPUT_TOKENS = parseFloat(process.env.AI_PRICE_OUTPUT_PER_1M || '0.79');
+export const PRICE_PER_1M_INPUT_TOKENS = parseFloat(process.env.AI_PRICE_INPUT_PER_1M || '0.59');
+export const PRICE_PER_1M_OUTPUT_TOKENS = parseFloat(process.env.AI_PRICE_OUTPUT_PER_1M || '0.79');
+
+// Helper to calculate AI cost consistently across all endpoints
+export function calculateAiCost(tokensIn: number, tokensOut: number): string {
+  return (
+    (tokensIn / 1_000_000) * PRICE_PER_1M_INPUT_TOKENS +
+    (tokensOut / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS
+  ).toFixed(8);
+}
 
 export interface FitComputationResult {
   score: number; // 0-100
@@ -228,7 +233,7 @@ Focus on:
 
 Be objective and concise. Provide 3-5 specific reasons.`;
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: FIT_MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
@@ -237,7 +242,7 @@ Be objective and concise. Provide 3-5 specific reasons.`;
     });
 
     const responseText = completion.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(responseText);
+    const parsed = safeParseAiResponse(FitScoreResponseSchema, responseText, 'fit-score');
 
     // Extract tokens from response
     const tokensIn = completion.usage?.prompt_tokens || 0;
@@ -249,9 +254,9 @@ Be objective and concise. Provide 3-5 specific reasons.`;
       (tokensOut / 1_000_000) * PRICE_PER_1M_OUTPUT_TOKENS;
 
     // Derive label server-side (don't trust model)
-    const score = Math.max(0, Math.min(100, parsed.score || 0));
+    const score = Math.max(0, Math.min(100, parsed.score ?? 0));
     const label = deriveFitLabel(score);
-    const reasons = (parsed.reasons || []).slice(0, 5);
+    const reasons = (parsed.reasons ?? []).slice(0, 5);
 
     const durationMs = Date.now() - startTime;
 

@@ -40,11 +40,11 @@ export default function BrandAssetsPage() {
         <meta name="description" content="Download official VantaHire logo and brand assets in multiple formats." />
       </Helmet>
 
-      <div className="public-theme min-h-screen">
+      <div className="public-theme min-h-screen bg-background text-foreground">
         {/* Background effects */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] animate-pulse-slow"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: "1.2s" }}></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse-slow"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-warning/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: "1.2s" }}></div>
 
         <div className="container mx-auto px-4 py-8 relative z-10">
           {/* Header */}
@@ -87,7 +87,7 @@ export default function BrandAssetsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
                 <div className="flex flex-col items-center text-center">
-                  <Image className="h-8 w-8 text-purple-400 mb-2" />
+                  <Image className="h-8 w-8 text-primary mb-2" />
                   <h3 className="text-white font-semibold text-sm mb-1">PNG</h3>
                   <p className="text-white/50 text-xs mb-3">High resolution</p>
                   <Button
@@ -103,7 +103,7 @@ export default function BrandAssetsPage() {
 
               <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
                 <div className="flex flex-col items-center text-center">
-                  <FileType className="h-8 w-8 text-purple-400 mb-2" />
+                  <FileType className="h-8 w-8 text-primary mb-2" />
                   <h3 className="text-white font-semibold text-sm mb-1">SVG</h3>
                   <p className="text-white/50 text-xs mb-3">Vector format</p>
                   <Button
@@ -119,7 +119,7 @@ export default function BrandAssetsPage() {
 
               <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
                 <div className="flex flex-col items-center text-center">
-                  <Image className="h-8 w-8 text-purple-400 mb-2" />
+                  <Image className="h-8 w-8 text-primary mb-2" />
                   <h3 className="text-white font-semibold text-sm mb-1">JPG</h3>
                   <p className="text-white/50 text-xs mb-3">With background</p>
                   <Button
@@ -135,7 +135,7 @@ export default function BrandAssetsPage() {
 
               <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4">
                 <div className="flex flex-col items-center text-center">
-                  <FileText className="h-8 w-8 text-purple-400 mb-2" />
+                  <FileText className="h-8 w-8 text-primary mb-2" />
                   <h3 className="text-white font-semibold text-sm mb-1">PDF</h3>
                   <p className="text-white/50 text-xs mb-3">Print ready</p>
                   <Button
@@ -154,7 +154,7 @@ export default function BrandAssetsPage() {
             <Card className="bg-white/10 backdrop-blur-sm border-white/20 p-4 mt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Image className="h-6 w-6 text-amber-400" />
+                  <Image className="h-6 w-6 text-warning" />
                   <div>
                     <h3 className="text-white font-semibold">High Resolution Logo</h3>
                     <p className="text-white/50 text-xs">Extra large PNG for print</p>
@@ -381,7 +381,7 @@ export default function BrandAssetsPage() {
                         <p className="text-white/50 text-xs font-mono">{color.hex}</p>
                       </div>
                       {copied === color.name ? (
-                        <Check className="h-4 w-4 text-green-400" />
+                        <Check className="h-4 w-4 text-success" />
                       ) : (
                         <Copy className="h-4 w-4 text-white/40" />
                       )}
@@ -397,7 +397,7 @@ export default function BrandAssetsPage() {
           <section className="mb-16 max-w-5xl mx-auto">
             <div className="bg-white/5 border border-white/10 rounded-xl p-8">
               <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                <FileType className="h-5 w-5 text-purple-400" />
+                <FileType className="h-5 w-5 text-primary" />
                 Usage Guidelines
               </h2>
               <div className="grid md:grid-cols-2 gap-8">
@@ -405,19 +405,19 @@ export default function BrandAssetsPage() {
                   <h3 className="text-white font-medium mb-3">Do's</h3>
                   <ul className="text-white/70 space-y-2 text-sm">
                     <li className="flex items-start gap-2">
-                      <span className="text-green-400">✓</span>
+                      <span className="text-success">✓</span>
                       Use the logo on dark or light backgrounds
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-400">✓</span>
+                      <span className="text-success">✓</span>
                       Maintain minimum clear space around the logo
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-400">✓</span>
+                      <span className="text-success">✓</span>
                       Scale proportionally
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-green-400">✓</span>
+                      <span className="text-success">✓</span>
                       Use on professional marketing materials
                     </li>
                   </ul>
@@ -426,19 +426,19 @@ export default function BrandAssetsPage() {
                   <h3 className="text-white font-medium mb-3">Don'ts</h3>
                   <ul className="text-white/70 space-y-2 text-sm">
                     <li className="flex items-start gap-2">
-                      <span className="text-red-400">✗</span>
+                      <span className="text-destructive">✗</span>
                       Don't alter the logo colors
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-400">✗</span>
+                      <span className="text-destructive">✗</span>
                       Don't stretch or distort the logo
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-400">✗</span>
+                      <span className="text-destructive">✗</span>
                       Don't add effects like shadows or glows
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-red-400">✗</span>
+                      <span className="text-destructive">✗</span>
                       Don't place on busy backgrounds
                     </li>
                   </ul>

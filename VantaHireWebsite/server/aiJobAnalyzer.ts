@@ -1,22 +1,16 @@
-import Groq from "groq-sdk";
-
-// Using Groq's llama-3.3-70b-versatile model for high-quality analysis
-let groq: Groq | null = null;
-
-// Lazy initialization of Groq client
-function getGroqClient(): Groq {
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error('Groq API key not configured. AI features are disabled.');
-  }
-  if (!groq) {
-    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  }
-  return groq;
-}
+import { getGroqClient, isGroqConfigured } from './lib/groqClient';
+import {
+  JobAnalysisResponseSchema,
+  EmailDraftResponseSchema,
+  CandidateSummaryResponseSchema,
+  PipelineActionsResponseSchema,
+  FormQuestionsResponseSchema,
+  safeParseAiResponse,
+} from './lib/aiResponseSchemas';
 
 // Check if AI features are available
 export function isAIEnabled(): boolean {
-  return !!process.env.GROQ_API_KEY;
+  return isGroqConfigured();
 }
 
 export interface JobAnalysisResult {
@@ -71,17 +65,17 @@ Return only valid JSON without any additional text.`;
       temperature: 0.3
     });
 
-    const result = JSON.parse(response.choices[0]?.message.content || "{}");
+    const responseText = response.choices[0]?.message.content || "{}";
+    const result = safeParseAiResponse(JobAnalysisResponseSchema, responseText, 'job-analysis');
 
-    // Validate and ensure all required fields exist
     return {
-      clarity_score: Math.max(0, Math.min(100, result.clarity_score || 0)),
-      inclusion_score: Math.max(0, Math.min(100, result.inclusion_score || 0)),
-      seo_score: Math.max(0, Math.min(100, result.seo_score || 0)),
-      overall_score: Math.max(0, Math.min(100, result.overall_score || 0)),
-      bias_flags: Array.isArray(result.bias_flags) ? result.bias_flags : [],
-      seo_keywords: Array.isArray(result.seo_keywords) ? result.seo_keywords : [],
-      suggestions: Array.isArray(result.suggestions) ? result.suggestions : [],
+      clarity_score: Math.max(0, Math.min(100, result.clarity_score ?? 50)),
+      inclusion_score: Math.max(0, Math.min(100, result.inclusion_score ?? 50)),
+      seo_score: Math.max(0, Math.min(100, result.seo_score ?? 50)),
+      overall_score: Math.max(0, Math.min(100, result.overall_score ?? 50)),
+      bias_flags: result.bias_flags ?? [],
+      seo_keywords: result.seo_keywords ?? [],
+      suggestions: result.suggestions ?? [],
       model_version: "llama-3.3-70b-versatile"
     };
 
@@ -238,10 +232,10 @@ Return only valid JSON.`;
       temperature: 0.6
     });
 
-    const result = JSON.parse(response.choices[0]?.message.content || "{}");
+    const responseText = response.choices[0]?.message.content || "{}";
+    const result = safeParseAiResponse(EmailDraftResponseSchema, responseText, 'email-draft');
     const usage = response.usage;
 
-    // Validate and ensure required fields exist
     return {
       subject: result.subject || templateSubject,
       body: result.body || templateBody,
@@ -316,19 +310,17 @@ Be objective, specific, and actionable. Focus on job-relevant qualifications. Re
       temperature: 0.4
     });
 
-    const result = JSON.parse(response.choices[0]?.message.content || "{}");
+    const responseText = response.choices[0]?.message.content || "{}";
+    const result = safeParseAiResponse(CandidateSummaryResponseSchema, responseText, 'candidate-summary');
     const usage = response.usage;
 
-    // Validate and ensure all required fields exist
     return {
       summary: result.summary || "No summary generated",
-      suggestedAction: ['advance', 'hold', 'reject'].includes(result.suggestedAction)
-        ? result.suggestedAction
-        : 'hold',
+      suggestedAction: result.suggestedAction ?? 'hold',
       suggestedActionReason: result.suggestedActionReason || "Requires further evaluation",
-      strengths: Array.isArray(result.strengths) ? result.strengths : [],
-      concerns: Array.isArray(result.concerns) ? result.concerns : [],
-      keyHighlights: Array.isArray(result.keyHighlights) ? result.keyHighlights : [],
+      strengths: result.strengths ?? [],
+      concerns: result.concerns ?? [],
+      keyHighlights: result.keyHighlights ?? [],
       model_version: "llama-3.3-70b-versatile",
       tokensUsed: {
         input: usage?.prompt_tokens || 0,
@@ -420,29 +412,23 @@ Be specific, practical, and encouraging. Focus on recruiter best practices. Retu
       temperature: 0.5
     });
 
-    const result = JSON.parse(response.choices[0]?.message.content || "{}");
+    const responseText = response.choices[0]?.message.content || "{}";
+    const result = safeParseAiResponse(PipelineActionsResponseSchema, responseText, 'pipeline-actions');
     const usage = response.usage;
 
-    // Validate and map enhancements to their item IDs
-    const enhancements: PipelineActionEnhancement[] = [];
-    if (Array.isArray(result.enhancements)) {
-      result.enhancements.forEach((enh: any, index: number) => {
-        const originalItem = items[index];
-        if (originalItem) {
-          enhancements.push({
-            itemId: enh.itemId || originalItem.id,
-            description: enh.description || "",
-            impact: enh.impact || "",
-          });
-        }
-      });
-    }
+    // Map enhancements to their item IDs (fall back to original item IDs)
+    const enhancements: PipelineActionEnhancement[] = (result.enhancements ?? [])
+      .slice(0, items.length)
+      .map((enh, index) => ({
+        itemId: enh.itemId || items[index]?.id || '',
+        description: enh.description ?? '',
+        impact: enh.impact ?? '',
+      }))
+      .filter(enh => enh.itemId);
 
     return {
       enhancements,
-      additionalInsights: Array.isArray(result.additionalInsights)
-        ? result.additionalInsights.slice(0, 3)
-        : [],
+      additionalInsights: (result.additionalInsights ?? []).slice(0, 3),
       model_version: "llama-3.3-70b-versatile",
       tokensUsed: {
         input: usage?.prompt_tokens || 0,
@@ -553,23 +539,21 @@ Return only valid JSON.`;
       temperature: 0.5
     });
 
-    const result = JSON.parse(response.choices[0]?.message.content || "{}");
+    const responseText = response.choices[0]?.message.content || "{}";
+    const result = safeParseAiResponse(FormQuestionsResponseSchema, responseText, 'form-questions');
     const usage = response.usage;
 
-    // Validate and ensure all required fields exist
-    const validatedFields: FormFieldSuggestion[] = Array.isArray(result.fields)
-      ? result.fields.map((field: any) => ({
-          label: field.label || "Untitled Question",
-          description: field.description || undefined,
-          fieldType: ['short_text', 'long_text', 'mcq', 'scale'].includes(field.fieldType)
-            ? field.fieldType
-            : 'long_text',
-          required: typeof field.required === 'boolean' ? field.required : false,
-          options: field.fieldType === 'mcq' && Array.isArray(field.options)
-            ? field.options
-            : undefined,
-        }))
-      : [];
+    // Map validated fields to expected format
+    const validatedFields: FormFieldSuggestion[] = (result.fields ?? []).map(field => {
+      const base: FormFieldSuggestion = {
+        label: field.label ?? 'Untitled Question',
+        fieldType: field.fieldType ?? 'long_text',
+        required: field.required ?? false,
+      };
+      if (field.description) base.description = field.description;
+      if (field.fieldType === 'mcq' && field.options) base.options = field.options;
+      return base;
+    });
 
     return {
       fields: validatedFields,

@@ -215,11 +215,11 @@ export default function AdminConsultantsPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
                 <Users className="w-8 h-8 text-primary" />
                 Consultant Management
               </h1>
-              <p className="text-slate-500 mt-1">Manage consultant profiles displayed on the public page</p>
+              <p className="text-muted-foreground mt-1">Manage consultant profiles displayed on the public page</p>
             </div>
             <Button onClick={handleOpenCreate}>
               <Plus className="w-4 h-4 mr-2" />
@@ -233,8 +233,8 @@ export default function AdminConsultantsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Total Consultants</p>
-                    <p className="text-2xl font-bold text-slate-900">{consultants.length}</p>
+                    <p className="text-sm text-muted-foreground">Total Consultants</p>
+                    <p className="text-2xl font-bold text-foreground">{consultants.length}</p>
                   </div>
                   <Users className="w-8 h-8 text-primary opacity-50" />
                 </div>
@@ -244,10 +244,10 @@ export default function AdminConsultantsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Active</p>
-                    <p className="text-2xl font-bold text-green-600">{activeCount}</p>
+                    <p className="text-sm text-muted-foreground">Active</p>
+                    <p className="text-2xl font-bold text-success">{activeCount}</p>
                   </div>
-                  <Badge className="bg-green-100 text-green-700">Live</Badge>
+                  <Badge className="bg-success/20 text-success-foreground">Live</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -255,8 +255,8 @@ export default function AdminConsultantsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Inactive</p>
-                    <p className="text-2xl font-bold text-slate-400">{consultants.length - activeCount}</p>
+                    <p className="text-sm text-muted-foreground">Inactive</p>
+                    <p className="text-2xl font-bold text-muted-foreground">{consultants.length - activeCount}</p>
                   </div>
                   <Badge variant="secondary">Hidden</Badge>
                 </div>
@@ -268,7 +268,7 @@ export default function AdminConsultantsPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name or domain..."
                   value={searchTerm}
@@ -291,7 +291,7 @@ export default function AdminConsultantsPage() {
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
               ) : filteredConsultants.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
+                <div className="text-center py-12 text-muted-foreground">
                   <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No consultants found</p>
                 </div>
@@ -325,13 +325,13 @@ export default function AdminConsultantsPage() {
                               </div>
                             )}
                             <div>
-                              <p className="font-medium text-slate-900">{consultant.name}</p>
+                              <p className="font-medium text-foreground">{consultant.name}</p>
                               {consultant.linkedinUrl && (
                                 <a
                                   href={consultant.linkedinUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                                  className="text-xs text-info hover:underline inline-flex items-center gap-1"
                                 >
                                   LinkedIn <ExternalLink className="w-3 h-3" />
                                 </a>
@@ -355,7 +355,7 @@ export default function AdminConsultantsPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={consultant.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}>
+                          <Badge className={consultant.isActive ? "bg-success/20 text-success-foreground" : "bg-muted text-muted-foreground"}>
                             {consultant.isActive ? "Active" : "Inactive"}
                           </Badge>
                         </TableCell>
@@ -363,7 +363,7 @@ export default function AdminConsultantsPage() {
                           <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(consultant)}>
                             <Edit className="w-4 h-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-red-600" onClick={() => setDeleteConsultant(consultant)}>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setDeleteConsultant(consultant)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </TableCell>
@@ -472,7 +472,7 @@ export default function AdminConsultantsPage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-destructive hover:bg-destructive/80"
                 onClick={() => deleteConsultant && deleteMutation.mutate(deleteConsultant.id)}
               >
                 {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

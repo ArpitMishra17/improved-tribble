@@ -50,24 +50,24 @@ export default function AdminDashboard() {
       title: "Total Applications",
       value: stats?.totalApplications || 0,
       icon: Users,
-      iconColor: "text-blue-600",
-      bgColor: "bg-blue-50",
+      iconColor: "text-info",
+      bgColor: "bg-info/10",
       description: "Candidate submissions"
     },
     {
       title: "Active Jobs",
       value: stats?.activeJobs || 0,
       icon: CheckCircle,
-      iconColor: "text-green-600",
-      bgColor: "bg-green-50",
+      iconColor: "text-success",
+      bgColor: "bg-success/10",
       description: "Currently open positions"
     },
     {
       title: "Pending Review",
       value: stats?.pendingJobs || 0,
       icon: Clock,
-      iconColor: "text-amber-600",
-      bgColor: "bg-amber-50",
+      iconColor: "text-warning",
+      bgColor: "bg-warning/10",
       description: "Awaiting approval"
     }
   ];
@@ -79,11 +79,11 @@ export default function AdminDashboard() {
         <div className="mb-8 pt-8">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="h-7 w-7 text-primary" />
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
               Admin Dashboard
             </h1>
           </div>
-          <p className="text-slate-500 text-sm md:text-base max-w-2xl">
+          <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
             Monitor platform performance and manage the VantaHire ecosystem
           </p>
         </div>
@@ -97,18 +97,18 @@ export default function AdminDashboard() {
                   <div className={`p-3 rounded-lg ${stat.bgColor}`}>
                     <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
                   </div>
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-slate-200">
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground border-border">
                     {isLoading ? "..." : "Live"}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-1">
-                  <h3 className="text-2xl md:text-3xl font-bold text-slate-900">
+                  <h3 className="text-2xl md:text-3xl font-bold text-foreground">
                     {isLoading ? "..." : stat.value.toLocaleString()}
                   </h3>
-                  <p className="font-medium text-slate-700">{stat.title}</p>
-                  <p className="text-sm text-slate-500">{stat.description}</p>
+                  <p className="font-medium text-foreground">{stat.title}</p>
+                  <p className="text-sm text-muted-foreground">{stat.description}</p>
                 </div>
               </CardContent>
             </Card>
@@ -118,7 +118,7 @@ export default function AdminDashboard() {
         {/* Quick Actions */}
         <Card className="mb-8 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-slate-900 flex items-center gap-2 text-lg">
+            <CardTitle className="text-foreground flex items-center gap-2 text-lg">
               <BarChart3 className="h-5 w-5 text-primary" />
               Quick Actions
             </CardTitle>
@@ -169,8 +169,8 @@ export default function AdminDashboard() {
         {/* Recent Activity */}
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-slate-900 flex items-center gap-2 text-lg">
-              <Clock className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-foreground flex items-center gap-2 text-lg">
+              <Clock className="h-5 w-5 text-info" />
               Recent Platform Activity
             </CardTitle>
             <CardDescription>
@@ -179,33 +179,33 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border border-border">
+                <div className="w-2 h-2 bg-success/100 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-slate-900 font-medium">Platform Status: Operational</p>
-                  <p className="text-slate-500 text-sm">All systems running normally</p>
+                  <p className="text-foreground font-medium">Platform Status: Operational</p>
+                  <p className="text-muted-foreground text-sm">All systems running normally</p>
                 </div>
-                <Badge className="bg-green-50 text-green-700 border-green-200">
+                <Badge className="bg-success/10 text-success-foreground border-success/30">
                   Healthy
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border border-border">
+                <div className="w-2 h-2 bg-info/100 rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-slate-900 font-medium">Job Analytics Updated</p>
-                  <p className="text-slate-500 text-sm">Performance metrics refreshed</p>
+                  <p className="text-foreground font-medium">Job Analytics Updated</p>
+                  <p className="text-muted-foreground text-sm">Performance metrics refreshed</p>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="bg-info/10 text-info-foreground border-info/30">
                   Recent
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border border-border">
                 <div className="w-2 h-2 bg-primary rounded-full"></div>
                 <div className="flex-1">
-                  <p className="text-slate-900 font-medium">AI Analysis Active</p>
-                  <p className="text-slate-500 text-sm">Job optimization engine running</p>
+                  <p className="text-foreground font-medium">AI Analysis Active</p>
+                  <p className="text-muted-foreground text-sm">Job optimization engine running</p>
                 </div>
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                   Active

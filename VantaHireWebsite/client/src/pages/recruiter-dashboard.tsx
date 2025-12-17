@@ -689,7 +689,7 @@ type HmFeedbackResponse = {
       <Layout>
         <div className="container mx-auto px-4 py-16">
           <div className="flex items-center justify-center h-64">
-            <div className="text-slate-600">Loading...</div>
+            <div className="text-muted-foreground">Loading...</div>
           </div>
         </div>
       </Layout>
@@ -704,22 +704,22 @@ type HmFeedbackResponse = {
           <div className="space-y-3 pt-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               <div>
-                <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">Recruiter Dashboard</h1>
-                <p className="text-slate-500 text-sm md:text-base">
+                <h1 className="text-2xl md:text-3xl font-semibold text-foreground">Recruiter Dashboard</h1>
+                <p className="text-muted-foreground text-sm md:text-base">
                   Overview of jobs, applications, and hiring performance
                 </p>
               </div>
             </div>
-            <Card className="shadow-sm border-slate-200" data-tour="dashboard-metrics">
+            <Card className="shadow-sm border-border" data-tour="dashboard-metrics">
               <CardContent className="pt-4">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
-                  <div className="text-sm text-slate-600">
+                  <div className="text-sm text-muted-foreground">
                     KPIs filtered by{" "}
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       Last {RANGE_PRESETS[rangePreset]} days
                     </span>{" "}
                     ·{" "}
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       {selectedJobId === "all" ? "All jobs" : `Job #${selectedJobId}`}
                     </span>
                   </div>
@@ -770,7 +770,7 @@ type HmFeedbackResponse = {
                 data={timeSeriesData}
                 isLoading={applicationsLoading}
               />
-              <p className="text-xs text-slate-500">Hover to see exact values by day.</p>
+              <p className="text-xs text-muted-foreground">Hover to see exact values by day.</p>
             </div>
             <div data-tour="stage-funnel">
               <StageFunnel

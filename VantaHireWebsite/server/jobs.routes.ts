@@ -38,6 +38,15 @@ export function registerJobsRoutes(
   // Create a new job posting (recruiters/admins only)
   app.post("/api/jobs", jobPostingRateLimit, csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      // Block unverified recruiters from posting jobs
+      if (req.user!.role === 'recruiter' && !req.user!.emailVerified) {
+        res.status(403).json({
+          error: 'Email verification required to post jobs',
+          code: 'EMAIL_NOT_VERIFIED',
+        });
+        return;
+      }
+
       const jobData = insertJobSchema.parse(req.body);
       const job = await storage.createJob({
         ...jobData,
@@ -112,7 +121,7 @@ export function registerJobsRoutes(
         return;
       }
 
-      const job = await storage.getJob(jobId);
+      const job = await storage.getJobWithRecruiter(jobId);
       if (!job) {
         res.status(404).json({ error: 'Job not found' });
         return;
@@ -121,7 +130,21 @@ export function registerJobsRoutes(
       // Increment view count for analytics
       await storage.incrementJobViews(jobId);
 
-      res.json(job);
+      // Build recruiter display name (handle missing names gracefully)
+      let postedBy: string | undefined;
+      if (job.recruiter) {
+        const { firstName, lastName } = job.recruiter;
+        if (firstName || lastName) {
+          postedBy = [firstName, lastName].filter(Boolean).join(' ');
+        }
+      }
+
+      // Return job with optional postedByName field
+      res.json({
+        ...job,
+        postedByName: postedBy,
+        recruiter: undefined, // Don't expose raw recruiter object
+      });
       return;
     } catch (error) {
       next(error);
@@ -1062,7 +1085,7 @@ export function registerJobsRoutes(
       if (!isAIEnabled()) {
         res.status(503).json({
           error: 'AI features are not configured',
-          message: 'OpenAI API key is not set. AI-powered analysis is currently unavailable.'
+          message: 'Groq API key is not set. AI-powered analysis is currently unavailable.'
         });
         return;
       }
@@ -1107,7 +1130,7 @@ export function registerJobsRoutes(
       if (!isAIEnabled()) {
         res.status(503).json({
           error: 'AI features are not configured',
-          message: 'OpenAI API key is not set. AI-powered scoring is currently unavailable.'
+          message: 'Groq API key is not set. AI-powered scoring is currently unavailable.'
         });
         return;
       }

@@ -23,7 +23,7 @@ import { computeFitScore, isFitStale, getStalenessReason } from './lib/aiMatchin
 import { getUserLimits, canUseFitComputation } from './lib/aiLimits';
 import { getRedisHealth } from './lib/redis';
 import { z } from 'zod';
-import Groq from "groq-sdk";
+import { getGroqClient } from './lib/groqClient';
 import { getDashboardAiInsights, DashboardAiPayload } from "./lib/aiDashboard";
 
 const AI_MATCH_ENABLED = process.env.AI_MATCH_ENABLED === 'true';
@@ -45,10 +45,17 @@ const batchComputeFitSchema = z.object({
   applicationIds: z.array(z.number().int().positive()).min(1).max(20),
 });
 
+// Configurable rate limits via environment variables
+const RATE_LIMIT_RESUME_UPLOAD = parseInt(process.env.AI_RATE_LIMIT_RESUME || '5', 10);
+const RATE_LIMIT_FIT_COMPUTE = parseInt(process.env.AI_RATE_LIMIT_FIT || '10', 10);
+const RATE_LIMIT_BATCH = parseInt(process.env.AI_RATE_LIMIT_BATCH || '3', 10);
+const RATE_LIMIT_GENERIC = parseInt(process.env.AI_RATE_LIMIT_GENERIC || '30', 10);
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.AI_RATE_LIMIT_WINDOW_MS || '60000', 10);
+
 // Rate limiters with structured logging
 const resumeUploadLimiter = rateLimit({
-  windowMs: 60_000, // 1 minute
-  max: 5,
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_RESUME_UPLOAD,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: any, res: any) => {
@@ -63,8 +70,8 @@ const resumeUploadLimiter = rateLimit({
 });
 
 const fitComputeLimiter = rateLimit({
-  windowMs: 60_000, // 1 minute
-  max: 10,
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_FIT_COMPUTE,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: any, res: any) => {
@@ -79,8 +86,8 @@ const fitComputeLimiter = rateLimit({
 });
 
 const batchComputeLimiter = rateLimit({
-  windowMs: 60_000, // 1 minute
-  max: 3,
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_BATCH,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: any, res: any) => {
@@ -95,8 +102,8 @@ const batchComputeLimiter = rateLimit({
 });
 
 const genericGenerationLimiter = rateLimit({
-  windowMs: 60_000,
-  max: 30, // Higher limit to accommodate dashboard which fires multiple AI calls per page load
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_GENERIC, // Higher limit to accommodate dashboard which fires multiple AI calls per page load
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req: any, res: any) => {
@@ -110,16 +117,7 @@ const genericGenerationLimiter = rateLimit({
   },
 });
 
-let groqClient: Groq | null = null;
-function getGroq(): Groq {
-  if (!GROQ_API_KEY) {
-    throw new Error('Groq API key not configured');
-  }
-  if (!groqClient) {
-    groqClient = new Groq({ apiKey: GROQ_API_KEY });
-  }
-  return groqClient;
-}
+// Use shared Groq client from lib/groqClient.ts
 
 /**
  * Feature flag check middleware
@@ -174,7 +172,7 @@ export function registerAIRoutes(app: Express): void {
           res.status(400).json({ error: 'Prompt is required' });
           return;
         }
-        const client = getGroq();
+        const client = getGroqClient();
         const response = await client.chat.completions.create({
           model: "llama-3.3-70b-versatile",
           messages: [

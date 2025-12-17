@@ -13,20 +13,20 @@ export default function CookiePolicyPage() {
       <div className="container mx-auto px-4 py-16 max-w-4xl">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <Cookie className="w-10 h-10 text-purple-400" />
-            <h1 className="text-4xl font-bold text-white">Cookie Policy</h1>
+            <Cookie className="w-10 h-10 text-primary" />
+            <h1 className="text-4xl font-bold text-foreground">Cookie Policy</h1>
           </div>
-          <p className="text-slate-400 text-lg">
+          <p className="text-muted-foreground text-lg">
             Last Updated: January 2025
           </p>
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">What Are Cookies?</CardTitle>
+              <CardTitle className="text-foreground">What Are Cookies?</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
                 Cookies are small text files that are placed on your device when you visit a website.
                 They are widely used to make websites work more efficiently and provide a better user experience.
@@ -38,16 +38,16 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Settings className="w-5 h-5 text-primary" />
                 Types of Cookies We Use
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">1. Essential Cookies (Always Active)</h3>
+                <h3 className="text-foreground font-semibold mb-2">1. Essential Cookies (Always Active)</h3>
                 <p className="mb-2">
                   These cookies are necessary for the website to function and cannot be disabled.
                   They enable core functionality such as:
@@ -58,14 +58,14 @@ export default function CookiePolicyPage() {
                   <li>Remember your login status</li>
                   <li>Shopping cart functionality (if applicable)</li>
                 </ul>
-                <p className="mt-2 text-sm text-slate-400">
-                  Cookie names: <code className="bg-slate-800 px-1 py-0.5 rounded">session_id</code>,{" "}
-                  <code className="bg-slate-800 px-1 py-0.5 rounded">csrf_token</code>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Cookie names: <code className="bg-muted px-1 py-0.5 rounded">session_id</code>,{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded">csrf_token</code>
                 </p>
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">2. Analytics Cookies (Optional)</h3>
+                <h3 className="text-foreground font-semibold mb-2">2. Analytics Cookies (Optional)</h3>
                 <p className="mb-2">
                   These cookies help us understand how visitors use our platform by collecting
                   anonymous information about:
@@ -76,18 +76,18 @@ export default function CookiePolicyPage() {
                   <li>Browser type, device, and screen resolution</li>
                   <li>Geographic location (country/city level)</li>
                 </ul>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Service provider: Google Analytics
                 </p>
-                <p className="text-sm text-slate-400">
-                  Cookie names: <code className="bg-slate-800 px-1 py-0.5 rounded">_ga</code>,{" "}
-                  <code className="bg-slate-800 px-1 py-0.5 rounded">_gid</code>,{" "}
-                  <code className="bg-slate-800 px-1 py-0.5 rounded">_gat</code>
+                <p className="text-sm text-muted-foreground">
+                  Cookie names: <code className="bg-muted px-1 py-0.5 rounded">_ga</code>,{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded">_gid</code>,{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded">_gat</code>
                 </p>
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">3. Functional Cookies (Optional)</h3>
+                <h3 className="text-foreground font-semibold mb-2">3. Functional Cookies (Optional)</h3>
                 <p className="mb-2">
                   These cookies enable enhanced functionality and personalization:
                 </p>
@@ -97,14 +97,14 @@ export default function CookiePolicyPage() {
                   <li>Personalize content based on your role (candidate/recruiter)</li>
                   <li>Remember form inputs to prevent data loss</li>
                 </ul>
-                <p className="mt-2 text-sm text-slate-400">
-                  Cookie names: <code className="bg-slate-800 px-1 py-0.5 rounded">cookie_consent</code>,{" "}
-                  <code className="bg-slate-800 px-1 py-0.5 rounded">user_preferences</code>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Cookie names: <code className="bg-muted px-1 py-0.5 rounded">cookie_consent</code>,{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded">user_preferences</code>
                 </p>
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">4. Performance Cookies (Optional)</h3>
+                <h3 className="text-foreground font-semibold mb-2">4. Performance Cookies (Optional)</h3>
                 <p className="mb-2">
                   These cookies help us monitor and improve platform performance:
                 </p>
@@ -118,30 +118,30 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
                 Third-Party Cookies
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
                 We use third-party services that may set their own cookies on your device:
               </p>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Google Analytics</h3>
+                <h3 className="text-foreground font-semibold mb-2">Google Analytics</h3>
                 <p>
                   We use Google Analytics to analyze website traffic and user behavior. Google Analytics
                   sets cookies to track sessions and collect anonymous usage data.
                 </p>
-                <p className="text-sm text-slate-400 mt-2">
+                <p className="text-sm text-muted-foreground mt-2">
                   Learn more: <a
                     href="https://policies.google.com/technologies/cookies"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-purple-400 hover:text-purple-300 underline"
+                    className="text-primary hover:text-primary underline"
                   >
                     Google Cookie Policy
                   </a>
@@ -149,7 +149,7 @@ export default function CookiePolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Google Cloud Platform</h3>
+                <h3 className="text-foreground font-semibold mb-2">Google Cloud Platform</h3>
                 <p>
                   We use Google Cloud for hosting and file storage. Google may set cookies for
                   authentication and performance monitoring.
@@ -157,7 +157,7 @@ export default function CookiePolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">OpenAI API</h3>
+                <h3 className="text-foreground font-semibold mb-2">OpenAI API</h3>
                 <p>
                   Our AI-powered features use OpenAI's API. While OpenAI does not set cookies directly
                   on our site, your data is processed by their servers in accordance with their privacy policy.
@@ -166,16 +166,16 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Shield className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" />
                 Cookie Duration
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">Session Cookies</h3>
+                <h3 className="text-foreground font-semibold mb-2">Session Cookies</h3>
                 <p>
                   Temporary cookies that are deleted when you close your browser. Used for authentication
                   and session management.
@@ -183,7 +183,7 @@ export default function CookiePolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Persistent Cookies</h3>
+                <h3 className="text-foreground font-semibold mb-2">Persistent Cookies</h3>
                 <p className="mb-2">
                   Remain on your device for a set period or until manually deleted:
                 </p>
@@ -196,16 +196,16 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Settings className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Settings className="w-5 h-5 text-primary" />
                 Managing Your Cookie Preferences
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <div>
-                <h3 className="text-white font-semibold mb-2">Cookie Consent Banner</h3>
+                <h3 className="text-foreground font-semibold mb-2">Cookie Consent Banner</h3>
                 <p className="mb-4">
                   When you first visit VantaHire, you will see a cookie consent banner. You can choose
                   to accept or decline optional cookies. Essential cookies cannot be disabled as they
@@ -213,7 +213,7 @@ export default function CookiePolicyPage() {
                 </p>
                 <Button
                   onClick={handleOpenCookiePreferences}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  className="bg-primary hover:bg-primary/80 text-foreground"
                 >
                   <Settings className="w-4 h-4 mr-2" />
                   Manage Cookie Preferences
@@ -221,7 +221,7 @@ export default function CookiePolicyPage() {
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Browser Settings</h3>
+                <h3 className="text-foreground font-semibold mb-2">Browser Settings</h3>
                 <p className="mb-2">
                   Most browsers allow you to control cookies through their settings. You can:
                 </p>
@@ -231,13 +231,13 @@ export default function CookiePolicyPage() {
                   <li>Delete cookies after each session</li>
                   <li>Set exceptions for specific websites</li>
                 </ul>
-                <p className="mt-2 text-sm text-slate-400">
+                <p className="mt-2 text-sm text-muted-foreground">
                   Note: Blocking essential cookies may prevent you from using VantaHire.
                 </p>
               </div>
 
               <div>
-                <h3 className="text-white font-semibold mb-2">Browser-Specific Instructions</h3>
+                <h3 className="text-foreground font-semibold mb-2">Browser-Specific Instructions</h3>
                 <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
                   <li>
                     <strong>Chrome:</strong>{" "}
@@ -245,7 +245,7 @@ export default function CookiePolicyPage() {
                       href="https://support.google.com/chrome/answer/95647"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 underline"
+                      className="text-primary hover:text-primary underline"
                     >
                       Manage cookies in Chrome
                     </a>
@@ -256,7 +256,7 @@ export default function CookiePolicyPage() {
                       href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 underline"
+                      className="text-primary hover:text-primary underline"
                     >
                       Manage cookies in Firefox
                     </a>
@@ -267,7 +267,7 @@ export default function CookiePolicyPage() {
                       href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 underline"
+                      className="text-primary hover:text-primary underline"
                     >
                       Manage cookies in Safari
                     </a>
@@ -278,7 +278,7 @@ export default function CookiePolicyPage() {
                       href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 underline"
+                      className="text-primary hover:text-primary underline"
                     >
                       Manage cookies in Edge
                     </a>
@@ -288,14 +288,14 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="text-foreground flex items-center gap-2">
                 <Trash2 className="w-5 h-5 text-red-400" />
                 Deleting Cookies
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
                 You can delete cookies at any time through your browser settings. However, this may:
               </p>
@@ -308,11 +308,11 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Do Not Track (DNT)</CardTitle>
+              <CardTitle className="text-foreground">Do Not Track (DNT)</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
                 Some browsers include a "Do Not Track" (DNT) feature. Currently, there is no industry
                 standard for responding to DNT signals. VantaHire does not currently respond to DNT
@@ -321,11 +321,11 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Changes to This Policy</CardTitle>
+              <CardTitle className="text-foreground">Changes to This Policy</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
                 We may update this Cookie Policy from time to time to reflect changes in technology,
                 legislation, or our practices. We will notify you of any significant changes by updating
@@ -334,16 +334,16 @@ export default function CookiePolicyPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900 border-slate-700">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-white">Contact Us</CardTitle>
+              <CardTitle className="text-foreground">Contact Us</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-4">
+            <CardContent className="text-muted-foreground space-y-4">
               <p>
                 If you have questions about our use of cookies, please contact us:
               </p>
-              <div className="bg-slate-800 p-4 rounded-lg space-y-2">
-                <p><strong className="text-white">Deori RecruiterHub Solutions OPC Pvt Ltd</strong></p>
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <p><strong className="text-foreground">Deori RecruiterHub Solutions OPC Pvt Ltd</strong></p>
                 <p>Email: privacy@vantahire.com</p>
                 <p>Subject: Cookie Policy Inquiry</p>
               </div>

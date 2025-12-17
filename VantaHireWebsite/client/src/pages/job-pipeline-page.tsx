@@ -87,14 +87,14 @@ function SortableStageItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200"
+      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border"
     >
       <button
         className="touch-none cursor-grab active:cursor-grabbing"
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="h-4 w-4 text-slate-400" />
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
       </button>
       <Badge variant="outline" className="text-xs">
         {index + 1}
@@ -118,26 +118,26 @@ function SortableStageItem({
             onClick={onSaveEdit}
             disabled={isUpdatePending}
           >
-            <Check className="h-4 w-4 text-green-600" />
+            <Check className="h-4 w-4 text-success" />
           </Button>
           <Button size="sm" variant="ghost" onClick={onCancelEdit}>
-            <X className="h-4 w-4 text-slate-500" />
+            <X className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
       ) : (
         <>
-          <span className="flex-1 font-medium text-slate-700">{stage.name}</span>
+          <span className="flex-1 font-medium text-foreground">{stage.name}</span>
           {applicationCount > 0 && (
-            <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700">
+            <Badge variant="secondary" className="text-xs bg-info/10 text-info-foreground">
               <Users className="h-3 w-3 mr-1" />
               {applicationCount}
             </Badge>
           )}
           <Button size="sm" variant="ghost" onClick={onStartEdit}>
-            <Edit2 className="h-4 w-4 text-slate-500" />
+            <Edit2 className="h-4 w-4 text-muted-foreground" />
           </Button>
           <Button size="sm" variant="ghost" onClick={onDelete}>
-            <Trash2 className="h-4 w-4 text-red-500" />
+            <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </>
       )}
@@ -378,8 +378,8 @@ export default function JobPipelinePage() {
         <div className="container mx-auto px-4 py-8">
           <Card className="shadow-sm">
             <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Job Not Found</h3>
-              <p className="text-slate-500">The requested job could not be found.</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Job Not Found</h3>
+              <p className="text-muted-foreground">The requested job could not be found.</p>
             </CardContent>
           </Card>
         </div>
@@ -397,7 +397,7 @@ export default function JobPipelinePage() {
               variant="ghost"
               size="sm"
               onClick={() => setLocation("/my-jobs")}
-              className="text-slate-600 hover:bg-slate-100"
+              className="text-muted-foreground hover:bg-muted"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to My Jobs
@@ -410,14 +410,14 @@ export default function JobPipelinePage() {
           {/* Pipeline Stages */}
           <Card className="shadow-sm mb-6">
             <CardHeader>
-              <CardTitle className="text-slate-900">Pipeline Stages</CardTitle>
+              <CardTitle className="text-foreground">Pipeline Stages</CardTitle>
               <CardDescription>
                 Drag to reorder stages. Click edit to rename.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {sortedStages.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
+                <div className="text-center py-8 text-muted-foreground">
                   No pipeline stages configured. Add your first stage below.
                 </div>
               ) : (
@@ -453,7 +453,7 @@ export default function JobPipelinePage() {
               )}
 
               {/* Add New Stage */}
-              <div className="flex items-center gap-2 pt-4 border-t border-slate-200">
+              <div className="flex items-center gap-2 pt-4 border-t border-border">
                 <Input
                   placeholder="New stage name..."
                   value={newStageName}
@@ -474,10 +474,10 @@ export default function JobPipelinePage() {
           {/* Stage Info */}
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-slate-900 text-base">About Pipeline Stages</CardTitle>
+              <CardTitle className="text-foreground text-base">About Pipeline Stages</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="text-sm text-slate-600 space-y-2">
+              <ul className="text-sm text-muted-foreground space-y-2">
                 <li>• Drag stages to reorder them in your hiring workflow</li>
                 <li>• Stages with candidates show a count badge</li>
                 <li>• Deleting a stage with candidates will move them to "Unassigned"</li>
@@ -494,13 +494,13 @@ export default function JobPipelinePage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               {stageToDelete && stageToDelete.count > 0 && (
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <AlertTriangle className="h-5 w-5 text-warning" />
               )}
               Delete "{stageToDelete?.name}" stage?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {stageToDelete && stageToDelete.count > 0 ? (
-                <span className="text-amber-600">
+                <span className="text-warning">
                   This stage has <strong>{stageToDelete.count} candidate{stageToDelete.count === 1 ? '' : 's'}</strong>.
                   Deleting it will move them to "Unassigned". This action cannot be undone.
                 </span>
@@ -513,7 +513,7 @@ export default function JobPipelinePage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className={stageToDelete && stageToDelete.count > 0 ? "bg-amber-600 hover:bg-amber-700" : "bg-red-600 hover:bg-red-700"}
+              className={stageToDelete && stageToDelete.count > 0 ? "bg-amber-600 hover:bg-amber-700" : "bg-destructive hover:bg-destructive/80"}
             >
               {deleteStageMutation.isPending ? "Deleting..." : "Delete Stage"}
             </AlertDialogAction>

@@ -197,7 +197,7 @@ export default function ClientShortlistPage() {
       return (
         <div className="flex flex-col items-center justify-center py-16">
           <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-          <p className="text-slate-600">Loading shortlist...</p>
+          <p className="text-muted-foreground">Loading shortlist...</p>
         </div>
       );
     }
@@ -205,9 +205,9 @@ export default function ClientShortlistPage() {
     if (state === "expired") {
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
-          <p className="text-slate-800 font-semibold mb-1">This shortlist has expired.</p>
-          <p className="text-slate-600 text-sm">
+          <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+          <p className="text-foreground font-semibold mb-1">This shortlist has expired.</p>
+          <p className="text-muted-foreground text-sm">
             Please contact your recruiter if you need a new link.
           </p>
         </div>
@@ -217,9 +217,9 @@ export default function ClientShortlistPage() {
     if (state === "error" || !data) {
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
-          <p className="text-slate-800 font-semibold mb-1">Unable to load shortlist.</p>
-          <p className="text-slate-600 text-sm">{errorMessage}</p>
+          <AlertCircle className="h-10 w-10 text-destructive mb-4" />
+          <p className="text-foreground font-semibold mb-1">Unable to load shortlist.</p>
+          <p className="text-muted-foreground text-sm">{errorMessage}</p>
         </div>
       );
     }
@@ -227,9 +227,9 @@ export default function ClientShortlistPage() {
     if (state === "success") {
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <CheckCircle2 className="h-10 w-10 text-green-500 mb-4" />
-          <p className="text-slate-800 font-semibold mb-1">Feedback submitted.</p>
-          <p className="text-slate-600 text-sm">
+          <CheckCircle2 className="h-10 w-10 text-success mb-4" />
+          <p className="text-foreground font-semibold mb-1">Feedback submitted.</p>
+          <p className="text-muted-foreground text-sm">
             Thank you for reviewing candidates for {data.job.title}.
           </p>
         </div>
@@ -242,20 +242,20 @@ export default function ClientShortlistPage() {
         {/* Header */}
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-slate-900">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Users className="h-5 w-5 text-primary" />
               {data.title || data.job.title}
             </CardTitle>
-            <CardDescription className="text-slate-600">
+            <CardDescription className="text-muted-foreground">
               Candidate shortlist for {data.client.name} &middot; {data.job.title} (
               {data.job.type}) in {data.job.location}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.message && (
-              <p className="text-sm text-slate-700 leading-relaxed">{data.message}</p>
+              <p className="text-sm text-foreground leading-relaxed">{data.message}</p>
             )}
-            <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span>
                 Created on {new Date(data.createdAt).toLocaleDateString()}
               </span>
@@ -280,14 +280,14 @@ export default function ClientShortlistPage() {
           };
 
           return (
-            <Card key={candidate.id} className="shadow-sm border-slate-200">
+            <Card key={candidate.id} className="shadow-sm border-border">
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <CardTitle className="text-base text-slate-900">
+                    <CardTitle className="text-base text-foreground">
                       {candidate.name}
                     </CardTitle>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Mail className="h-3 w-3" />
                         {candidate.email}
@@ -312,10 +312,10 @@ export default function ClientShortlistPage() {
               <CardContent className="space-y-4">
                 {candidate.notes && (
                   <div>
-                    <Label className="text-xs text-slate-600">
+                    <Label className="text-xs text-muted-foreground">
                       Recruiter Notes
                     </Label>
-                    <p className="text-sm text-slate-700 mt-1">
+                    <p className="text-sm text-foreground mt-1">
                       {candidate.notes}
                     </p>
                   </div>
@@ -323,19 +323,19 @@ export default function ClientShortlistPage() {
 
                 {candidate.coverLetter && (
                   <div>
-                    <Label className="text-xs text-slate-600">
+                    <Label className="text-xs text-muted-foreground">
                       Candidate Cover Letter
                     </Label>
-                    <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">
+                    <p className="text-sm text-foreground mt-1 whitespace-pre-wrap">
                       {candidate.coverLetter}
                     </p>
                   </div>
                 )}
 
                 {/* Feedback controls */}
-                <div className="space-y-3 border-t border-slate-200 pt-3">
+                <div className="space-y-3 border-t border-border pt-3">
                   <div>
-                    <Label className="text-sm text-slate-900">
+                    <Label className="text-sm text-foreground">
                       Recommendation
                     </Label>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -355,7 +355,7 @@ export default function ClientShortlistPage() {
                           }
                           className={
                             fb.recommendation === value
-                              ? "bg-primary text-white"
+                              ? "bg-primary text-foreground"
                               : ""
                           }
                           onClick={() =>
@@ -379,7 +379,7 @@ export default function ClientShortlistPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-sm text-slate-900">
+                      <Label className="text-sm text-foreground">
                         Notes (Optional)
                       </Label>
                       <Textarea
@@ -393,7 +393,7 @@ export default function ClientShortlistPage() {
                       />
                     </div>
                     <div>
-                      <Label className="text-sm text-slate-900">
+                      <Label className="text-sm text-foreground">
                         Rating (Optional)
                       </Label>
                       <SelectRating
@@ -432,7 +432,7 @@ export default function ClientShortlistPage() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-muted/50">
         <div className="container mx-auto px-4 py-10 max-w-4xl">
           {renderContent()}
         </div>
@@ -452,7 +452,7 @@ function SelectRating({ value, onChange }: SelectRatingProps) {
       <select
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        className="border border-slate-300 rounded-md px-2 py-1 text-sm bg-white"
+        className="border border-border rounded-md px-2 py-1 text-sm bg-card"
       >
         <option value="">No rating</option>
         <option value="1">1 - Poor</option>

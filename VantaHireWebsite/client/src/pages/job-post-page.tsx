@@ -13,7 +13,7 @@ export default function JobPostPage() {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16 flex justify-center">
-          <div className="animate-pulse text-slate-500">Loading...</div>
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
         </div>
       </Layout>
     );
@@ -31,8 +31,8 @@ export default function JobPostPage() {
         <div className="container mx-auto px-4 py-16">
           <Card className="max-w-md mx-auto shadow-sm">
             <CardContent className="p-8 text-center">
-              <h1 className="text-xl font-semibold text-slate-900 mb-2">Access Denied</h1>
-              <p className="text-slate-500">You need recruiter or admin privileges to post jobs.</p>
+              <h1 className="text-xl font-semibold text-foreground mb-2">Access Denied</h1>
+              <p className="text-muted-foreground">You need recruiter or admin privileges to post jobs.</p>
             </CardContent>
           </Card>
         </div>
@@ -47,11 +47,11 @@ export default function JobPostPage() {
         <div className="mb-8 pt-8">
           <div className="flex items-center gap-3 mb-2">
             <Briefcase className="h-7 w-7 text-primary" />
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
               Post a New Job
             </h1>
           </div>
-          <p className="text-slate-500 text-sm md:text-base">
+          <p className="text-muted-foreground text-sm md:text-base">
             Create your job posting in a few simple steps
           </p>
         </div>

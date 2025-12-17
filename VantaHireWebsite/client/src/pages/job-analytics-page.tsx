@@ -199,8 +199,8 @@ export default function JobAnalyticsPage() {
         <div className="container mx-auto px-4 py-8">
           <Card className="shadow-sm">
             <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Job Not Found</h3>
-              <p className="text-slate-500">The requested job could not be found.</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Job Not Found</h3>
+              <p className="text-muted-foreground">The requested job could not be found.</p>
             </CardContent>
           </Card>
         </div>
@@ -218,7 +218,7 @@ export default function JobAnalyticsPage() {
               variant="ghost"
               size="sm"
               onClick={() => setLocation("/my-jobs")}
-              className="text-slate-600 hover:bg-slate-100"
+              className="text-muted-foreground hover:bg-muted"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to My Jobs
@@ -233,12 +233,12 @@ export default function JobAnalyticsPage() {
             <Card className="shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Users className="h-5 w-5 text-blue-600" />
+                  <div className="p-2 bg-info/20 rounded-lg">
+                    <Users className="h-5 w-5 text-info" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-slate-900">{totalApplications}</p>
-                    <p className="text-sm text-slate-500">Total Applications</p>
+                    <p className="text-2xl font-bold text-foreground">{totalApplications}</p>
+                    <p className="text-sm text-muted-foreground">Total Applications</p>
                   </div>
                 </div>
               </CardContent>
@@ -247,12 +247,12 @@ export default function JobAnalyticsPage() {
             <Card className="shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div className="p-2 bg-success/20 rounded-lg">
+                    <CheckCircle className="h-5 w-5 text-success" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-slate-900">{shortlistedApplications}</p>
-                    <p className="text-sm text-slate-500">Shortlisted</p>
+                    <p className="text-2xl font-bold text-foreground">{shortlistedApplications}</p>
+                    <p className="text-sm text-muted-foreground">Shortlisted</p>
                   </div>
                 </div>
               </CardContent>
@@ -261,12 +261,12 @@ export default function JobAnalyticsPage() {
             <Card className="shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-100 rounded-lg">
-                    <Clock className="h-5 w-5 text-amber-600" />
+                  <div className="p-2 bg-warning/20 rounded-lg">
+                    <Clock className="h-5 w-5 text-warning" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-slate-900">{reviewedApplications}</p>
-                    <p className="text-sm text-slate-500">Reviewed</p>
+                    <p className="text-2xl font-bold text-foreground">{reviewedApplications}</p>
+                    <p className="text-sm text-muted-foreground">Reviewed</p>
                   </div>
                 </div>
               </CardContent>
@@ -275,12 +275,12 @@ export default function JobAnalyticsPage() {
             <Card className="shadow-sm">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <XCircle className="h-5 w-5 text-red-600" />
+                  <div className="p-2 bg-destructive/20 rounded-lg">
+                    <XCircle className="h-5 w-5 text-destructive" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-slate-900">{rejectedApplications}</p>
-                    <p className="text-sm text-slate-500">Rejected</p>
+                    <p className="text-2xl font-bold text-foreground">{rejectedApplications}</p>
+                    <p className="text-sm text-muted-foreground">Rejected</p>
                   </div>
                 </div>
               </CardContent>
@@ -291,20 +291,20 @@ export default function JobAnalyticsPage() {
           {(jobHealth && jobHealth.status !== "green") || staleCandidates ? (
             <Card className="shadow-sm mb-6 border-l-4 border-l-amber-400">
               <CardHeader className="pb-3">
-                <CardTitle className="text-slate-900 flex items-center gap-2 text-base">
-                  <Bell className="h-5 w-5 text-amber-500" />
+                <CardTitle className="text-foreground flex items-center gap-2 text-base">
+                  <Bell className="h-5 w-5 text-warning" />
                   Attention Needed
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Job Health Alert */}
                 {jobHealth && jobHealth.status !== "green" && (
-                  <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
                     <div className={`p-2 rounded-full ${
-                      jobHealth.status === "red" ? "bg-red-100" : "bg-amber-100"
+                      jobHealth.status === "red" ? "bg-destructive/20" : "bg-warning/20"
                     }`}>
                       <AlertTriangle className={`h-4 w-4 ${
-                        jobHealth.status === "red" ? "text-red-600" : "text-amber-600"
+                        jobHealth.status === "red" ? "text-destructive" : "text-warning"
                       }`} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -313,15 +313,15 @@ export default function JobAnalyticsPage() {
                           variant="outline"
                           className={`text-xs ${
                             jobHealth.status === "red"
-                              ? "bg-red-50 text-red-700 border-red-200"
-                              : "bg-amber-50 text-amber-700 border-amber-200"
+                              ? "bg-destructive/10 text-destructive border-destructive/30"
+                              : "bg-warning/10 text-warning-foreground border-warning/30"
                           }`}
                         >
                           {jobHealth.status === "red" ? "High Priority" : "Needs Review"}
                         </Badge>
                       </div>
-                      <p className="text-sm text-slate-700">{jobHealth.reason}</p>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
+                      <p className="text-sm text-foreground">{jobHealth.reason}</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                         <span>Posted {jobHealth.daysSincePosted} days ago</span>
                         {jobHealth.daysSinceLastApplication !== null && (
                           <span>Last app: {jobHealth.daysSinceLastApplication} days ago</span>
@@ -342,20 +342,20 @@ export default function JobAnalyticsPage() {
 
                 {/* Stale Candidates Alert */}
                 {staleCandidates && staleCandidates.count > 0 && (
-                  <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                    <div className="p-2 rounded-full bg-orange-100">
-                      <Clock className="h-4 w-4 text-orange-600" />
+                  <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                    <div className="p-2 rounded-full bg-warning/20">
+                      <Clock className="h-4 w-4 text-warning" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge
                           variant="outline"
-                          className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                          className="text-xs bg-warning/10 text-warning-foreground border-warning/30"
                         >
                           Stale Candidates
                         </Badge>
                       </div>
-                      <p className="text-sm text-slate-700">
+                      <p className="text-sm text-foreground">
                         {staleCandidates.count} candidate{staleCandidates.count !== 1 ? "s" : ""} waiting
                         for over {staleCandidates.oldestStaleDays} days without status update.
                       </p>
@@ -378,8 +378,8 @@ export default function JobAnalyticsPage() {
           {/* Applications Over Time */}
           <Card className="shadow-sm mb-6">
             <CardHeader>
-              <CardTitle className="text-slate-900 flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-info" />
                 Applications Over Time
               </CardTitle>
               <CardDescription>Last 14 days</CardDescription>
@@ -411,7 +411,7 @@ export default function JobAnalyticsPage() {
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div className="h-64 flex items-center justify-center text-slate-500">
+                <div className="h-64 flex items-center justify-center text-muted-foreground">
                   No applications yet
                 </div>
               )}
@@ -422,8 +422,8 @@ export default function JobAnalyticsPage() {
             {/* Pipeline Distribution */}
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle className="text-slate-900 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-info" />
                   Pipeline Distribution
                 </CardTitle>
                 <CardDescription>Candidates by pipeline stage</CardDescription>
@@ -458,7 +458,7 @@ export default function JobAnalyticsPage() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-64 flex items-center justify-center text-slate-500">
+                  <div className="h-64 flex items-center justify-center text-muted-foreground">
                     No pipeline data
                   </div>
                 )}
@@ -468,8 +468,8 @@ export default function JobAnalyticsPage() {
             {/* Status Breakdown */}
             <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle className="text-slate-900 flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-purple-500" />
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-primary" />
                   Status Breakdown
                 </CardTitle>
                 <CardDescription>Application status distribution</CardDescription>
@@ -505,7 +505,7 @@ export default function JobAnalyticsPage() {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="h-64 flex items-center justify-center text-slate-500">
+                  <div className="h-64 flex items-center justify-center text-muted-foreground">
                     No status data
                   </div>
                 )}
@@ -516,8 +516,8 @@ export default function JobAnalyticsPage() {
           {/* AI Fit Distribution */}
           <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle className="text-slate-900 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-500" />
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
                 AI Fit Analysis
               </CardTitle>
               <CardDescription>How candidates score on AI-based job fit analysis</CardDescription>
@@ -559,11 +559,11 @@ export default function JobAnalyticsPage() {
                             className="w-4 h-4 rounded-full"
                             style={{ backgroundColor: item.color }}
                           />
-                          <span className="text-sm font-medium text-slate-700">{item.name} Fit</span>
+                          <span className="text-sm font-medium text-foreground">{item.name} Fit</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-slate-900">{item.value}</span>
-                          <span className="text-sm text-slate-500">
+                          <span className="text-lg font-bold text-foreground">{item.value}</span>
+                          <span className="text-sm text-muted-foreground">
                             ({totalApplications > 0 ? Math.round((item.value / totalApplications) * 100) : 0}%)
                           </span>
                         </div>
@@ -572,9 +572,9 @@ export default function JobAnalyticsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="h-48 flex items-center justify-center text-slate-500">
+                <div className="h-48 flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
-                    <Sparkles className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                    <Sparkles className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                     <p>No AI fit scores available yet</p>
                     <p className="text-xs mt-1">AI scoring is applied when applications are submitted</p>
                   </div>
@@ -587,31 +587,31 @@ export default function JobAnalyticsPage() {
           {job.analytics && (
             <Card className="shadow-sm mt-6">
               <CardHeader>
-                <CardTitle className="text-slate-900">Job Performance</CardTitle>
+                <CardTitle className="text-foreground">Job Performance</CardTitle>
                 <CardDescription>Views and engagement metrics</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-6">
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-center mb-2">
-                      <Eye className="h-6 w-6 text-slate-400" />
+                      <Eye className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-slate-900">{job.analytics.views}</p>
-                    <p className="text-sm text-slate-500">Page Views</p>
+                    <p className="text-2xl font-bold text-foreground">{job.analytics.views}</p>
+                    <p className="text-sm text-muted-foreground">Page Views</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-center mb-2">
-                      <MousePointer className="h-6 w-6 text-slate-400" />
+                      <MousePointer className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-slate-900">{job.analytics.applyClicks}</p>
-                    <p className="text-sm text-slate-500">Apply Clicks</p>
+                    <p className="text-2xl font-bold text-foreground">{job.analytics.applyClicks}</p>
+                    <p className="text-sm text-muted-foreground">Apply Clicks</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <div className="flex items-center justify-center mb-2">
-                      <TrendingUp className="h-6 w-6 text-slate-400" />
+                      <TrendingUp className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-slate-900">{job.analytics.conversionRate}</p>
-                    <p className="text-sm text-slate-500">Conversion Rate</p>
+                    <p className="text-2xl font-bold text-foreground">{job.analytics.conversionRate}</p>
+                    <p className="text-sm text-muted-foreground">Conversion Rate</p>
                   </div>
                 </div>
               </CardContent>

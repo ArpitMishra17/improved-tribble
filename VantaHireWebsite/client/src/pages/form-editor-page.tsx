@@ -339,7 +339,8 @@ export default function FormEditorPage() {
   };
 
   const handleGenerateWithAI = () => {
-    if (!selectedJobId && selectedGoals.length === 0) {
+    const hasJobSelected = selectedJobId && selectedJobId !== "none";
+    if (!hasJobSelected && selectedGoals.length === 0) {
       toast({
         title: "Selection Required",
         description: "Please select a job or at least one assessment goal.",
@@ -351,7 +352,7 @@ export default function FormEditorPage() {
     const payload: { jobId?: number; goals: string[] } = {
       goals: selectedGoals,
     };
-    if (selectedJobId) {
+    if (hasJobSelected) {
       payload.jobId = parseInt(selectedJobId);
     }
 
@@ -412,7 +413,7 @@ export default function FormEditorPage() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-screen">
-          <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
         </div>
       </Layout>
     );
@@ -422,22 +423,22 @@ export default function FormEditorPage() {
     <Layout>
       <div className="h-screen flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-slate-200 p-4 shadow-sm">
+        <div className="bg-card border-b border-border p-4 shadow-sm">
           <div className="max-w-full mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-1 min-w-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/admin/forms")}
-                className="text-slate-600 hover:text-slate-900"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
               </Button>
               <div className="flex-1 min-w-0 grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name" className="text-slate-700 text-sm">
-                    Template Name <span className="text-red-600">*</span>
+                  <Label htmlFor="name" className="text-foreground text-sm">
+                    Template Name <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="name"
@@ -446,10 +447,10 @@ export default function FormEditorPage() {
                     placeholder="e.g., Background Check Authorization"
                     className="mt-1"
                   />
-                  {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name}</p>}
+                  {errors.name && <p className="text-destructive text-xs mt-1">{errors.name}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="description" className="text-slate-700 text-sm">
+                  <Label htmlFor="description" className="text-foreground text-sm">
                     Description (Optional)
                   </Label>
                   <Input
@@ -468,10 +469,10 @@ export default function FormEditorPage() {
                 variant="outline"
                 className={`text-xs ${
                   fields.length >= 50
-                    ? 'bg-red-50 text-red-700 border-red-200'
+                    ? 'bg-destructive/10 text-destructive border-destructive/30'
                     : fields.length >= 40
-                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                    : 'bg-slate-50 text-slate-600 border-slate-200'
+                    ? 'bg-warning/10 text-warning-foreground border-warning/30'
+                    : 'bg-muted/50 text-muted-foreground border-border'
                 }`}
               >
                 {fields.length}/50 fields
@@ -482,10 +483,10 @@ export default function FormEditorPage() {
                   variant="outline"
                   className={`text-xs ${
                     invitationQuota.remaining === 0
-                      ? 'bg-red-50 text-red-700 border-red-200'
+                      ? 'bg-destructive/10 text-destructive border-destructive/30'
                       : invitationQuota.remaining <= 10
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                      ? 'bg-warning/10 text-warning-foreground border-warning/30'
+                      : 'bg-info/10 text-info-foreground border-info/30'
                   }`}
                 >
                   {invitationQuota.remaining}/{invitationQuota.limit} invites today
@@ -497,7 +498,7 @@ export default function FormEditorPage() {
                   checked={isPublished}
                   onCheckedChange={setIsPublished}
                 />
-                <Label htmlFor="isPublished" className="text-slate-700 text-sm cursor-pointer whitespace-nowrap">
+                <Label htmlFor="isPublished" className="text-foreground text-sm cursor-pointer whitespace-nowrap">
                   Published
                 </Label>
               </div>
@@ -537,7 +538,7 @@ export default function FormEditorPage() {
               </Button>
             </div>
           </div>
-          {errors.fields && <p className="text-red-600 text-sm mt-2">{errors.fields}</p>}
+          {errors.fields && <p className="text-destructive text-sm mt-2">{errors.fields}</p>}
         </div>
 
         {/* Three-Panel Layout */}
@@ -597,7 +598,7 @@ export default function FormEditorPage() {
                     <SelectValue placeholder="Select a job..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {jobs.map((job) => (
                       <SelectItem key={job.id} value={job.id.toString()}>
                         {job.title}
@@ -605,7 +606,7 @@ export default function FormEditorPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   AI will use the job description and skills to create relevant questions
                 </p>
               </div>
@@ -628,7 +629,7 @@ export default function FormEditorPage() {
                     </Badge>
                   ))}
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Select focus areas for question generation
                 </p>
               </div>

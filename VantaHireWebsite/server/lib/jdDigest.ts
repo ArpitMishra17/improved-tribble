@@ -12,11 +12,8 @@
  * - After: $0.00130 per fit computation (40% savings)
  */
 
-import Groq from 'groq-sdk';
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || '',
-});
+import { getGroqClient } from './groqClient';
+import { JDDigestResponseSchema, safeParseAiResponse } from './aiResponseSchemas';
 
 const DIGEST_MODEL = 'llama-3.3-70b-versatile';
 const CURRENT_DIGEST_VERSION = 1;
@@ -82,7 +79,7 @@ Extract the following in JSON format:
 Be concise. Extract only the most critical information. No explanations.`;
 
   try {
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroqClient().chat.completions.create({
       model: DIGEST_MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1, // Low temperature for deterministic output
@@ -91,18 +88,18 @@ Be concise. Extract only the most critical information. No explanations.`;
     });
 
     const responseText = completion.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(responseText);
+    const parsed = safeParseAiResponse(JDDigestResponseSchema, responseText, 'jd-digest');
 
     // Estimate token count (1 token ≈ 4 characters)
     const digestText = JSON.stringify(parsed);
     const tokenCount = Math.ceil(digestText.length / 4);
 
     const digest: JDDigest = {
-      topSkills: (parsed.topSkills || []).slice(0, 15),
-      seniorityLevel: parsed.seniorityLevel || 'mid',
-      domain: parsed.domain || 'General',
-      constraints: (parsed.constraints || []).slice(0, 10),
-      keyResponsibilities: (parsed.keyResponsibilities || []).slice(0, 5),
+      topSkills: (parsed.topSkills ?? []).slice(0, 15),
+      seniorityLevel: parsed.seniorityLevel ?? 'mid',
+      domain: parsed.domain ?? 'General',
+      constraints: (parsed.constraints ?? []).slice(0, 10),
+      keyResponsibilities: (parsed.keyResponsibilities ?? []).slice(0, 5),
       tokenCount,
       version: CURRENT_DIGEST_VERSION,
     };

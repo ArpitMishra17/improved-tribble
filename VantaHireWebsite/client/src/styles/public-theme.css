@@ -13,9 +13,21 @@
 ============================================================================= */
 
 /* =============================================================================
-   1. CSS VARIABLES - Global color palette
+   1. CSS VARIABLES - Scoped to .public-theme only
+
+   Core semantic tokens (background, foreground, card, etc.) are defined in
+   index.css under .public-theme and flow through Tailwind utilities.
+
+   These marketing-specific variables are for gradients, glows, and animations
+   that need explicit color values. They are NOT global - they only apply
+   within .public-theme containers.
 ============================================================================= */
-:root {
+
+/* =============================================================================
+   2. BASE STYLES - Applied to .public-theme container
+============================================================================= */
+.public-theme {
+  /* Marketing color palette - scoped to public theme only */
   --bg-primary: #0d0d1a;
   --bg-secondary: #141428;
   --bg-card: #1a1a2e;
@@ -29,15 +41,10 @@
   --text-secondary: #a1a1aa;
   --text-muted: #71717a;
   --border-subtle: rgba(139, 92, 246, 0.2);
-}
 
-/* =============================================================================
-   2. BASE STYLES - Applied to .public-theme container
-============================================================================= */
-.public-theme {
   font-family: 'Outfit', sans-serif;
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary);
+  /* background-color and color flow from shared tokens in index.css */
+  /* applied via bg-background text-foreground in Layout.tsx */
   line-height: 1.6;
   overflow-x: hidden;
   min-height: 100vh;
@@ -215,9 +222,9 @@
 
 .public-theme .btn-primary,
 .public-theme .btn-gold {
-  background: linear-gradient(135deg, var(--gold-500), var(--gold-600)) !important;
-  background-color: var(--gold-500) !important;
-  color: var(--bg-primary) !important;
+  background: linear-gradient(135deg, var(--gold-500), var(--gold-600));
+  background-color: var(--gold-500);
+  color: var(--bg-primary);
   box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
 }
 
@@ -225,21 +232,21 @@
 .public-theme .btn-gold:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 30px rgba(245, 158, 11, 0.4);
-  background: linear-gradient(135deg, var(--gold-400), var(--gold-500)) !important;
+  background: linear-gradient(135deg, var(--gold-400), var(--gold-500));
 }
 
 .public-theme .btn-secondary,
 .public-theme .btn-outline-purple {
-  background: transparent !important;
-  background-color: transparent !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-subtle) !important;
+  background: transparent;
+  background-color: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
 }
 
 .public-theme .btn-secondary:hover,
 .public-theme .btn-outline-purple:hover {
-  background: var(--bg-card) !important;
-  border-color: var(--purple-500) !important;
+  background: var(--bg-card);
+  border-color: var(--purple-500);
 }
 
 /* =============================================================================

@@ -82,7 +82,7 @@ function SimilarCandidatesSection({ jobId }: { jobId: number }) {
 
   if (!showCandidates) {
     return (
-      <div className="mt-4 pt-4 border-t border-slate-200">
+      <div className="mt-4 pt-4 border-t border-border">
         <Button
           variant="outline"
           size="sm"
@@ -97,9 +97,9 @@ function SimilarCandidatesSection({ jobId }: { jobId: number }) {
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-200">
+    <div className="mt-4 pt-4 border-t border-border">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+        <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
           <Users className="h-4 w-4 text-primary" />
           Suggested Candidates from Other Roles
         </h4>
@@ -112,13 +112,13 @@ function SimilarCandidatesSection({ jobId }: { jobId: number }) {
           Hide
         </Button>
       </div>
-      <p className="text-xs text-slate-500 mb-3">
+      <p className="text-xs text-muted-foreground mb-3">
         High-fit candidates from your other jobs (AI-based)
       </p>
       {similarLoading ? (
-        <div className="text-sm text-slate-500 py-4">Loading suggestions...</div>
+        <div className="text-sm text-muted-foreground py-4">Loading suggestions...</div>
       ) : similarCandidates.length === 0 ? (
-        <div className="text-sm text-slate-500 py-4 bg-slate-50 rounded-md p-3">
+        <div className="text-sm text-muted-foreground py-4 bg-muted/50 rounded-md p-3">
           No high-fit candidates found yet from other roles.
         </div>
       ) : (
@@ -126,14 +126,14 @@ function SimilarCandidatesSection({ jobId }: { jobId: number }) {
           {similarCandidates.map((c) => (
             <div
               key={c.applicationId}
-              className="flex items-center justify-between p-3 border border-slate-200 rounded-md bg-slate-50 hover:bg-slate-100 transition-colors"
+              className="flex items-center justify-between p-3 border border-border rounded-md bg-muted/50 hover:bg-muted transition-colors"
             >
               <div className="flex-1">
-                <div className="font-medium text-slate-900 text-sm">
+                <div className="font-medium text-foreground text-sm">
                   {c.candidateName}{" "}
-                  <span className="text-slate-500 text-xs font-normal">({c.candidateEmail})</span>
+                  <span className="text-muted-foreground text-xs font-normal">({c.candidateEmail})</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                   <span>From: {c.sourceJobTitle}</span>
                   {c.aiFitScore !== null && (
                     <>
@@ -246,31 +246,31 @@ export default function JobAnalyticsDashboard() {
   ];
 
   const getStatusBadge = (job: JobWithAnalytics) => {
-    if (!job.isActive) return <Badge className="bg-red-50 text-red-700">Inactive</Badge>;
-    if (job.status === 'pending') return <Badge className="bg-yellow-50 text-yellow-700">Pending</Badge>;
-    if (job.status === 'approved') return <Badge className="bg-green-50 text-green-700">Active</Badge>;
-    return <Badge className="bg-gray-50 text-gray-700">Unknown</Badge>;
+    if (!job.isActive) return <Badge className="bg-destructive/10 text-destructive">Inactive</Badge>;
+    if (job.status === 'pending') return <Badge className="bg-warning/10 text-warning-foreground">Pending</Badge>;
+    if (job.status === 'approved') return <Badge className="bg-success/10 text-success-foreground">Active</Badge>;
+    return <Badge className="bg-muted/50 text-foreground">Unknown</Badge>;
   };
 
   const getHealthBadge = (status: JobHealthStatus) => {
     switch (status) {
       case 'green':
         return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">
+          <Badge className="bg-success/10 text-success-foreground border-success/30">
             <Activity className="h-3 w-3 mr-1" />
             Healthy
           </Badge>
         );
       case 'amber':
         return (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200">
+          <Badge className="bg-warning/10 text-warning-foreground border-warning/30">
             <Activity className="h-3 w-3 mr-1" />
             Watch
           </Badge>
         );
       case 'red':
         return (
-          <Badge className="bg-rose-50 text-rose-700 border-rose-200">
+          <Badge className="bg-destructive/10 text-destructive border-destructive/30">
             <Activity className="h-3 w-3 mr-1" />
             Attention
           </Badge>
@@ -279,9 +279,9 @@ export default function JobAnalyticsDashboard() {
   };
 
   const getPerformanceColor = (conversionRate: number) => {
-    if (conversionRate >= 10) return "text-green-600";
-    if (conversionRate >= 5) return "text-yellow-600";
-    return "text-red-600";
+    if (conversionRate >= 10) return "text-success";
+    if (conversionRate >= 5) return "text-warning";
+    return "text-destructive";
   };
 
   if (isLoading) {
@@ -301,8 +301,8 @@ export default function JobAnalyticsDashboard() {
       <div className="max-w-7xl mx-auto p-8">
         {/* Header */}
         <div className="mb-8 pt-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Job Analytics Dashboard</h1>
-          <p className="text-slate-500">Track performance metrics and insights for your job listings</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Job Analytics Dashboard</h1>
+          <p className="text-muted-foreground">Track performance metrics and insights for your job listings</p>
         </div>
 
         {/* Quick Stats */}
@@ -311,8 +311,8 @@ export default function JobAnalyticsDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-500 text-sm">Total Jobs</p>
-                  <p className="text-3xl font-bold text-slate-900">{filteredJobs.length}</p>
+                  <p className="text-muted-foreground text-sm">Total Jobs</p>
+                  <p className="text-3xl font-bold text-foreground">{filteredJobs.length}</p>
                 </div>
                 <Briefcase className="w-8 h-8 text-blue-600" />
               </div>
@@ -323,10 +323,10 @@ export default function JobAnalyticsDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-500 text-sm">Total Views</p>
-                  <p className="text-3xl font-bold text-slate-900">{totalViews.toLocaleString()}</p>
+                  <p className="text-muted-foreground text-sm">Total Views</p>
+                  <p className="text-3xl font-bold text-foreground">{totalViews.toLocaleString()}</p>
                 </div>
-                <Eye className="w-8 h-8 text-green-600" />
+                <Eye className="w-8 h-8 text-success" />
               </div>
             </CardContent>
           </Card>
@@ -335,10 +335,10 @@ export default function JobAnalyticsDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-500 text-sm">Apply Clicks</p>
-                  <p className="text-3xl font-bold text-slate-900">{totalApplyClicks.toLocaleString()}</p>
+                  <p className="text-muted-foreground text-sm">Apply Clicks</p>
+                  <p className="text-3xl font-bold text-foreground">{totalApplyClicks.toLocaleString()}</p>
                 </div>
-                <MousePointer className="w-8 h-8 text-purple-600" />
+                <MousePointer className="w-8 h-8 text-primary" />
               </div>
             </CardContent>
           </Card>
@@ -347,10 +347,10 @@ export default function JobAnalyticsDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-500 text-sm">Avg Conversion</p>
-                  <p className="text-3xl font-bold text-slate-900">{averageConversionRate}%</p>
+                  <p className="text-muted-foreground text-sm">Avg Conversion</p>
+                  <p className="text-3xl font-bold text-foreground">{averageConversionRate}%</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-orange-600" />
+                <TrendingUp className="w-8 h-8 text-warning" />
               </div>
             </CardContent>
           </Card>
@@ -362,21 +362,21 @@ export default function JobAnalyticsDashboard() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       placeholder="Search jobs..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-white border-slate-300"
+                      className="pl-10 bg-card border-border"
                     />
                   </div>
                 </div>
                 <div className="flex flex-col md:flex-row gap-4 md:gap-3">
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full md:w-40 bg-white border-slate-300">
+                    <SelectTrigger className="w-full md:w-40 bg-card border-border">
                       <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-slate-200">
+                    <SelectContent className="bg-card border-border">
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="inactive">Inactive</SelectItem>
@@ -385,10 +385,10 @@ export default function JobAnalyticsDashboard() {
                     </SelectContent>
                   </Select>
                   <Select value={clientFilter} onValueChange={setClientFilter}>
-                    <SelectTrigger className="w-full md:w-48 bg-white border-slate-300">
+                    <SelectTrigger className="w-full md:w-48 bg-card border-border">
                       <SelectValue placeholder="Filter by client" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-slate-200">
+                    <SelectContent className="bg-card border-border">
                       <SelectItem value="all">All Clients</SelectItem>
                       <SelectItem value="no-client">Internal / No client</SelectItem>
                       {Array.from(
@@ -411,7 +411,7 @@ export default function JobAnalyticsDashboard() {
 
           {/* Analytics Tabs */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-slate-50 border-slate-200">
+            <TabsList className="grid w-full grid-cols-3 bg-muted/50 border-border">
               <TabsTrigger value="overview" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
                 Overview
               </TabsTrigger>
@@ -428,8 +428,8 @@ export default function JobAnalyticsDashboard() {
                 {/* Views vs Apply Clicks Chart */}
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900">Views vs Apply Clicks</CardTitle>
-                    <CardDescription className="text-slate-500">
+                    <CardTitle className="text-foreground">Views vs Apply Clicks</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Comparison of job views and application clicks
                     </CardDescription>
                   </CardHeader>
@@ -457,8 +457,8 @@ export default function JobAnalyticsDashboard() {
                 {/* Job Status Distribution */}
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900">Job Status Distribution</CardTitle>
-                    <CardDescription className="text-slate-500">
+                    <CardTitle className="text-foreground">Job Status Distribution</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Current status breakdown of all jobs
                     </CardDescription>
                   </CardHeader>
@@ -497,8 +497,8 @@ export default function JobAnalyticsDashboard() {
             <TabsContent value="performance" className="mt-6">
               <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-slate-900">Conversion Rate Performance</CardTitle>
-                  <CardDescription className="text-slate-500">
+                  <CardTitle className="text-foreground">Conversion Rate Performance</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     Track how well your jobs convert views to applications
                   </CardDescription>
                 </CardHeader>
@@ -537,8 +537,8 @@ export default function JobAnalyticsDashboard() {
                     <CardContent className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-slate-900 mb-2">{job.title}</h3>
-                          <div className="flex items-center gap-4 mb-2 text-sm text-slate-500">
+                          <h3 className="text-xl font-semibold text-foreground mb-2">{job.title}</h3>
+                          <div className="flex items-center gap-4 mb-2 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <MapPin className="h-4 w-4" />
                               {job.location}
@@ -547,7 +547,7 @@ export default function JobAnalyticsDashboard() {
                               <Calendar className="h-4 w-4" />
                               {format(new Date(job.createdAt), "MMM d, yyyy")}
                             </span>
-                            <Badge variant="outline" className="border-purple-200 text-purple-700 bg-purple-50">
+                            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/10">
                               {job.type}
                             </Badge>
                           </div>
@@ -560,7 +560,7 @@ export default function JobAnalyticsDashboard() {
                                   <div className="group relative">
                                     {getHealthBadge(health.status)}
                                     {/* Tooltip on hover */}
-                                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 w-64 p-3 bg-slate-900 text-white text-xs rounded-lg shadow-lg">
+                                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-10 w-64 p-3 bg-slate-900 text-foreground text-xs rounded-lg shadow-lg">
                                       <p className="font-semibold mb-1">Health: {health.reason}</p>
                                       <p className="mb-1">Applications: {health.totalApplications}</p>
                                       <p className="mb-1">Posted {health.daysSincePosted} days ago</p>
@@ -573,7 +573,7 @@ export default function JobAnalyticsDashboard() {
                               }
                               return null;
                             })()}
-                            <span className="text-sm text-slate-400">
+                            <span className="text-sm text-muted-foreground">
                               Posted by: {job.postedByUser.firstName} {job.postedByUser.lastName}
                             </span>
                           </div>
@@ -581,25 +581,25 @@ export default function JobAnalyticsDashboard() {
                       </div>
 
                       {/* Analytics Metrics */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-100 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                         <div className="text-center">
                           <div className="flex items-center justify-center gap-2 mb-1">
-                            <Eye className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-slate-500">Views</span>
+                            <Eye className="h-4 w-4 text-success" />
+                            <span className="text-sm font-medium text-muted-foreground">Views</span>
                           </div>
-                          <p className="text-2xl font-bold text-green-600">{job.analytics.views}</p>
+                          <p className="text-2xl font-bold text-success">{job.analytics.views}</p>
                         </div>
                         <div className="text-center">
                           <div className="flex items-center justify-center gap-2 mb-1">
-                            <MousePointer className="h-4 w-4 text-purple-600" />
-                            <span className="text-sm font-medium text-slate-500">Apply Clicks</span>
+                            <MousePointer className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium text-muted-foreground">Apply Clicks</span>
                           </div>
-                          <p className="text-2xl font-bold text-purple-600">{job.analytics.applyClicks}</p>
+                          <p className="text-2xl font-bold text-primary">{job.analytics.applyClicks}</p>
                         </div>
                         <div className="text-center">
                           <div className="flex items-center justify-center gap-2 mb-1">
-                            <TrendingUp className="h-4 w-4 text-orange-600" />
-                            <span className="text-sm font-medium text-slate-500">Conversion Rate</span>
+                            <TrendingUp className="h-4 w-4 text-warning" />
+                            <span className="text-sm font-medium text-muted-foreground">Conversion Rate</span>
                           </div>
                           <p className={`text-2xl font-bold ${getPerformanceColor(parseFloat(job.analytics.conversionRate))}`}>
                             {job.analytics.conversionRate}%
@@ -610,10 +610,10 @@ export default function JobAnalyticsDashboard() {
                       {/* Job Skills */}
                       {job.skills && job.skills.length > 0 && (
                         <div className="mt-4">
-                          <p className="text-sm font-medium text-slate-500 mb-2">Required Skills:</p>
+                          <p className="text-sm font-medium text-muted-foreground mb-2">Required Skills:</p>
                           <div className="flex flex-wrap gap-2">
                             {job.skills.map((skill, index) => (
-                              <Badge key={index} variant="outline" className="border-slate-200 text-slate-700 bg-slate-50">
+                              <Badge key={index} variant="outline" className="border-border text-foreground bg-muted/50">
                                 {skill}
                               </Badge>
                             ))}

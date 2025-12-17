@@ -210,11 +210,11 @@ export default function JobsPage() {
         <meta name="twitter:image" content={`${metaData.baseUrl}/twitter-image.jpg`} />
       </Helmet>
 
-      <div className="public-theme min-h-screen">
+      <div className="public-theme min-h-screen bg-background text-foreground">
         {/* Premium background effects */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] animate-pulse-slow"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.2s' }}></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse-slow"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-info/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.2s' }}></div>
         
         <div className={`container mx-auto px-4 py-8 relative z-10 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
           {/* Premium Header */}
@@ -223,9 +223,9 @@ export default function JobsPage() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
               <span className="animate-gradient-text">Find Your Next</span>
               <br />
-              <span className="text-white">Dream Opportunity</span>
+              <span className="text-foreground">Dream Opportunity</span>
             </h1>
-            <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-slide-up" style={{ animationDelay: '0.3s' }}>
               Discover exciting career opportunities with leading companies powered by AI-driven matching
             </p>
           </div>
@@ -266,7 +266,7 @@ export default function JobsPage() {
                     onResetFilters={handleResetFilters}
                   />
                   {activeFilterCount > 0 && (
-                    <Badge variant="secondary" className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                    <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
                       {activeFilterCount}
                     </Badge>
                   )}
@@ -274,9 +274,9 @@ export default function JobsPage() {
 
                 {/* Sort Dropdown + Reset */}
                 <div className="flex items-center gap-2 ml-auto">
-                  <ArrowUpDown className="h-4 w-4 text-gray-400" />
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[180px] bg-white/5 border-white/20 text-white">
+                    <SelectTrigger className="w-[180px] bg-muted/30 border-border text-foreground">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -292,7 +292,7 @@ export default function JobsPage() {
                       variant="ghost"
                       size="sm"
                       onClick={handleResetFilters}
-                      className="text-gray-400 hover:text-white hover:bg-white/10"
+                      className="text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     >
                       <X className="h-4 w-4 mr-1" />
                       Reset
@@ -305,37 +305,37 @@ export default function JobsPage() {
               {activeFilterCount > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {search && (
-                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                    <Badge variant="secondary" className="bg-muted/50 text-foreground gap-1">
                       Search: {search}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
                         onClick={() => setSearch("")}
                       />
                     </Badge>
                   )}
                   {location && (
-                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                    <Badge variant="secondary" className="bg-muted/50 text-foreground gap-1">
                       Location: {location}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
                         onClick={() => setLocationFilter("")}
                       />
                     </Badge>
                   )}
                   {type && type !== "all" && (
-                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                    <Badge variant="secondary" className="bg-muted/50 text-foreground gap-1">
                       Type: {type.replace('-', ' ')}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
                         onClick={() => setType("all")}
                       />
                     </Badge>
                   )}
                   {skills && (
-                    <Badge variant="secondary" className="bg-white/10 text-white gap-1">
+                    <Badge variant="secondary" className="bg-muted/50 text-foreground gap-1">
                       Skills: {skills}
                       <X
-                        className="h-3 w-3 cursor-pointer hover:text-red-400"
+                        className="h-3 w-3 cursor-pointer hover:text-destructive"
                         onClick={() => setSkills("")}
                       />
                     </Badge>
@@ -346,26 +346,26 @@ export default function JobsPage() {
               {/* Results */}
         {isLoading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
-            <p className="text-white mt-4">Loading jobs...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-foreground mt-4">Loading jobs...</p>
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <p className="text-red-400">Error loading jobs. Please try again.</p>
+            <p className="text-destructive">Error loading jobs. Please try again.</p>
           </div>
         ) : data?.jobs.length === 0 ? (
           <div className="text-center py-12">
-            <Briefcase className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-white text-xl mb-2">No jobs found</p>
-            <p className="text-gray-400">Try adjusting your search criteria</p>
+            <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-foreground text-xl mb-2">No jobs found</p>
+            <p className="text-muted-foreground">Try adjusting your search criteria</p>
           </div>
         ) : (
           <>
             {/* Job Count */}
             <div className="mb-6">
-              <p className="text-white">
+              <p className="text-foreground">
                 Showing {sortedJobs.length} of {data?.pagination.total} jobs
-                {sortBy !== "recent" && <span className="text-gray-400 ml-2">(sorted by {sortBy === "deadline" ? "deadline" : "AI relevance"})</span>}
+                {sortBy !== "recent" && <span className="text-muted-foreground ml-2">(sorted by {sortBy === "deadline" ? "deadline" : "AI relevance"})</span>}
               </p>
             </div>
 
@@ -375,18 +375,18 @@ export default function JobsPage() {
                 <Card
                   key={job.id}
                   data-testid="job-card"
-                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/15 transition-all duration-300"
+                  className="bg-muted/50 backdrop-blur-sm border-border hover:bg-muted/40 transition-all duration-300"
                   onMouseEnter={() => handleJobCardHover(job.id)}
                 >
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-white text-xl mb-2">
-                          <Link href={`/jobs/${job.id}`} className="hover:text-purple-400 transition-colors">
+                        <CardTitle className="text-foreground text-xl mb-2">
+                          <Link href={`/jobs/${job.id}`} className="hover:text-primary transition-colors">
                             {job.title}
                           </Link>
                         </CardTitle>
-                        <CardDescription className="text-gray-300 flex items-center gap-4">
+                        <CardDescription className="text-muted-foreground/50 flex items-center gap-4">
                           <span className="flex items-center gap-1">
                             <MapPin className="h-4 w-4" />
                             {job.location}
@@ -399,26 +399,26 @@ export default function JobsPage() {
                       </div>
                       <Badge 
                         variant="secondary" 
-                        className="bg-purple-500/20 text-purple-300 border-purple-500/30"
+                        className="bg-primary/20 text-primary border-primary/30"
                       >
                         {job.type.replace('-', ' ')}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-300 mb-4 line-clamp-3">
+                    <p className="text-muted-foreground/50 mb-4 line-clamp-3">
                       {job.description.substring(0, 200)}...
                     </p>
                     
                     {job.skills && job.skills.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-4">
                         {job.skills.slice(0, 5).map((skill, index) => (
-                          <Badge key={index} variant="outline" className="text-xs border-blue-400/50 text-blue-300">
+                          <Badge key={index} variant="outline" className="text-xs border-info/50 text-info">
                             {skill}
                           </Badge>
                         ))}
                         {job.skills.length > 5 && (
-                          <Badge variant="outline" className="text-xs border-gray-400/50 text-gray-300">
+                          <Badge variant="outline" className="text-xs border-gray-400/50 text-muted-foreground/50">
                             +{job.skills.length - 5} more
                           </Badge>
                         )}
@@ -427,7 +427,7 @@ export default function JobsPage() {
 
                     <div className="flex justify-between items-center">
                       {job.deadline && (
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           Deadline: {formatDate(job.deadline)}
                         </p>
                       )}
@@ -451,7 +451,7 @@ export default function JobsPage() {
                   variant="outline"
                   onClick={() => setPage(page - 1)}
                   disabled={page === 1}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  className="bg-muted/50 border-border text-foreground hover:bg-muted/60"
                 >
                   Previous
                 </Button>
@@ -466,7 +466,7 @@ export default function JobsPage() {
                         onClick={() => setPage(pageNum)}
                         className={page === pageNum
                           ? "bg-gradient-to-r from-purple-500 to-blue-500"
-                          : "bg-white/10 border-white/20 text-white hover:bg-white/20"
+                          : "bg-muted/50 border-border text-foreground hover:bg-muted/60"
                         }
                       >
                         {pageNum}
@@ -479,7 +479,7 @@ export default function JobsPage() {
                   variant="outline"
                   onClick={() => setPage(page + 1)}
                   disabled={page === data.pagination.totalPages}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  className="bg-muted/50 border-border text-foreground hover:bg-muted/60"
                 >
                   Next
                 </Button>

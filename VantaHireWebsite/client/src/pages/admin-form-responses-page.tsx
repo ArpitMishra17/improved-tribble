@@ -152,12 +152,12 @@ export default function AdminFormResponsesPage() {
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { color: string; icon: any; label: string }> = {
-      pending: { color: "bg-slate-100 text-slate-600", icon: Clock, label: "Pending" },
-      sent: { color: "bg-blue-50 text-blue-700", icon: Send, label: "Sent" },
-      viewed: { color: "bg-purple-50 text-purple-700", icon: Eye, label: "Viewed" },
-      answered: { color: "bg-green-50 text-green-700", icon: CheckCircle2, label: "Answered" },
-      expired: { color: "bg-amber-50 text-amber-700", icon: Clock, label: "Expired" },
-      failed: { color: "bg-red-50 text-red-700", icon: XCircle, label: "Failed" },
+      pending: { color: "bg-muted text-muted-foreground", icon: Clock, label: "Pending" },
+      sent: { color: "bg-info/10 text-info-foreground", icon: Send, label: "Sent" },
+      viewed: { color: "bg-primary/10 text-primary", icon: Eye, label: "Viewed" },
+      answered: { color: "bg-success/10 text-success-foreground", icon: CheckCircle2, label: "Answered" },
+      expired: { color: "bg-warning/10 text-warning-foreground", icon: Clock, label: "Expired" },
+      failed: { color: "bg-destructive/10 text-destructive", icon: XCircle, label: "Failed" },
     };
     const cfg = config[status] ?? config.pending!;
     const Icon = cfg.icon;
@@ -201,11 +201,11 @@ export default function AdminFormResponsesPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
                 <FileText className="w-8 h-8 text-primary" />
                 Form Responses
               </h1>
-              <p className="text-slate-500 mt-1">View and manage all form responses across candidates</p>
+              <p className="text-muted-foreground mt-1">View and manage all form responses across candidates</p>
             </div>
             <Button onClick={handleExportAll} variant="outline">
               <Download className="w-4 h-4 mr-2" />
@@ -219,8 +219,8 @@ export default function AdminFormResponsesPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Total Responses</p>
-                    <p className="text-2xl font-bold text-slate-900">{stats.totalResponses}</p>
+                    <p className="text-sm text-muted-foreground">Total Responses</p>
+                    <p className="text-2xl font-bold text-foreground">{stats.totalResponses}</p>
                   </div>
                   <FileText className="w-8 h-8 text-primary opacity-50" />
                 </div>
@@ -230,10 +230,10 @@ export default function AdminFormResponsesPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Today</p>
-                    <p className="text-2xl font-bold text-green-600">{stats.responsesToday}</p>
+                    <p className="text-sm text-muted-foreground">Today</p>
+                    <p className="text-2xl font-bold text-success">{stats.responsesToday}</p>
                   </div>
-                  <CheckCircle2 className="w-8 h-8 text-green-500 opacity-50" />
+                  <CheckCircle2 className="w-8 h-8 text-success opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -241,12 +241,12 @@ export default function AdminFormResponsesPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Avg Response Time</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-sm text-muted-foreground">Avg Response Time</p>
+                    <p className="text-2xl font-bold text-info">
                       {stats.avgResponseTime > 0 ? `${Math.round(stats.avgResponseTime)}h` : "N/A"}
                     </p>
                   </div>
-                  <Clock className="w-8 h-8 text-blue-500 opacity-50" />
+                  <Clock className="w-8 h-8 text-info opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -254,12 +254,12 @@ export default function AdminFormResponsesPage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Completion Rate</p>
-                    <p className="text-2xl font-bold text-purple-600">
+                    <p className="text-sm text-muted-foreground">Completion Rate</p>
+                    <p className="text-2xl font-bold text-primary">
                       {stats.completionRate > 0 ? `${Math.round(stats.completionRate)}%` : "N/A"}
                     </p>
                   </div>
-                  <BarChart3 className="w-8 h-8 text-purple-500 opacity-50" />
+                  <BarChart3 className="w-8 h-8 text-primary opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -271,7 +271,7 @@ export default function AdminFormResponsesPage() {
               <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[200px]">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Search by candidate name or email..."
                       value={searchTerm}
@@ -325,7 +325,7 @@ export default function AdminFormResponsesPage() {
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
               ) : responses.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
+                <div className="text-center py-12 text-muted-foreground">
                   <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No form responses found</p>
                 </div>
@@ -346,8 +346,8 @@ export default function AdminFormResponsesPage() {
                         <TableRow key={response.id}>
                           <TableCell>
                             <div>
-                              <p className="font-medium text-slate-900">{response.candidateName}</p>
-                              <p className="text-sm text-slate-500">{response.candidateEmail}</p>
+                              <p className="font-medium text-foreground">{response.candidateName}</p>
+                              <p className="text-sm text-muted-foreground">{response.candidateEmail}</p>
                             </div>
                           </TableCell>
                           <TableCell>{response.formName}</TableCell>
@@ -375,7 +375,7 @@ export default function AdminFormResponsesPage() {
                   {/* Pagination */}
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-muted-foreground">
                         Page {page} of {totalPages}
                       </p>
                       <div className="flex gap-2">
@@ -430,10 +430,10 @@ export default function AdminFormResponsesPage() {
             ) : responseDetail ? (
               <div className="space-y-4 mt-4">
                 {responseDetail.questionsAndAnswers.map((qa, idx) => (
-                  <Card key={idx} className="bg-slate-50">
+                  <Card key={idx} className="bg-muted/50">
                     <CardContent className="pt-4">
-                      <p className="text-sm font-medium text-slate-600 mb-2">{qa.question}</p>
-                      <p className="text-slate-900">
+                      <p className="text-sm font-medium text-muted-foreground mb-2">{qa.question}</p>
+                      <p className="text-foreground">
                         {qa.fileUrl ? (
                           <a
                             href={qa.fileUrl}
@@ -445,7 +445,7 @@ export default function AdminFormResponsesPage() {
                             View Uploaded File
                           </a>
                         ) : (
-                          qa.answer || <span className="text-slate-400 italic">No answer provided</span>
+                          qa.answer || <span className="text-muted-foreground italic">No answer provided</span>
                         )}
                       </p>
                     </CardContent>

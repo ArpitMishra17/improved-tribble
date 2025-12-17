@@ -58,10 +58,10 @@ interface AIUsageData {
 }
 
 const kindLabels: Record<string, { label: string; icon: any; color: string }> = {
-  form_ai: { label: "Form Questions", icon: FileText, color: "bg-blue-100 text-blue-700" },
-  job_ai: { label: "Job Analysis", icon: Brain, color: "bg-purple-100 text-purple-700" },
-  candidate_summary: { label: "Candidate Summary", icon: User, color: "bg-green-100 text-green-700" },
-  email_draft: { label: "Email Draft", icon: Mail, color: "bg-amber-100 text-amber-700" },
+  form_ai: { label: "Form Questions", icon: FileText, color: "bg-info/20 text-info-foreground" },
+  job_ai: { label: "Job Analysis", icon: Brain, color: "bg-primary/20 text-primary" },
+  candidate_summary: { label: "Candidate Summary", icon: User, color: "bg-success/20 text-success-foreground" },
+  email_draft: { label: "Email Draft", icon: Mail, color: "bg-warning/20 text-warning-foreground" },
   resume_analysis: { label: "Resume Analysis", icon: FileText, color: "bg-pink-100 text-pink-700" },
 };
 
@@ -102,7 +102,7 @@ export default function AdminAIUsagePage() {
   const maxCost = Math.max(...Object.values(summary.byKind).map(k => k.cost), 0.01);
 
   const getKindBadge = (kind: string) => {
-    const config = kindLabels[kind] || { label: kind, icon: Cpu, color: "bg-slate-100 text-slate-700" };
+    const config = kindLabels[kind] || { label: kind, icon: Cpu, color: "bg-muted text-foreground" };
     const Icon = config.icon;
     return (
       <Badge className={`${config.color} border-0`}>
@@ -130,11 +130,11 @@ export default function AdminAIUsagePage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
                 <Cpu className="w-8 h-8 text-primary" />
                 AI Usage Dashboard
               </h1>
-              <p className="text-slate-500 mt-1">Monitor AI feature usage and costs across the platform</p>
+              <p className="text-muted-foreground mt-1">Monitor AI feature usage and costs across the platform</p>
             </div>
             <div className="flex gap-3">
               <Select value={dateRange} onValueChange={setDateRange}>
@@ -168,10 +168,10 @@ export default function AdminAIUsagePage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Total API Calls</p>
-                    <p className="text-2xl font-bold text-slate-900">{summary.total.count}</p>
+                    <p className="text-sm text-muted-foreground">Total API Calls</p>
+                    <p className="text-2xl font-bold text-foreground">{summary.total.count}</p>
                   </div>
-                  <Zap className="w-8 h-8 text-amber-500 opacity-50" />
+                  <Zap className="w-8 h-8 text-warning opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -179,10 +179,10 @@ export default function AdminAIUsagePage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Total Cost</p>
-                    <p className="text-2xl font-bold text-green-600">{formatCost(summary.total.cost)}</p>
+                    <p className="text-sm text-muted-foreground">Total Cost</p>
+                    <p className="text-2xl font-bold text-success">{formatCost(summary.total.cost)}</p>
                   </div>
-                  <DollarSign className="w-8 h-8 text-green-500 opacity-50" />
+                  <DollarSign className="w-8 h-8 text-success opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -190,10 +190,10 @@ export default function AdminAIUsagePage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Input Tokens</p>
-                    <p className="text-2xl font-bold text-blue-600">{formatTokens(summary.total.tokensIn)}</p>
+                    <p className="text-sm text-muted-foreground">Input Tokens</p>
+                    <p className="text-2xl font-bold text-info">{formatTokens(summary.total.tokensIn)}</p>
                   </div>
-                  <TrendingUp className="w-8 h-8 text-blue-500 opacity-50" />
+                  <TrendingUp className="w-8 h-8 text-info opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -201,10 +201,10 @@ export default function AdminAIUsagePage() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-500">Output Tokens</p>
-                    <p className="text-2xl font-bold text-purple-600">{formatTokens(summary.total.tokensOut)}</p>
+                    <p className="text-sm text-muted-foreground">Output Tokens</p>
+                    <p className="text-2xl font-bold text-primary">{formatTokens(summary.total.tokensOut)}</p>
                   </div>
-                  <Cpu className="w-8 h-8 text-purple-500 opacity-50" />
+                  <Cpu className="w-8 h-8 text-primary opacity-50" />
                 </div>
               </CardContent>
             </Card>
@@ -222,7 +222,7 @@ export default function AdminAIUsagePage() {
                   <Loader2 className="w-6 h-6 text-primary animate-spin" />
                 </div>
               ) : Object.keys(summary.byKind).length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
+                <div className="text-center py-8 text-muted-foreground">
                   <Cpu className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No AI usage data for this period</p>
                 </div>
@@ -236,17 +236,17 @@ export default function AdminAIUsagePage() {
                     return (
                       <div key={kind} className="flex items-center gap-4">
                         <div className="w-40 flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-slate-500" />
+                          <Icon className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm font-medium">{config.label}</span>
                         </div>
                         <div className="flex-1">
                           <Progress value={progressPercent} className="h-2" />
                         </div>
                         <div className="w-24 text-right">
-                          <span className="text-sm font-semibold text-slate-900">{formatCost(stats.cost)}</span>
+                          <span className="text-sm font-semibold text-foreground">{formatCost(stats.cost)}</span>
                         </div>
                         <div className="w-16 text-right">
-                          <span className="text-xs text-slate-500">{stats.count} calls</span>
+                          <span className="text-xs text-muted-foreground">{stats.count} calls</span>
                         </div>
                       </div>
                     );
@@ -268,7 +268,7 @@ export default function AdminAIUsagePage() {
                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
                 </div>
               ) : usage.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
+                <div className="text-center py-12 text-muted-foreground">
                   <Cpu className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No usage records found</p>
                 </div>
@@ -293,7 +293,7 @@ export default function AdminAIUsagePage() {
                               {record.user.firstName || record.user.username}
                             </span>
                           ) : (
-                            <span className="text-slate-400">System</span>
+                            <span className="text-muted-foreground">System</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -305,7 +305,7 @@ export default function AdminAIUsagePage() {
                           <span className="text-sm font-medium">{formatCost(record.costUsd)}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-slate-500">
+                          <span className="text-sm text-muted-foreground">
                             {new Date(record.computedAt).toLocaleDateString()}
                           </span>
                         </TableCell>

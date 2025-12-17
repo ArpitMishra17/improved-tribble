@@ -54,17 +54,17 @@ export default function CandidateAuth() {
   };
 
   return (
-    <div className="public-theme min-h-screen">
+    <div className="public-theme min-h-screen bg-background text-foreground">
       <Header />
       <div className="container mx-auto px-4 pt-32 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Column - Hero Content */}
           <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight">
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
                 Find Your Dream Job
               </h1>
-              <p className="text-xl text-white/80 leading-relaxed">
+              <p className="text-xl text-muted-foreground leading-relaxed">
                 Join thousands of professionals who have found their perfect career match through VantaHire's advanced job platform.
               </p>
             </div>
@@ -75,8 +75,8 @@ export default function CandidateAuth() {
                   <Search className="h-8 w-8 text-[#7B38FB]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Smart Job Search</h3>
-                  <p className="text-white/70 text-sm">Find opportunities that match your skills and preferences</p>
+                  <h3 className="text-foreground font-semibold mb-2">Smart Job Search</h3>
+                  <p className="text-muted-foreground text-sm">Find opportunities that match your skills and preferences</p>
                 </div>
               </div>
 
@@ -85,8 +85,8 @@ export default function CandidateAuth() {
                   <FileText className="h-8 w-8 text-[#FF5BA8]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Easy Applications</h3>
-                  <p className="text-white/70 text-sm">Apply to multiple jobs with one-click applications</p>
+                  <h3 className="text-foreground font-semibold mb-2">Easy Applications</h3>
+                  <p className="text-muted-foreground text-sm">Apply to multiple jobs with one-click applications</p>
                 </div>
               </div>
 
@@ -95,8 +95,8 @@ export default function CandidateAuth() {
                   <Star className="h-8 w-8 text-[#00D2FF]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Profile Building</h3>
-                  <p className="text-white/70 text-sm">Create a standout profile that attracts employers</p>
+                  <h3 className="text-foreground font-semibold mb-2">Profile Building</h3>
+                  <p className="text-muted-foreground text-sm">Create a standout profile that attracts employers</p>
                 </div>
               </div>
 
@@ -105,14 +105,14 @@ export default function CandidateAuth() {
                   <MessageCircle className="h-8 w-8 text-[#90EE90]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold mb-2">Real-time Updates</h3>
-                  <p className="text-white/70 text-sm">Get notified about application status and new opportunities</p>
+                  <h3 className="text-foreground font-semibold mb-2">Real-time Updates</h3>
+                  <p className="text-muted-foreground text-sm">Get notified about application status and new opportunities</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-4">
-              <p className="text-white/60 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Are you a recruiter? <Button variant="link" className="text-[#7B38FB] p-0 h-auto" onClick={() => setLocation("/recruiter-auth")}>
                   Go to Recruiter Login
                 </Button>
@@ -122,20 +122,20 @@ export default function CandidateAuth() {
 
           {/* Right Column - Auth Form */}
           <div className="flex justify-center">
-            <Card className="w-full max-w-md bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="w-full max-w-md bg-muted/50 backdrop-blur-sm border-border">
               <CardHeader className="text-center">
-                <CardTitle className="text-white text-2xl">Candidate Access</CardTitle>
-                <CardDescription className="text-white/70">
+                <CardTitle className="text-foreground text-2xl">Candidate Access</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Sign in to your account or create a new profile
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="login" className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-2 bg-white/10">
-                    <TabsTrigger value="login" className="data-[state=active]:bg-white/20 text-white">
+                  <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+                    <TabsTrigger value="login" className="data-[state=active]:bg-muted/60 text-foreground">
                       Sign In
                     </TabsTrigger>
-                    <TabsTrigger value="register" className="data-[state=active]:bg-white/20 text-white">
+                    <TabsTrigger value="register" className="data-[state=active]:bg-muted/60 text-foreground">
                       Register
                     </TabsTrigger>
                   </TabsList>
@@ -143,25 +143,25 @@ export default function CandidateAuth() {
                   <TabsContent value="login">
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="username" className="text-white">Username</Label>
+                        <Label htmlFor="username" className="text-foreground">Username</Label>
                         <Input
                           id="username"
                           type="text"
                           value={loginData.username}
                           onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Enter your username"
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white">Password</Label>
+                        <Label htmlFor="password" className="text-foreground">Password</Label>
                         <Input
                           id="password"
                           type="password"
                           value={loginData.password}
                           onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Enter your password"
                           required
                         />
@@ -180,50 +180,50 @@ export default function CandidateAuth() {
                     <form onSubmit={handleRegister} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="firstName" className="text-white">First Name</Label>
+                          <Label htmlFor="firstName" className="text-foreground">First Name</Label>
                           <Input
                             id="firstName"
                             type="text"
                             value={registerData.firstName}
                             onChange={(e) => setRegisterData(prev => ({ ...prev, firstName: e.target.value }))}
-                            className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                            className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                             placeholder="First name"
                             required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="lastName" className="text-white">Last Name</Label>
+                          <Label htmlFor="lastName" className="text-foreground">Last Name</Label>
                           <Input
                             id="lastName"
                             type="text"
                             value={registerData.lastName}
                             onChange={(e) => setRegisterData(prev => ({ ...prev, lastName: e.target.value }))}
-                            className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                            className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                             placeholder="Last name"
                             required
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="regUsername" className="text-white">Username</Label>
+                        <Label htmlFor="regUsername" className="text-foreground">Username</Label>
                         <Input
                           id="regUsername"
                           type="text"
                           value={registerData.username}
                           onChange={(e) => setRegisterData(prev => ({ ...prev, username: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Choose a username"
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="regPassword" className="text-white">Password</Label>
+                        <Label htmlFor="regPassword" className="text-foreground">Password</Label>
                         <Input
                           id="regPassword"
                           type="password"
                           value={registerData.password}
                           onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
-                          className="bg-white/5 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
                           placeholder="Create a password"
                           required
                         />

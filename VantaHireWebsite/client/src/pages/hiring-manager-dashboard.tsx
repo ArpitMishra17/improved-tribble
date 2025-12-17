@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Users, MessageSquare, Calendar, ArrowRight } from "lucide-react";
+import Layout from "@/components/Layout";
 
 interface Job {
   id: number;
@@ -115,62 +116,62 @@ export default function HiringManagerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <Layout>
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
             Hiring Manager Dashboard
           </h1>
-          <p className="text-slate-600">
+          <p className="text-muted-foreground">
             Welcome back, {user.firstName || user.username}! Review candidates and provide feedback.
           </p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white border-slate-200 shadow-sm">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 My Jobs
               </CardTitle>
-              <Briefcase className="h-4 w-4 text-blue-600" />
+              <Briefcase className="h-4 w-4 text-info" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{myJobs.length}</div>
-              <p className="text-xs text-slate-500 mt-1">
+              <div className="text-2xl font-bold text-foreground">{myJobs.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Jobs assigned to you
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-slate-200 shadow-sm">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Total Candidates
               </CardTitle>
-              <Users className="h-4 w-4 text-green-600" />
+              <Users className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{allApplications.length}</div>
-              <p className="text-xs text-slate-500 mt-1">
+              <div className="text-2xl font-bold text-foreground">{allApplications.length}</div>
+              <p className="text-xs text-muted-foreground mt-1">
                 Across all your jobs
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white border-slate-200 shadow-sm">
+          <Card className="bg-card border-border shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 Awaiting Feedback
               </CardTitle>
-              <MessageSquare className="h-4 w-4 text-orange-600" />
+              <MessageSquare className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
+              <div className="text-2xl font-bold text-foreground">
                 {applicationsNeedingFeedback.length}
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Candidates needing your review
               </p>
             </CardContent>
@@ -179,19 +180,19 @@ export default function HiringManagerDashboard() {
 
         {/* My Jobs Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <Briefcase className="h-5 w-5 text-blue-600" />
+          <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Briefcase className="h-5 w-5 text-info" />
             My Jobs
           </h2>
 
           {jobsLoading ? (
-            <p className="text-slate-500">Loading jobs...</p>
+            <p className="text-muted-foreground">Loading jobs...</p>
           ) : myJobs.length === 0 ? (
-            <Card className="bg-white border-slate-200">
+            <Card className="bg-card border-border">
               <CardContent className="py-12 text-center">
-                <Briefcase className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                <p className="text-slate-600">No jobs assigned to you yet.</p>
-                <p className="text-slate-500 text-sm mt-1">
+                <Briefcase className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-muted-foreground">No jobs assigned to you yet.</p>
+                <p className="text-muted-foreground text-sm mt-1">
                   Contact your recruiter to get assigned to job postings.
                 </p>
               </CardContent>
@@ -205,17 +206,17 @@ export default function HiringManagerDashboard() {
                 ).length;
 
                 return (
-                  <Card key={job.id} className="bg-white border-slate-200 hover:shadow-md transition-shadow">
+                  <Card key={job.id} className="bg-card border-border hover:shadow-md transition-shadow">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle className="text-base text-slate-900">{job.title}</CardTitle>
+                          <CardTitle className="text-base text-foreground">{job.title}</CardTitle>
                           <CardDescription className="text-sm mt-1">
                             {job.location} • {job.type}
                           </CardDescription>
                         </div>
                         {job.isActive && (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                          <Badge className="bg-success/20 text-success-foreground hover:bg-success/20">
                             Active
                           </Badge>
                         )}
@@ -223,13 +224,13 @@ export default function HiringManagerDashboard() {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-600">Candidates:</span>
-                        <span className="font-medium text-slate-900">{jobApplications.length}</span>
+                        <span className="text-muted-foreground">Candidates:</span>
+                        <span className="font-medium text-foreground">{jobApplications.length}</span>
                       </div>
                       {needingFeedback > 0 && (
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-600">Need Feedback:</span>
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                          <span className="text-muted-foreground">Need Feedback:</span>
+                          <Badge variant="outline" className="bg-warning/10 text-warning-foreground border-warning/30">
                             {needingFeedback}
                           </Badge>
                         </div>
@@ -252,17 +253,17 @@ export default function HiringManagerDashboard() {
 
         {/* Candidates Awaiting Feedback Section */}
         <div>
-          <h2 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-orange-600" />
+          <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-warning" />
             Candidates Awaiting Your Feedback
           </h2>
 
           {applicationsNeedingFeedback.length === 0 ? (
-            <Card className="bg-white border-slate-200">
+            <Card className="bg-card border-border">
               <CardContent className="py-12 text-center">
-                <MessageSquare className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                <p className="text-slate-600">All caught up!</p>
-                <p className="text-slate-500 text-sm mt-1">
+                <MessageSquare className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-muted-foreground">All caught up!</p>
+                <p className="text-muted-foreground text-sm mt-1">
                   You've provided feedback for all candidates.
                 </p>
               </CardContent>
@@ -270,17 +271,17 @@ export default function HiringManagerDashboard() {
           ) : (
             <div className="space-y-3">
               {applicationsNeedingFeedback.map((app) => (
-                <Card key={app.id} className="bg-white border-slate-200 hover:shadow-md transition-shadow">
+                <Card key={app.id} className="bg-card border-border hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-medium text-slate-900">{app.name}</h3>
+                          <h3 className="font-medium text-foreground">{app.name}</h3>
                           <Badge variant="outline" className="text-xs">
                             {app.jobTitle}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <span>{app.email}</span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
@@ -303,6 +304,6 @@ export default function HiringManagerDashboard() {
           )}
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }

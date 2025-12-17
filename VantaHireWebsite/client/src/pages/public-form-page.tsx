@@ -274,7 +274,7 @@ export default function PublicFormPage() {
     const commonProps = {
       id: `field-${field.id}`,
       required: field.required,
-      className: error ? 'border-red-500' : '',
+      className: error ? 'border-destructive' : '',
     };
 
     let inputElement;
@@ -373,20 +373,20 @@ export default function PublicFormPage() {
                     }
                   }}
                   disabled={isUploading}
-                  className="text-white"
+                  className="text-foreground"
                 />
-                {isUploading && <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />}
+                {isUploading && <Loader2 className="w-4 h-4 text-primary animate-spin" />}
               </div>
             ) : (
-              <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+              <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Upload className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <Upload className="w-4 h-4 text-success flex-shrink-0" />
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm text-white truncate">
+                    <span className="text-sm text-foreground truncate">
                       {answer.filename || 'File uploaded'}
                     </span>
                     {answer.size && (
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {(answer.size / 1024).toFixed(1)} KB
                       </span>
                     )}
@@ -397,7 +397,7 @@ export default function PublicFormPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveFile(field.id)}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10 flex-shrink-0"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -420,13 +420,13 @@ export default function PublicFormPage() {
 
     return (
       <div key={field.id} className="space-y-2">
-        <Label htmlFor={`field-${field.id}`} className="text-white">
+        <Label htmlFor={`field-${field.id}`} className="text-foreground">
           {field.label}
-          {field.required && <span className="text-red-400 ml-1">*</span>}
+          {field.required && <span className="text-destructive ml-1">*</span>}
         </Label>
         {inputElement}
         {error && (
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-destructive">{error}</p>
         )}
       </div>
     );
@@ -435,12 +435,12 @@ export default function PublicFormPage() {
   // Loading state
   if (state === 'loading') {
     return (
-      <div className="min-h-screen w-full flex flex-col public-theme">
+      <div className="min-h-screen w-full flex flex-col public-theme bg-background text-foreground">
         <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="w-full max-w-2xl mx-4 bg-muted/50 backdrop-blur-sm border-border">
             <CardContent className="pt-6 flex items-center justify-center">
-              <Loader2 className="h-8 w-8 text-white animate-spin" />
-              <span className="ml-2 text-white">Loading form...</span>
+              <Loader2 className="h-8 w-8 text-foreground animate-spin" />
+              <span className="ml-2 text-foreground">Loading form...</span>
             </CardContent>
           </Card>
         </div>
@@ -452,15 +452,15 @@ export default function PublicFormPage() {
   // Expired state
   if (state === 'expired') {
     return (
-      <div className="min-h-screen w-full flex flex-col public-theme">
+      <div className="min-h-screen w-full flex flex-col public-theme bg-background text-foreground">
         <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="w-full max-w-2xl mx-4 bg-muted/50 backdrop-blur-sm border-border">
             <CardContent className="pt-6">
               <div className="flex mb-4 gap-2">
-                <Clock className="h-8 w-8 text-amber-400" />
-                <h1 className="text-2xl font-bold text-white">Form Expired</h1>
+                <Clock className="h-8 w-8 text-warning" />
+                <h1 className="text-2xl font-bold text-foreground">Form Expired</h1>
               </div>
-              <p className="mt-4 text-sm text-white/70">
+              <p className="mt-4 text-sm text-muted-foreground">
                 This form invitation has expired. Please contact the recruiter for a new link.
               </p>
             </CardContent>
@@ -474,15 +474,15 @@ export default function PublicFormPage() {
   // Already submitted state
   if (state === 'already_submitted') {
     return (
-      <div className="min-h-screen w-full flex flex-col public-theme">
+      <div className="min-h-screen w-full flex flex-col public-theme bg-background text-foreground">
         <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="w-full max-w-2xl mx-4 bg-muted/50 backdrop-blur-sm border-border">
             <CardContent className="pt-6">
               <div className="flex mb-4 gap-2">
-                <CheckCircle2 className="h-8 w-8 text-green-400" />
-                <h1 className="text-2xl font-bold text-white">Already Submitted</h1>
+                <CheckCircle2 className="h-8 w-8 text-success" />
+                <h1 className="text-2xl font-bold text-foreground">Already Submitted</h1>
               </div>
-              <p className="mt-4 text-sm text-white/70">
+              <p className="mt-4 text-sm text-muted-foreground">
                 You've already submitted this form. Thank you for your response!
               </p>
             </CardContent>
@@ -496,15 +496,15 @@ export default function PublicFormPage() {
   // Error state
   if (state === 'error') {
     return (
-      <div className="min-h-screen w-full flex flex-col public-theme">
+      <div className="min-h-screen w-full flex flex-col public-theme bg-background text-foreground">
         <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="w-full max-w-2xl mx-4 bg-muted/50 backdrop-blur-sm border-border">
             <CardContent className="pt-6">
               <div className="flex mb-4 gap-2">
-                <AlertCircle className="h-8 w-8 text-red-400" />
-                <h1 className="text-2xl font-bold text-white">Error</h1>
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <h1 className="text-2xl font-bold text-foreground">Error</h1>
               </div>
-              <p className="mt-4 text-sm text-white/70">
+              <p className="mt-4 text-sm text-muted-foreground">
                 {errorMessage || 'Failed to load form. Please check the link and try again.'}
               </p>
             </CardContent>
@@ -518,15 +518,15 @@ export default function PublicFormPage() {
   // Success state
   if (state === 'success') {
     return (
-      <div className="min-h-screen w-full flex flex-col public-theme">
+      <div className="min-h-screen w-full flex flex-col public-theme bg-background text-foreground">
         <div className="flex-1 flex items-center justify-center">
-          <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="w-full max-w-2xl mx-4 bg-muted/50 backdrop-blur-sm border-border">
             <CardContent className="pt-6">
               <div className="flex mb-4 gap-2">
-                <CheckCircle2 className="h-8 w-8 text-green-400" />
-                <h1 className="text-2xl font-bold text-white">Success!</h1>
+                <CheckCircle2 className="h-8 w-8 text-success" />
+                <h1 className="text-2xl font-bold text-foreground">Success!</h1>
               </div>
-              <p className="mt-4 text-sm text-white/70">
+              <p className="mt-4 text-sm text-muted-foreground">
                 Thank you! Your response has been submitted successfully. You may close this page.
               </p>
             </CardContent>
@@ -539,20 +539,20 @@ export default function PublicFormPage() {
 
   // Form ready state
   return (
-    <div className="min-h-screen w-full flex flex-col public-theme">
+    <div className="min-h-screen w-full flex flex-col public-theme bg-background text-foreground">
       <div className="flex-1 flex items-center justify-center py-8">
-        <Card className="w-full max-w-2xl mx-4 bg-white/10 backdrop-blur-sm border-white/20">
+        <Card className="w-full max-w-2xl mx-4 bg-muted/50 backdrop-blur-sm border-border">
           <CardHeader>
             <div className="flex items-center gap-2 mb-2">
-              <FileText className="h-6 w-6 text-purple-400" />
-              <CardTitle className="text-2xl text-white">{formData?.formName}</CardTitle>
+              <FileText className="h-6 w-6 text-primary" />
+              <CardTitle className="text-2xl text-foreground">{formData?.formName}</CardTitle>
             </div>
             {formData?.formDescription && (
-              <CardDescription className="text-white/70">
+              <CardDescription className="text-muted-foreground">
                 {formData.formDescription}
               </CardDescription>
             )}
-            <p className="text-xs text-white/50 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Expires: {new Date(formData?.expiresAt || '').toLocaleDateString()}
             </p>
           </CardHeader>
@@ -564,7 +564,7 @@ export default function PublicFormPage() {
                 <Button
                   type="submit"
                   disabled={state === 'submitting'}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                  className="bg-primary hover:bg-primary/80 text-foreground"
                 >
                   {state === 'submitting' ? (
                     <>

@@ -841,11 +841,11 @@ export default function ApplicationManagementPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      submitted: { color: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock },
-      reviewed: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: Eye },
-      shortlisted: { color: "bg-green-50 text-green-700 border-green-200", icon: UserCheck },
-      rejected: { color: "bg-red-50 text-red-700 border-red-200", icon: XCircle },
-      downloaded: { color: "bg-purple-50 text-purple-700 border-purple-200", icon: Download },
+      submitted: { color: "bg-info/10 text-info-foreground border-info/30", icon: Clock },
+      reviewed: { color: "bg-warning/10 text-warning-foreground border-warning/30", icon: Eye },
+      shortlisted: { color: "bg-success/10 text-success-foreground border-success/30", icon: UserCheck },
+      rejected: { color: "bg-destructive/10 text-destructive border-destructive/30", icon: XCircle },
+      downloaded: { color: "bg-primary/10 text-primary border-primary/30", icon: Download },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.submitted;
@@ -922,12 +922,12 @@ export default function ApplicationManagementPage() {
             <PageHeaderSkeleton />
             <Card className="shadow-sm">
               <CardHeader>
-                <div className="h-6 w-48 bg-slate-200 rounded animate-pulse" />
-                <div className="h-4 w-64 bg-slate-200 rounded animate-pulse mt-2" />
+                <div className="h-6 w-48 bg-muted rounded animate-pulse" />
+                <div className="h-4 w-64 bg-muted rounded animate-pulse mt-2" />
               </CardHeader>
             </Card>
             <FilterBarSkeleton />
-            <div className="rounded-lg border border-slate-200 bg-white shadow-sm p-4">
+            <div className="rounded-lg border border-border bg-card shadow-sm p-4">
               <KanbanBoardSkeleton columns={5} />
             </div>
           </div>
@@ -942,8 +942,8 @@ export default function ApplicationManagementPage() {
         <div className="container mx-auto px-4 py-8">
           <Card className="shadow-sm">
             <CardContent className="p-8 text-center">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Job Not Found</h3>
-              <p className="text-slate-500">The requested job could not be found.</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Job Not Found</h3>
+              <p className="text-muted-foreground">The requested job could not be found.</p>
             </CardContent>
           </Card>
         </div>
@@ -961,7 +961,7 @@ export default function ApplicationManagementPage() {
               variant="ghost"
               size="sm"
               onClick={() => setLocation("/my-jobs")}
-              className="text-slate-600 hover:bg-slate-100"
+              className="text-muted-foreground hover:bg-muted"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Back to My Jobs</span>
@@ -1087,11 +1087,11 @@ export default function ApplicationManagementPage() {
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               <Users className="h-7 w-7 text-primary" />
-              <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
                 Application Management
               </h1>
             </div>
-            <p className="text-slate-500 text-sm md:text-base max-w-2xl">
+            <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
               Review and manage applications for "{job.title}"
             </p>
           </div>
@@ -1099,7 +1099,7 @@ export default function ApplicationManagementPage() {
           {/* Job Header */}
           <Card className="mb-4 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-slate-900 text-xl">{job.title}</CardTitle>
+              <CardTitle className="text-foreground text-xl">{job.title}</CardTitle>
               <CardDescription>
                 <div className="flex items-center gap-4 flex-wrap">
                   <span className="flex items-center gap-1">
@@ -1123,17 +1123,17 @@ export default function ApplicationManagementPage() {
           {job.clientId && (
             <Card className="mb-6 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-slate-900 text-base flex items-center gap-2">
+                <CardTitle className="text-foreground text-base flex items-center gap-2">
                   <Users className="h-4 w-4 text-primary" />
                   Client Shortlists
                 </CardTitle>
-                <CardDescription className="text-slate-500 text-sm">
+                <CardDescription className="text-muted-foreground text-sm">
                   Links shared with your client for this role.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {shortlists.length === 0 ? (
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-muted-foreground">
                     No shortlists created yet. Select candidates and use{" "}
                     <span className="font-medium">Share with Client</span> to
                     generate a shortlist.
@@ -1143,19 +1143,19 @@ export default function ApplicationManagementPage() {
                     {shortlists.map((s) => (
                       <div
                         key={s.id}
-                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-200 rounded-md p-3 bg-slate-50"
+                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-border rounded-md p-3 bg-muted/50"
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-slate-900 truncate">
+                            <span className="text-sm font-medium text-foreground truncate">
                               {s.title || job.title}
                             </span>
-                            <Badge className="text-xs bg-slate-100 text-slate-700 border-slate-200">
+                            <Badge className="text-xs bg-muted text-foreground border-border">
                               {s.candidateCount} candidate
                               {s.candidateCount === 1 ? "" : "s"}
                             </Badge>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             Created{" "}
                             {new Date(s.createdAt).toLocaleDateString(undefined, {
                               year: "numeric",
@@ -1207,8 +1207,8 @@ export default function ApplicationManagementPage() {
               <div className="flex items-center gap-4 flex-wrap">
                 {/* Sort Dropdown */}
                 <div className="flex items-center gap-2">
-                  <ArrowUpDown className="h-4 w-4 text-slate-600" />
-                  <Label htmlFor="sort-select" className="text-sm font-medium text-slate-700">
+                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="sort-select" className="text-sm font-medium text-foreground">
                     Sort by:
                   </Label>
                   <Select value={sortBy} onValueChange={(value: 'date' | 'ai_fit') => setSortBy(value)}>
@@ -1229,8 +1229,8 @@ export default function ApplicationManagementPage() {
 
                 {/* Stage Filter */}
                 <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-slate-600" />
-                  <Label htmlFor="stage-filter" className="text-sm font-medium text-slate-700">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="stage-filter" className="text-sm font-medium text-foreground">
                     Stage:
                   </Label>
                   <Select value={stageFilter} onValueChange={setStageFilter}>
@@ -1254,7 +1254,7 @@ export default function ApplicationManagementPage() {
 
                 {/* AI Fit Label Filter Chips */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Label className="text-sm font-medium text-slate-700">Filter by AI Fit:</Label>
+                  <Label className="text-sm font-medium text-foreground">Filter by AI Fit:</Label>
                   {['Exceptional', 'Strong', 'Good'].map((label) => {
                     const isActive = fitLabelFilter.includes(label);
                     return (
@@ -1263,8 +1263,8 @@ export default function ApplicationManagementPage() {
                         variant={isActive ? "default" : "outline"}
                         className={`cursor-pointer transition-all ${
                           isActive
-                            ? 'bg-primary text-white hover:bg-primary/90'
-                            : 'hover:bg-slate-100'
+                            ? 'bg-primary text-foreground hover:bg-primary/90'
+                            : 'hover:bg-muted'
                         }`}
                         onClick={() => {
                           setFitLabelFilter((prev) =>
@@ -1293,7 +1293,7 @@ export default function ApplicationManagementPage() {
                 </div>
 
                 {/* Results Count */}
-                <div className="ml-auto text-sm text-slate-600">
+                <div className="ml-auto text-sm text-muted-foreground">
                   {filteredApplications.length} of {applications?.length || 0} applications
                 </div>
               </div>
@@ -1318,7 +1318,7 @@ export default function ApplicationManagementPage() {
           />
 
           {/* Kanban Board */}
-          <div className="min-h-[600px] rounded-lg border border-slate-200 bg-white shadow-sm p-4 overflow-auto">
+          <div className="min-h-[600px] rounded-lg border border-border bg-card shadow-sm p-4 overflow-auto">
             <KanbanBoard
               applications={applications || []}
               pipelineStages={pipelineStages.sort((a, b) => a.order - b.order)}
@@ -1376,7 +1376,7 @@ export default function ApplicationManagementPage() {
         {/* ATS Dialogs */}
 
         {/* Interview Scheduling Dialog */}
-        <Dialog key={selectedApp?.id} open={showInterviewDialog} onOpenChange={setShowInterviewDialog}>
+        <Dialog key={`interview-${selectedApp?.id ?? 'none'}`} open={showInterviewDialog} onOpenChange={setShowInterviewDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Schedule Interview - {selectedApp?.name}</DialogTitle>
@@ -1439,7 +1439,7 @@ export default function ApplicationManagementPage() {
               {/* Download Calendar Invite - show if interview is already scheduled */}
               {selectedApp?.interviewDate && selectedApp?.interviewTime && (
                 <div className="pt-4 border-t">
-                  <p className="text-sm text-slate-600 mb-2">
+                  <p className="text-sm text-muted-foreground mb-2">
                     Interview scheduled for {new Date(selectedApp.interviewDate).toLocaleDateString()} at {selectedApp.interviewTime}
                   </p>
                   <Button
@@ -1453,7 +1453,7 @@ export default function ApplicationManagementPage() {
                     <FileDown className="h-4 w-4 mr-2" />
                     Download Calendar Invite (.ics)
                   </Button>
-                  <p className="text-xs text-slate-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     Share this file with the interview panel and candidate to add the interview to their calendars
                   </p>
                 </div>
@@ -1463,7 +1463,7 @@ export default function ApplicationManagementPage() {
         </Dialog>
 
         {/* Email Sending Dialog */}
-        <Dialog key={selectedApp?.id} open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <Dialog key={`email-${selectedApp?.id ?? 'none'}`} open={showEmailDialog} onOpenChange={setShowEmailDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Send Email - {selectedApp?.name}</DialogTitle>
@@ -1491,9 +1491,9 @@ export default function ApplicationManagementPage() {
                 </Select>
               </div>
               {selectedTemplateId && (
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <Label className="text-sm text-slate-500">Preview</Label>
-                  <p className="text-sm text-slate-700 mt-1">
+                <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                  <Label className="text-sm text-muted-foreground">Preview</Label>
+                  <p className="text-sm text-foreground mt-1">
                     {emailTemplates.find(t => t.id === selectedTemplateId)?.body.substring(0, 200)}...
                   </p>
                 </div>
@@ -1528,11 +1528,11 @@ export default function ApplicationManagementPage() {
             <div className="space-y-4 mt-4">
               <div>
                 <Label>Client</Label>
-                <p className="text-sm text-slate-700 font-medium">
+                <p className="text-sm text-foreground font-medium">
                   {job?.clientId ? job?.title : "No client linked to this job"}
                 </p>
                 {!job?.clientId && (
-                  <p className="text-xs text-red-600 mt-1">
+                  <p className="text-xs text-destructive mt-1">
                     Link a client to this job on the job posting to enable sharing.
                   </p>
                 )}
@@ -1561,14 +1561,14 @@ export default function ApplicationManagementPage() {
                   value={shortlistExpiresAt}
                   onChange={(e) => setShortlistExpiresAt(e.target.value)}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Leave blank to keep the shortlist active indefinitely.
                 </p>
               </div>
 
               {shortlistUrl && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-md space-y-2">
-                  <Label className="text-xs text-slate-600">Shareable Link</Label>
+                <div className="p-3 bg-muted/50 border border-border rounded-md space-y-2">
+                  <Label className="text-xs text-muted-foreground">Shareable Link</Label>
                   <div className="flex items-center gap-2">
                     <Input value={shortlistUrl} readOnly className="text-xs" />
                     <Button
@@ -1627,7 +1627,7 @@ export default function ApplicationManagementPage() {
         </Dialog>
 
         {/* Bulk Email Dialog */}
-        <Dialog key={selectedApplications.join(',')} open={showBulkEmailDialog} onOpenChange={setShowBulkEmailDialog}>
+        <Dialog key={`bulk-email-${selectedApplications.length}`} open={showBulkEmailDialog} onOpenChange={setShowBulkEmailDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Send Bulk Email - {selectedApplications.length} selected</DialogTitle>
@@ -1636,7 +1636,7 @@ export default function ApplicationManagementPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <div className="flex items-center gap-3 p-2 bg-slate-50 rounded border border-slate-200">
+              <div className="flex items-center gap-3 p-2 bg-muted/50 rounded border border-border">
                 <Checkbox
                   checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
                   onCheckedChange={(checked) => {
@@ -1648,10 +1648,10 @@ export default function ApplicationManagementPage() {
                     }
                   }}
                 />
-                <span className="text-sm text-slate-600">Select all in current view</span>
+                <span className="text-sm text-muted-foreground">Select all in current view</span>
                 {selectedApplications.length > 0 && (
                   <button
-                    className="text-xs text-slate-500 underline ml-auto hover:text-slate-700"
+                    className="text-xs text-muted-foreground underline ml-auto hover:text-foreground"
                     onClick={() => setSelectedApplications([])}
                   >
                     Clear selection
@@ -1677,9 +1677,9 @@ export default function ApplicationManagementPage() {
                 </Select>
               </div>
               {bulkTemplateId && (
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <Label className="text-sm text-slate-500">Preview</Label>
-                  <p className="text-sm text-slate-700 mt-1">
+                <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                  <Label className="text-sm text-muted-foreground">Preview</Label>
+                  <p className="text-sm text-foreground mt-1">
                     {emailTemplates.find((t) => t.id === bulkTemplateId)?.body.substring(0, 200)}...
                   </p>
                 </div>
@@ -1698,7 +1698,7 @@ export default function ApplicationManagementPage() {
                 {sendBulkEmailsMutation.isPending ? "Sending..." : "Send to Selected"}
               </Button>
               {sendBulkEmailsMutation.isPending && (
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-muted-foreground text-center">
                   Sending {bulkProgress.sent}/{bulkProgress.total}...
                 </p>
               )}
@@ -1707,7 +1707,7 @@ export default function ApplicationManagementPage() {
         </Dialog>
 
         {/* Bulk Forms Dialog */}
-        <Dialog key={selectedApplications.join(',')} open={showBulkFormsDialog} onOpenChange={setShowBulkFormsDialog}>
+        <Dialog key={`bulk-forms-${selectedApplications.length}`} open={showBulkFormsDialog} onOpenChange={setShowBulkFormsDialog}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Send Bulk Form - {selectedApplications.length} selected</DialogTitle>
@@ -1719,10 +1719,10 @@ export default function ApplicationManagementPage() {
             {invitationQuota && (
               <div className={`flex items-center justify-between p-2 rounded-md text-sm ${
                 invitationQuota.remaining === 0
-                  ? 'bg-red-50 border border-red-200 text-red-700'
+                  ? 'bg-destructive/10 border border-destructive/30 text-destructive'
                   : invitationQuota.remaining <= 10
-                  ? 'bg-amber-50 border border-amber-200 text-amber-700'
-                  : 'bg-blue-50 border border-blue-200 text-blue-700'
+                  ? 'bg-warning/10 border border-warning/30 text-warning-foreground'
+                  : 'bg-info/10 border border-info/30 text-info-foreground'
               }`}>
                 <span>
                   {invitationQuota.remaining === 0
@@ -1735,7 +1735,7 @@ export default function ApplicationManagementPage() {
               </div>
             )}
             <div className="space-y-4 mt-4">
-              <div className="flex items-center gap-3 p-2 bg-slate-50 rounded border border-slate-200">
+              <div className="flex items-center gap-3 p-2 bg-muted/50 rounded border border-border">
                 <Checkbox
                   checked={getVisibleApplications().every(a => selectedApplications.includes(a.id)) && getVisibleApplications().length > 0}
                   onCheckedChange={(checked) => {
@@ -1747,10 +1747,10 @@ export default function ApplicationManagementPage() {
                     }
                   }}
                 />
-                <span className="text-sm text-slate-600">Select all in current view</span>
+                <span className="text-sm text-muted-foreground">Select all in current view</span>
                 {selectedApplications.length > 0 && (
                   <button
-                    className="text-xs text-slate-500 underline ml-auto hover:text-slate-700"
+                    className="text-xs text-muted-foreground underline ml-auto hover:text-foreground"
                     onClick={() => setSelectedApplications([])}
                   >
                     Clear selection
@@ -1777,17 +1777,17 @@ export default function ApplicationManagementPage() {
                 </Select>
               </div>
               {bulkFormId && (
-                <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <Label className="text-sm text-slate-500">Form Info</Label>
+                <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                  <Label className="text-sm text-muted-foreground">Form Info</Label>
                   {(() => {
                     const template = formTemplates.find((t) => t.id === bulkFormId);
                     return template ? (
-                      <div className="text-sm text-slate-700 mt-1">
+                      <div className="text-sm text-foreground mt-1">
                         <p className="font-medium">{template.name}</p>
                         {template.description && (
-                          <p className="text-slate-600 mt-1">{template.description}</p>
+                          <p className="text-muted-foreground mt-1">{template.description}</p>
                         )}
-                        <p className="text-slate-500 mt-1">
+                        <p className="text-muted-foreground mt-1">
                           {template.fields?.length || 0} question{template.fields?.length !== 1 ? 's' : ''}
                         </p>
                       </div>
@@ -1803,7 +1803,7 @@ export default function ApplicationManagementPage() {
                   onChange={(e) => setBulkFormMessage(e.target.value)}
                   rows={3}
                 />
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   This message will be included in the invitation email for all candidates
                 </p>
               </div>
@@ -1826,7 +1826,7 @@ export default function ApplicationManagementPage() {
                   : "Send to Selected"}
               </Button>
               {sendBulkFormsMutation.isPending && (
-                <p className="text-xs text-slate-500 text-center">
+                <p className="text-xs text-muted-foreground text-center">
                   Sending {bulkFormsProgress.sent}/{bulkFormsProgress.total}...
                 </p>
               )}
@@ -1846,7 +1846,7 @@ export default function ApplicationManagementPage() {
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-900 text-sm">Date</Label>
+                  <Label className="text-foreground text-sm">Date</Label>
                   <Input
                     type="date"
                     value={batchInterviewDate}
@@ -1854,7 +1854,7 @@ export default function ApplicationManagementPage() {
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-900 text-sm">Start time</Label>
+                  <Label className="text-foreground text-sm">Start time</Label>
                   <Input
                     type="time"
                     value={batchInterviewTime}
@@ -1865,7 +1865,7 @@ export default function ApplicationManagementPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-slate-900 text-sm">Interval between interviews</Label>
+                  <Label className="text-foreground text-sm">Interval between interviews</Label>
                   <Select
                     value={batchIntervalHours}
                     onValueChange={setBatchIntervalHours}
@@ -1883,7 +1883,7 @@ export default function ApplicationManagementPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-slate-900 text-sm">Move to stage</Label>
+                  <Label className="text-foreground text-sm">Move to stage</Label>
                   <Select
                     value={batchStageId}
                     onValueChange={setBatchStageId}
@@ -1903,7 +1903,7 @@ export default function ApplicationManagementPage() {
               </div>
 
               <div>
-                <Label className="text-slate-900 text-sm">Location</Label>
+                <Label className="text-foreground text-sm">Location</Label>
                 <Input
                   placeholder="e.g. Zoom link or office address"
                   value={batchLocation}
@@ -1912,7 +1912,7 @@ export default function ApplicationManagementPage() {
               </div>
 
               <div>
-                <Label className="text-slate-900 text-sm">Notes (optional)</Label>
+                <Label className="text-foreground text-sm">Notes (optional)</Label>
                 <Textarea
                   value={batchNotes}
                   onChange={(e) => setBatchNotes(e.target.value)}
@@ -1920,7 +1920,7 @@ export default function ApplicationManagementPage() {
                 />
               </div>
 
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 When an interval is set, each candidate will be scheduled in sequence starting from the selected time.
                 Times are based on your browser&apos;s local timezone.
               </p>
@@ -1949,7 +1949,7 @@ export default function ApplicationManagementPage() {
         </Dialog>
 
         {/* Stage History Dialog */}
-        <Dialog key={selectedApp?.id} open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <Dialog key={`history-${selectedApp?.id ?? 'none'}`} open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Stage History - {selectedApp?.name}</DialogTitle>
@@ -1959,14 +1959,14 @@ export default function ApplicationManagementPage() {
             </DialogHeader>
             <div className="space-y-3 mt-4 max-h-96 overflow-y-auto">
               {stageHistory.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">No stage history available</p>
+                <p className="text-muted-foreground text-center py-8">No stage history available</p>
               ) : (
                 stageHistory.map((history: any, idx: number) => {
                   const fromStage = pipelineStages.find(s => s.id === history.fromStage);
                   const toStage = pipelineStages.find(s => s.id === history.toStage);
 
                   return (
-                    <div key={idx} className="flex gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div key={idx} className="flex gap-4 p-3 bg-muted/50 rounded-lg border border-border">
                       <div className="flex-shrink-0">
                         <div
                           className="w-3 h-3 rounded-full mt-1"
@@ -2001,11 +2001,11 @@ export default function ApplicationManagementPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {formatDate(history.changedAt)}
                         </p>
                         {history.notes && (
-                          <p className="text-sm text-slate-600 mt-1">{history.notes}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{history.notes}</p>
                         )}
                       </div>
                     </div>

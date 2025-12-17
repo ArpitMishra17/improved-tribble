@@ -425,19 +425,19 @@ export default function UnifiedAdminDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'passed': return <CheckCircle className="h-4 w-4 text-green-400" />;
-      case 'failed': return <XCircle className="h-4 w-4 text-red-400" />;
-      case 'running': return <RefreshCw className="h-4 w-4 text-blue-400 animate-spin" />;
-      default: return <Clock className="h-4 w-4 text-gray-400" />;
+      case 'passed': return <CheckCircle className="h-4 w-4 text-success" />;
+      case 'failed': return <XCircle className="h-4 w-4 text-destructive" />;
+      case 'running': return <RefreshCw className="h-4 w-4 text-info animate-spin" />;
+      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'passed': return 'bg-green-50 text-green-700 border-green-200';
-      case 'failed': return 'bg-red-50 text-red-700 border-red-200';
-      case 'running': return 'bg-blue-50 text-blue-700 border-blue-200';
-      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+      case 'passed': return 'bg-success/10 text-success-foreground border-success/30';
+      case 'failed': return 'bg-destructive/10 text-destructive border-destructive/30';
+      case 'running': return 'bg-info/10 text-info-foreground border-info/30';
+      default: return 'bg-muted/50 text-foreground border-border';
     }
   };
 
@@ -489,11 +489,11 @@ export default function UnifiedAdminDashboard() {
         <div className="mb-8 pt-8">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="h-7 w-7 text-primary" />
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
               Admin Control Center
             </h1>
           </div>
-          <p className="text-slate-500 text-sm md:text-base max-w-2xl">
+          <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
             Complete platform management, testing, and analytics dashboard
           </p>
         </div>
@@ -504,8 +504,8 @@ export default function UnifiedAdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Total Jobs</p>
-                  <p className="text-2xl font-bold text-slate-900">{stats?.totalJobs || 0}</p>
+                  <p className="text-sm text-muted-foreground">Total Jobs</p>
+                  <p className="text-2xl font-bold text-foreground">{stats?.totalJobs || 0}</p>
                 </div>
                 <div className="bg-primary/10 p-3 rounded-lg">
                   <Briefcase className="h-6 w-6 text-primary" />
@@ -518,25 +518,11 @@ export default function UnifiedAdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Applications</p>
-                  <p className="text-2xl font-bold text-green-600">{stats?.totalApplications || 0}</p>
+                  <p className="text-sm text-muted-foreground">Applications</p>
+                  <p className="text-2xl font-bold text-success">{stats?.totalApplications || 0}</p>
                 </div>
-                <div className="bg-green-50 p-3 rounded-lg">
-                  <FileText className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-500">Total Users</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats?.totalUsers || 0}</p>
-                </div>
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600" />
+                <div className="bg-success/10 p-3 rounded-lg">
+                  <FileText className="h-6 w-6 text-success" />
                 </div>
               </div>
             </CardContent>
@@ -546,7 +532,21 @@ export default function UnifiedAdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Test Coverage</p>
+                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-2xl font-bold text-info">{stats?.totalUsers || 0}</p>
+                </div>
+                <div className="bg-info/10 p-3 rounded-lg">
+                  <Users className="h-6 w-6 text-info" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Test Coverage</p>
                   <p className="text-2xl font-bold text-primary">{Math.round(averageCoverage)}%</p>
                 </div>
                 <div className="bg-primary/10 p-3 rounded-lg">
@@ -595,7 +595,7 @@ export default function UnifiedAdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-slate-900">Quick Actions</CardTitle>
+                  <CardTitle className="text-foreground">Quick Actions</CardTitle>
                   <CardDescription>
                     Most commonly used admin functions
                   </CardDescription>
@@ -636,7 +636,7 @@ export default function UnifiedAdminDashboard() {
                   </Button>
                     <Button
                       variant="secondary"
-                      className="w-full bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
+                      className="w-full bg-card border-border text-foreground hover:bg-muted"
                     >
                       <Settings className="h-4 w-4 mr-2" />
                       System Settings
@@ -646,33 +646,33 @@ export default function UnifiedAdminDashboard() {
 
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900">System Status</CardTitle>
-                    <CardDescription className="text-slate-500">
+                    <CardTitle className="text-foreground">System Status</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Platform health and performance metrics
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500">API Status</span>
-                      <Badge className="bg-green-50 text-green-700 border-green-200">
+                      <span className="text-muted-foreground">API Status</span>
+                      <Badge className="bg-success/10 text-success-foreground border-success/30">
                         Operational
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500">Database</span>
-                      <Badge className="bg-green-50 text-green-700 border-green-200">
+                      <span className="text-muted-foreground">Database</span>
+                      <Badge className="bg-success/10 text-success-foreground border-success/30">
                         Connected
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500">AI Services</span>
-                      <Badge className="bg-green-50 text-green-700 border-green-200">
+                      <span className="text-muted-foreground">AI Services</span>
+                      <Badge className="bg-success/10 text-success-foreground border-success/30">
                         Active
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-500">Email Service</span>
-                      <Badge className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                      <span className="text-muted-foreground">Email Service</span>
+                      <Badge className="bg-warning/10 text-warning-foreground border-warning/30">
                         Limited
                       </Badge>
                     </div>
@@ -694,8 +694,8 @@ export default function UnifiedAdminDashboard() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-slate-900">Test Execution</CardTitle>
-                        <CardDescription className="text-slate-500">
+                        <CardTitle className="text-foreground">Test Execution</CardTitle>
+                        <CardDescription className="text-muted-foreground">
                           Run comprehensive test suites for the entire platform
                         </CardDescription>
                       </div>
@@ -721,7 +721,7 @@ export default function UnifiedAdminDashboard() {
                   {isRunningAllTests && (
                     <CardContent>
                       <div className="space-y-2">
-                        <div className="flex justify-between text-sm text-slate-500">
+                        <div className="flex justify-between text-sm text-muted-foreground">
                           <span>Overall Progress</span>
                           <span>{Math.round(overallProgress)}%</span>
                         </div>
@@ -739,7 +739,7 @@ export default function UnifiedAdminDashboard() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <suite.icon className="h-5 w-5 text-primary" />
-                            <CardTitle className="text-slate-900 text-lg">{suite.name}</CardTitle>
+                            <CardTitle className="text-foreground text-lg">{suite.name}</CardTitle>
                           </div>
                           <Button 
                             onClick={() => runTestSuite(suite.id)}
@@ -750,7 +750,7 @@ export default function UnifiedAdminDashboard() {
                             Run
                           </Button>
                         </div>
-                        <CardDescription className="text-slate-500">
+                        <CardDescription className="text-muted-foreground">
                           {suite.description}
                         </CardDescription>
                       </CardHeader>
@@ -758,16 +758,16 @@ export default function UnifiedAdminDashboard() {
                       <CardContent>
                         <div className="grid grid-cols-3 gap-2 mb-4 text-center">
                           <div>
-                            <p className="text-xs text-slate-500">Total</p>
-                            <p className="text-lg font-bold text-slate-900">{suite.totalTests}</p>
+                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="text-lg font-bold text-foreground">{suite.totalTests}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">Passed</p>
-                            <p className="text-lg font-bold text-green-600">{suite.passedTests}</p>
+                            <p className="text-xs text-muted-foreground">Passed</p>
+                            <p className="text-lg font-bold text-success">{suite.passedTests}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-slate-500">Coverage</p>
-                            <p className="text-lg font-bold text-blue-600">{suite.coverage}%</p>
+                            <p className="text-xs text-muted-foreground">Coverage</p>
+                            <p className="text-lg font-bold text-info">{suite.coverage}%</p>
                           </div>
                         </div>
                         
@@ -775,11 +775,11 @@ export default function UnifiedAdminDashboard() {
                           {suite.tests.map((test) => (
                             <div 
                               key={test.id}
-                              className="flex items-center justify-between p-2 rounded bg-slate-50"
+                              className="flex items-center justify-between p-2 rounded bg-muted/50"
                             >
                               <div className="flex items-center gap-2">
                                 {getStatusIcon(test.status)}
-                                <span className="text-slate-900 text-sm">{test.name}</span>
+                                <span className="text-foreground text-sm">{test.name}</span>
                               </div>
                               <Badge className={getStatusColor(test.status)}>
                                 {test.status}
@@ -800,27 +800,27 @@ export default function UnifiedAdminDashboard() {
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                     <div>
-                      <CardTitle className="text-slate-900">Jobs Management</CardTitle>
-                      <CardDescription className="text-slate-500">
+                      <CardTitle className="text-foreground">Jobs Management</CardTitle>
+                      <CardDescription className="text-muted-foreground">
                         View, edit, and manage all platform jobs
                       </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="flex items-center space-x-2">
-                        <Search className="h-4 w-4 text-slate-400" />
+                        <Search className="h-4 w-4 text-muted-foreground" />
                         <Input
                           placeholder="Search jobs..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="bg-white border-slate-300 placeholder:text-slate-400"
+                          className="bg-card border-border placeholder:text-muted-foreground"
                         />
                       </div>
                       <Select value={jobFilter} onValueChange={setJobFilter}>
-                        <SelectTrigger className="bg-white border-slate-300">
+                        <SelectTrigger className="bg-card border-border">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-200">
+                        <SelectContent className="bg-card border-border">
                           <SelectItem value="all">All Jobs</SelectItem>
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
@@ -834,16 +834,16 @@ export default function UnifiedAdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {filteredJobs?.slice(0, 10).map((job: any) => (
-                      <div key={job.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div key={job.id} className="border border-border rounded-lg p-4 bg-muted/50">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="text-slate-900 font-semibold">{job.title}</h3>
-                            <p className="text-slate-500 text-sm">{job.location}</p>
+                            <h3 className="text-foreground font-semibold">{job.title}</h3>
+                            <p className="text-muted-foreground text-sm">{job.location}</p>
                             <div className="flex items-center gap-2 mt-2">
-                              <Badge className={job.status === 'approved' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}>
+                              <Badge className={job.status === 'approved' ? 'bg-success/10 text-success-foreground border-success/30' : 'bg-warning/10 text-warning-foreground border-warning/30'}>
                                 {job.status}
                               </Badge>
-                              <Badge className={job.isActive ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'}>
+                              <Badge className={job.isActive ? 'bg-info/10 text-info-foreground border-info/30' : 'bg-muted/50 text-foreground border-border'}>
                                 {job.isActive ? 'Active' : 'Inactive'}
                               </Badge>
                             </div>
@@ -853,7 +853,7 @@ export default function UnifiedAdminDashboard() {
                               <>
                                 <Button
                                   size="sm"
-                                  className="bg-green-500/20 border-green-500/30 text-green-300 hover:bg-green-500/30"
+                                  className="bg-success/20 border-success/30 text-success hover:bg-success/30"
                                   onClick={() => updateJobStatusMutation.mutate({ jobId: job.id, status: 'approved', comments: '' })}
                                 >
                                   Approve
@@ -861,17 +861,17 @@ export default function UnifiedAdminDashboard() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500/30"
+                                  className="bg-destructive/20 border-destructive/30 text-destructive hover:bg-destructive/30"
                                   onClick={() => updateJobStatusMutation.mutate({ jobId: job.id, status: 'declined', comments: '' })}
                                 >
                                   Decline
                                 </Button>
                               </>
                             )}
-                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
+                            <Button size="sm" variant="outline" className="border-border text-foreground hover:bg-muted">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
+                            <Button size="sm" variant="outline" className="border-border text-foreground hover:bg-muted">
                               <Edit className="h-3 w-3" />
                             </Button>
                           </div>
@@ -889,27 +889,27 @@ export default function UnifiedAdminDashboard() {
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                     <div>
-                      <CardTitle className="text-slate-900">Applications Management</CardTitle>
-                      <CardDescription className="text-slate-500">
+                      <CardTitle className="text-foreground">Applications Management</CardTitle>
+                      <CardDescription className="text-muted-foreground">
                         Monitor and manage all job applications
                       </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="flex items-center space-x-2">
-                        <Search className="h-4 w-4 text-slate-400" />
+                        <Search className="h-4 w-4 text-muted-foreground" />
                         <Input
                           placeholder="Search applications..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="bg-white border-slate-300 placeholder:text-slate-400"
+                          className="bg-card border-border placeholder:text-muted-foreground"
                         />
                       </div>
                       <Select value={applicationFilter} onValueChange={setApplicationFilter}>
-                        <SelectTrigger className="bg-white border-slate-300">
+                        <SelectTrigger className="bg-card border-border">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-200">
+                        <SelectContent className="bg-card border-border">
                           <SelectItem value="all">All Applications</SelectItem>
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="reviewed">Reviewed</SelectItem>
@@ -918,11 +918,11 @@ export default function UnifiedAdminDashboard() {
                         </SelectContent>
                       </Select>
                       <Select value={applicationStageFilter} onValueChange={setApplicationStageFilter}>
-                        <SelectTrigger className="bg-white border-slate-300">
+                        <SelectTrigger className="bg-card border-border">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue placeholder="Stage" />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-200">
+                        <SelectContent className="bg-card border-border">
                           <SelectItem value="all">All Stages</SelectItem>
                           <SelectItem value="unassigned">Unassigned</SelectItem>
                           {pipelineStages
@@ -941,34 +941,34 @@ export default function UnifiedAdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {filteredApplications?.slice(0, 10).map((application: any) => (
-                      <div key={application.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div key={application.id} className="border border-border rounded-lg p-4 bg-muted/50">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="text-slate-900 font-semibold">{application.name}</h3>
-                            <p className="text-slate-500 text-sm">{application.email}</p>
-                            <p className="text-slate-400 text-xs mt-1">
+                            <h3 className="text-foreground font-semibold">{application.name}</h3>
+                            <p className="text-muted-foreground text-sm">{application.email}</p>
+                            <p className="text-muted-foreground text-xs mt-1">
                               Applied: {new Date(application.appliedAt || application.submittedAt).toLocaleDateString()}
                             </p>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge className={
-                                application.status === 'shortlisted' ? 'bg-green-50 text-green-700 border-green-200' :
-                                application.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                                'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                application.status === 'shortlisted' ? 'bg-success/10 text-success-foreground border-success/30' :
+                                application.status === 'rejected' ? 'bg-destructive/10 text-destructive border-destructive/30' :
+                                'bg-warning/10 text-warning-foreground border-warning/30'
                               }>
                                 {application.status}
                               </Badge>
                               {application.stageName && (
-                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
                                   {application.stageName}
                                 </Badge>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
+                            <Button size="sm" variant="outline" className="border-border text-foreground hover:bg-muted">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
+                            <Button size="sm" variant="outline" className="border-border text-foreground hover:bg-muted">
                               <Download className="h-3 w-3" />
                             </Button>
                           </div>
@@ -986,27 +986,27 @@ export default function UnifiedAdminDashboard() {
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
                     <div>
-                      <CardTitle className="text-slate-900">User Management</CardTitle>
-                      <CardDescription className="text-slate-500">
+                      <CardTitle className="text-foreground">User Management</CardTitle>
+                      <CardDescription className="text-muted-foreground">
                         Manage user accounts and permissions
                       </CardDescription>
                     </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                       <div className="flex items-center space-x-2">
-                        <Search className="h-4 w-4 text-slate-400" />
+                        <Search className="h-4 w-4 text-muted-foreground" />
                         <Input
                           placeholder="Search users..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="bg-white border-slate-300 placeholder:text-slate-400"
+                          className="bg-card border-border placeholder:text-muted-foreground"
                         />
                       </div>
                       <Select value={userFilter} onValueChange={setUserFilter}>
-                        <SelectTrigger className="bg-white border-slate-300">
+                        <SelectTrigger className="bg-card border-border">
                           <Filter className="h-4 w-4 mr-2" />
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-white border-slate-200">
+                        <SelectContent className="bg-card border-border">
                           <SelectItem value="all">All Users</SelectItem>
                           <SelectItem value="admin">Admins</SelectItem>
                           <SelectItem value="recruiter">Recruiters</SelectItem>
@@ -1019,27 +1019,27 @@ export default function UnifiedAdminDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {filteredUsers?.slice(0, 10).map((user: any) => (
-                      <div key={user.id} className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                      <div key={user.id} className="border border-border rounded-lg p-4 bg-muted/50">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h3 className="text-slate-900 font-semibold">{user.username}</h3>
-                            <p className="text-slate-500 text-sm">{user.email}</p>
-                            <p className="text-slate-400 text-xs mt-1">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
+                            <h3 className="text-foreground font-semibold">{user.username}</h3>
+                            <p className="text-muted-foreground text-sm">{user.email}</p>
+                            <p className="text-muted-foreground text-xs mt-1">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
                             <div className="flex items-center gap-2 mt-2">
                               <Badge className={
-                                user.role === 'super_admin' ? 'bg-red-50 text-red-700 border-red-200' :
-                                user.role === 'recruiter' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                'bg-green-50 text-green-700 border-green-200'
+                                user.role === 'super_admin' ? 'bg-destructive/10 text-destructive border-destructive/30' :
+                                user.role === 'recruiter' ? 'bg-info/10 text-info-foreground border-info/30' :
+                                'bg-success/10 text-success-foreground border-success/30'
                               }>
                                 {user.role}
                               </Badge>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
+                            <Button size="sm" variant="outline" className="border-border text-foreground hover:bg-muted">
                               <Eye className="h-3 w-3" />
                             </Button>
-                            <Button size="sm" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100">
+                            <Button size="sm" variant="outline" className="border-border text-foreground hover:bg-muted">
                               <Edit className="h-3 w-3" />
                             </Button>
                           </div>
@@ -1056,18 +1056,18 @@ export default function UnifiedAdminDashboard() {
               <div className="space-y-6">
                 <Card className="shadow-sm">
                   <CardHeader>
-                    <CardTitle className="text-slate-900 flex items-center gap-2">
+                    <CardTitle className="text-foreground flex items-center gap-2">
                       <Zap className="h-5 w-5 text-primary" />
                       Automation Settings
                     </CardTitle>
-                    <CardDescription className="text-slate-500">
+                    <CardDescription className="text-muted-foreground">
                       Configure automated email notifications and workflow triggers
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Candidate Notifications */}
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
                         <Mail className="h-4 w-4" />
                         Candidate Notifications
                       </h3>
@@ -1079,15 +1079,15 @@ export default function UnifiedAdminDashboard() {
                             return (
                               <div
                                 key={key}
-                                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200"
+                                className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="p-2 bg-white rounded-lg border border-slate-200">
-                                    <IconComponent className="h-4 w-4 text-slate-600" />
+                                  <div className="p-2 bg-card rounded-lg border border-border">
+                                    <IconComponent className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-slate-900">{config.label}</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">{config.description}</p>
+                                    <p className="text-sm font-medium text-foreground">{config.label}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{config.description}</p>
                                   </div>
                                 </div>
                                 <Switch
@@ -1105,7 +1105,7 @@ export default function UnifiedAdminDashboard() {
 
                     {/* Recruiter Notifications */}
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
                         <Bell className="h-4 w-4" />
                         Recruiter Notifications
                       </h3>
@@ -1117,15 +1117,15 @@ export default function UnifiedAdminDashboard() {
                             return (
                               <div
                                 key={key}
-                                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200"
+                                className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="p-2 bg-white rounded-lg border border-slate-200">
-                                    <IconComponent className="h-4 w-4 text-slate-600" />
+                                  <div className="p-2 bg-card rounded-lg border border-border">
+                                    <IconComponent className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-slate-900">{config.label}</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">{config.description}</p>
+                                    <p className="text-sm font-medium text-foreground">{config.label}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{config.description}</p>
                                   </div>
                                 </div>
                                 <Switch
@@ -1143,7 +1143,7 @@ export default function UnifiedAdminDashboard() {
 
                     {/* Workflow Automation */}
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
                         <Zap className="h-4 w-4" />
                         Workflow Automation
                       </h3>
@@ -1155,15 +1155,15 @@ export default function UnifiedAdminDashboard() {
                             return (
                               <div
                                 key={key}
-                                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200"
+                                className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
                               >
                                 <div className="flex items-start gap-3">
-                                  <div className="p-2 bg-white rounded-lg border border-slate-200">
-                                    <IconComponent className="h-4 w-4 text-slate-600" />
+                                  <div className="p-2 bg-card rounded-lg border border-border">
+                                    <IconComponent className="h-4 w-4 text-muted-foreground" />
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-slate-900">{config.label}</p>
-                                    <p className="text-xs text-slate-500 mt-0.5">{config.description}</p>
+                                    <p className="text-sm font-medium text-foreground">{config.label}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{config.description}</p>
                                   </div>
                                 </div>
                                 <Switch
@@ -1182,15 +1182,15 @@ export default function UnifiedAdminDashboard() {
                 </Card>
 
                 {/* Additional Settings Info */}
-                <Card className="shadow-sm border-blue-200 bg-blue-50/50">
+                <Card className="shadow-sm border-info/30 bg-info/10/50">
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Globe className="h-4 w-4 text-blue-600" />
+                      <div className="p-2 bg-info/20 rounded-lg">
+                        <Globe className="h-4 w-4 text-info" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-blue-900">About Automation Settings</p>
-                        <p className="text-xs text-blue-700 mt-1">
+                        <p className="text-sm font-medium text-info-foreground">About Automation Settings</p>
+                        <p className="text-xs text-info-foreground mt-1">
                           These settings apply organization-wide. Email notifications require a configured
                           email service. Changes take effect immediately for new events.
                         </p>

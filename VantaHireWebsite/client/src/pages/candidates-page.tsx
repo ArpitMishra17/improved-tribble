@@ -79,11 +79,11 @@ export default function CandidatesPage() {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Users className="h-7 w-7 text-primary" />
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
               Candidates
             </h1>
           </div>
-          <p className="text-slate-500 text-sm md:text-base max-w-2xl">
+          <p className="text-muted-foreground text-sm md:text-base max-w-2xl">
             View all candidates who have applied to your jobs, aggregated by email
           </p>
         </div>
@@ -95,7 +95,7 @@ export default function CandidatesPage() {
               {/* Search */}
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by name or email..."
                     value={searchQuery}
@@ -107,7 +107,7 @@ export default function CandidatesPage() {
 
               {/* Rating Filter */}
               <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium text-slate-700">Min Rating:</Label>
+                <Label className="text-sm font-medium text-foreground">Min Rating:</Label>
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((rating) => (
                     <Button
@@ -134,7 +134,7 @@ export default function CandidatesPage() {
               </div>
 
               {/* Results Count */}
-              <div className="ml-auto text-sm text-slate-600">
+              <div className="ml-auto text-sm text-muted-foreground">
                 {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}
               </div>
             </div>
@@ -153,14 +153,14 @@ export default function CandidatesPage() {
             {isLoading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                <p className="text-slate-600 mt-4">Loading candidates...</p>
+                <p className="text-muted-foreground mt-4">Loading candidates...</p>
               </div>
             ) : candidates.length === 0 ? (
               <div className="text-center py-12">
-                <Users className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-600">No candidates found</p>
+                <Users className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground">No candidates found</p>
                 {(searchQuery || minRatingFilter) && (
-                  <p className="text-slate-500 text-sm mt-2">
+                  <p className="text-muted-foreground text-sm mt-2">
                     Try adjusting your filters
                   </p>
                 )}
@@ -183,13 +183,13 @@ export default function CandidatesPage() {
                     {candidates.map((candidate) => (
                       <TableRow
                         key={candidate.email}
-                        className="cursor-pointer hover:bg-slate-50"
+                        className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleCandidateClick(candidate.email)}
                       >
                         <TableCell className="font-medium">{candidate.name}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4 text-slate-400" />
+                            <Mail className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">{candidate.email}</span>
                           </div>
                         </TableCell>
@@ -200,7 +200,7 @@ export default function CandidatesPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             {formatDate(candidate.lastApplicationDate)}
                           </div>
@@ -208,11 +208,11 @@ export default function CandidatesPage() {
                         <TableCell className="text-center">
                           {candidate.highestRating !== null ? (
                             <Badge variant="outline" className="font-mono">
-                              <Star className="h-3 w-3 mr-1 fill-amber-400 text-amber-400" />
+                              <Star className="h-3 w-3 mr-1 fill-amber-400 text-warning" />
                               {candidate.highestRating}/5
                             </Badge>
                           ) : (
-                            <span className="text-slate-400 text-sm">—</span>
+                            <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -225,7 +225,7 @@ export default function CandidatesPage() {
                                 </Badge>
                               ))
                             ) : (
-                              <span className="text-slate-400 text-sm">—</span>
+                              <span className="text-muted-foreground text-sm">—</span>
                             )}
                             {candidate.allTags && candidate.allTags.length > 3 && (
                               <Badge variant="outline" className="text-xs">

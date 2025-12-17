@@ -146,11 +146,11 @@ export default function AdminEmailTemplatesPage() {
         {/* Header */}
         <div className="flex items-center justify-between pt-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground flex items-center gap-2">
               <Mail className="w-7 h-7 text-primary" />
               Email Templates
             </h1>
-            <p className="text-slate-500 mt-1">
+            <p className="text-muted-foreground mt-1">
               View and create reusable email templates for candidates.
             </p>
           </div>
@@ -165,8 +165,8 @@ export default function AdminEmailTemplatesPage() {
         {/* Templates Table */}
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-slate-900">Templates</CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardTitle className="text-foreground">Templates</CardTitle>
+            <CardDescription className="text-muted-foreground">
               {user?.role === "super_admin"
                 ? "All email templates (system defaults and custom templates)"
                 : "Email templates available for your ATS workflows"}
@@ -201,23 +201,23 @@ export default function AdminEmailTemplatesPage() {
               </div>
             ) : templates.length === 0 ? (
               <div className="text-center py-12">
-                <Mail className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-600 mb-2">No email templates yet</p>
-                <p className="text-slate-500 text-sm">
+                <Mail className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">No email templates yet</p>
+                <p className="text-muted-foreground text-sm">
                   Create your first template to standardize candidate communication.
                 </p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow className="border-slate-200 hover:bg-slate-50">
-                    <TableHead className="text-slate-600">Name</TableHead>
-                    <TableHead className="text-slate-600">Type</TableHead>
-                    <TableHead className="text-slate-600">Default</TableHead>
-                    <TableHead className="text-slate-600">Subject</TableHead>
-                    <TableHead className="text-slate-600">Created By</TableHead>
-                    <TableHead className="text-slate-600">Created</TableHead>
-                    <TableHead className="text-slate-600 text-right">Actions</TableHead>
+                  <TableRow className="border-border hover:bg-muted/50">
+                    <TableHead className="text-muted-foreground">Name</TableHead>
+                    <TableHead className="text-muted-foreground">Type</TableHead>
+                    <TableHead className="text-muted-foreground">Default</TableHead>
+                    <TableHead className="text-muted-foreground">Subject</TableHead>
+                    <TableHead className="text-muted-foreground">Created By</TableHead>
+                    <TableHead className="text-muted-foreground">Created</TableHead>
+                    <TableHead className="text-muted-foreground text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -233,36 +233,36 @@ export default function AdminEmailTemplatesPage() {
                     <TableRow
                       key={tpl.id}
                       data-template-id={tpl.id}
-                      className={`border-slate-200 hover:bg-slate-50 ${tpl.isDefault ? 'bg-green-50/30' : ''}`}
+                      className={`border-border hover:bg-muted/50 ${tpl.isDefault ? 'bg-success/10/30' : ''}`}
                     >
-                      <TableCell className="text-slate-900 font-medium">
+                      <TableCell className="text-foreground font-medium">
                         {tpl.name}
                       </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
-                        <Badge className="bg-slate-100 text-slate-700 border-slate-200">
+                      <TableCell className="text-muted-foreground text-sm">
+                        <Badge className="bg-muted text-foreground border-border">
                           {templateTypeLabel(tpl.templateType)}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {tpl.isDefault ? (
-                          <Badge className="bg-green-50 text-green-700 border-green-200">
+                          <Badge className="bg-success/10 text-success-foreground border-success/30">
                             Default
                           </Badge>
                         ) : (
-                          <Badge className="bg-slate-100 text-slate-600 border-slate-200">
+                          <Badge className="bg-muted text-muted-foreground border-border">
                             Custom
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell className="text-slate-600 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {tpl.subject.length > 60
                           ? `${tpl.subject.slice(0, 60)}...`
                           : tpl.subject}
                       </TableCell>
-                      <TableCell className="text-slate-500 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {tpl.createdBy === user?.id ? "You" : tpl.createdBy ? `ID: ${tpl.createdBy}` : "System"}
                       </TableCell>
-                      <TableCell className="text-slate-500 text-sm">
+                      <TableCell className="text-muted-foreground text-sm">
                         {tpl.createdAt
                           ? new Date(tpl.createdAt as unknown as string).toLocaleDateString()
                           : "-"}
@@ -272,7 +272,7 @@ export default function AdminEmailTemplatesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                            className="text-muted-foreground hover:text-foreground hover:bg-muted"
                             onClick={() =>
                               toggleDefaultMutation.mutate({
                                 id: tpl.id,
@@ -313,7 +313,7 @@ export default function AdminEmailTemplatesPage() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label className="text-sm text-slate-900">Template Name</Label>
+                <Label className="text-sm text-foreground">Template Name</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -321,7 +321,7 @@ export default function AdminEmailTemplatesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm text-slate-900">Template Type</Label>
+                <Label className="text-sm text-foreground">Template Type</Label>
                 <Select
                   value={templateType}
                   onValueChange={setTemplateType}
@@ -340,7 +340,7 @@ export default function AdminEmailTemplatesPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-sm text-slate-900">Subject</Label>
+                <Label className="text-sm text-foreground">Subject</Label>
                 <Input
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
@@ -348,7 +348,7 @@ export default function AdminEmailTemplatesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-sm text-slate-900">Body</Label>
+                <Label className="text-sm text-foreground">Body</Label>
                 <Textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
