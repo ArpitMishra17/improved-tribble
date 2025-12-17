@@ -1,6 +1,4 @@
 [phases.build]
 cmds = ["npm ci --no-audit --no-fund", "npm run build"]
-
-# Disable the problematic node_modules/.cache mount
-[phases.build.cacheDirectories]
-# Empty to disable default cache mounts
+# Empty array disables default cache mounts
+cacheDirectories = []
