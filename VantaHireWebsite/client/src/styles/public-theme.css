@@ -28,9 +28,9 @@
 ============================================================================= */
 .public-theme {
   /* Marketing color palette - scoped to public theme only */
-  --bg-primary: #0d0d1a;
+  --bg-primary: #0D0D1A;
   --bg-secondary: #141428;
-  --bg-card: #1a1a2e;
+  --bg-card: #141428;
   --purple-400: #a78bfa;
   --purple-500: #8b5cf6;
   --purple-600: #7c3aed;
