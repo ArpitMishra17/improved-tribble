@@ -839,6 +839,93 @@ export default function ApplicationManagementPage() {
     handleResumeDownload(selectedApp);
   };
 
+  // Export applications to CSV
+  const handleExportCSV = () => {
+    if (!applications || applications.length === 0) {
+      toast({
+        title: "No Data",
+        description: "There are no applications to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Helper to escape CSV values
+      const escapeCsv = (val: any): string => {
+        if (val === null || val === undefined) return '';
+        const str = String(val);
+        // Wrap in quotes if contains comma, quote, or newline
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      // Get stage name helper
+      const getStageName = (stageId: number | null | undefined): string => {
+        if (!stageId || !pipelineStages) return 'Unassigned';
+        const stage = pipelineStages.find(s => s.id === stageId);
+        return stage?.name || 'Unknown';
+      };
+
+      // CSV header
+      const headers = [
+        'Name',
+        'Email',
+        'Phone',
+        'Status',
+        'Pipeline Stage',
+        'Applied Date',
+        'AI Fit Score',
+        'AI Fit Label',
+        'Rating',
+        'Tags',
+        'Resume URL'
+      ];
+
+      // CSV rows
+      const rows = applications.map(app => [
+        escapeCsv(app.name),
+        escapeCsv(app.email),
+        escapeCsv(app.phone),
+        escapeCsv(app.status),
+        escapeCsv(getStageName(app.currentStage)),
+        escapeCsv(app.appliedAt ? new Date(app.appliedAt).toISOString() : ''),
+        escapeCsv(app.aiFitScore),
+        escapeCsv(app.aiFitLabel),
+        escapeCsv(app.rating),
+        escapeCsv(app.tags?.join('; ')),
+        escapeCsv(app.resumeUrl)
+      ].join(','));
+
+      // Combine header and rows
+      const csvContent = '\ufeff' + headers.join(',') + '\n' + rows.join('\n');
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `applications-${job?.title?.replace(/[^a-z0-9]/gi, '-') || 'export'}-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Export Successful",
+        description: `Exported ${applications.length} application(s) to CSV.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Export Failed",
+        description: error.message || "Failed to export applications.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       submitted: { color: "bg-info/10 text-info-foreground border-info/30", icon: Clock },
@@ -1075,7 +1162,8 @@ export default function ApplicationManagementPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => alert("Export feature coming soon")}
+                onClick={() => handleExportCSV()}
+                disabled={!applications || applications.length === 0}
               >
                 <FileDown className="h-4 w-4 mr-2" />
                 Export CSV
