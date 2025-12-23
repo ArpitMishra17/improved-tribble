@@ -27,8 +27,15 @@ export default function AuthPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Redirect if already logged in
+  // Redirect if already logged in based on role
   if (user) {
+    if (user.role === 'recruiter') {
+      return <Redirect to="/recruiter-dashboard" />;
+    } else if (user.role === 'super_admin') {
+      return <Redirect to="/admin" />;
+    } else if (user.role === 'candidate') {
+      return <Redirect to="/jobs" />;
+    }
     return <Redirect to="/jobs" />;
   }
 
