@@ -29,6 +29,12 @@ app.use(express.urlencoded({ extended: false }));
 // Host header validation to prevent injection attacks
 app.use((req, res, next) => {
   const host = req.headers.host || '';
+  const path = req.path;
+
+  // Skip host validation for health check endpoints (used by Railway, k8s, etc.)
+  if (path === '/healthz' || path === '/readyz' || path === '/api/health') {
+    return next();
+  }
 
   // Define allowed hosts (customize for your domain)
   const allowedHosts = process.env.ALLOWED_HOSTS
