@@ -966,6 +966,7 @@ export default function ApplicationManagementPage() {
       app.email.toLowerCase().includes(searchQuery.toLowerCase());
     // AI Fit Label Filter
     const matchesFitLabel = fitLabelFilter.length === 0 ||
+      (fitLabelFilter.includes('Not Scored') && !app.aiFitLabel) ||
       (app.aiFitLabel && fitLabelFilter.includes(app.aiFitLabel));
     return matchesStage && matchesSearch && matchesFitLabel;
   }).sort((a, b) => {
@@ -1345,17 +1346,26 @@ export default function ApplicationManagementPage() {
                   <Sparkles className="h-4 w-4 text-muted-foreground" />
                   <Label className="text-sm font-medium text-foreground whitespace-nowrap">AI Fit:</Label>
                   <div className="flex items-center gap-1.5">
-                    {['Exceptional', 'Strong', 'Good'].map((label) => {
+                    {['Exceptional', 'Strong', 'Good', 'Partial', 'Low', 'Not Scored'].map((label) => {
                       const isActive = fitLabelFilter.includes(label);
+                      // Color coding based on fit quality
+                      const getLabelStyle = () => {
+                        if (!isActive) return 'hover:bg-muted';
+                        switch (label) {
+                          case 'Exceptional': return 'bg-emerald-500 text-white hover:bg-emerald-600';
+                          case 'Strong': return 'bg-green-500 text-white hover:bg-green-600';
+                          case 'Good': return 'bg-blue-500 text-white hover:bg-blue-600';
+                          case 'Partial': return 'bg-amber-500 text-white hover:bg-amber-600';
+                          case 'Low': return 'bg-red-500 text-white hover:bg-red-600';
+                          case 'Not Scored': return 'bg-gray-500 text-white hover:bg-gray-600';
+                          default: return 'bg-primary text-primary-foreground hover:bg-primary/90';
+                        }
+                      };
                       return (
                         <Badge
                           key={label}
                           variant={isActive ? "default" : "outline"}
-                          className={`cursor-pointer transition-all text-xs ${
-                            isActive
-                              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                              : 'hover:bg-muted'
-                          }`}
+                          className={`cursor-pointer transition-all text-xs ${getLabelStyle()}`}
                           onClick={() => {
                             setFitLabelFilter((prev) =>
                               isActive
