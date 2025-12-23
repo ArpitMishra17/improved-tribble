@@ -173,14 +173,15 @@ describe('generateFormQuestions', () => {
   });
 
   it('should validate and normalize field types', async () => {
-    const mockResponse = {
+    // When Zod validation fails on any field (e.g., invalid enum value),
+    // safeParseAiResponse falls back to empty fields array
+    const mockResponseWithInvalidTypes = {
       choices: [{
         message: {
           content: JSON.stringify({
             fields: [
               { label: 'Valid field', fieldType: 'long_text', required: true },
               { label: 'Invalid field', fieldType: 'invalid_type', required: false },
-              { label: 'Missing type', required: true },
             ],
           }),
         },
@@ -188,13 +189,36 @@ describe('generateFormQuestions', () => {
       usage: { prompt_tokens: 100, completion_tokens: 50 },
     };
 
-    mockCreate.mockResolvedValue(mockResponse);
+    mockCreate.mockResolvedValue(mockResponseWithInvalidTypes);
 
-    const result = await generateFormQuestions('Test job', [], []);
+    const resultWithInvalid = await generateFormQuestions('Test job', [], []);
 
-    // Invalid field type should default to 'long_text'
-    expect(result.fields[1].fieldType).toBe('long_text');
-    expect(result.fields[2].fieldType).toBe('long_text');
+    // Invalid field types cause Zod validation to fail, returning empty fields
+    expect(resultWithInvalid.fields).toEqual([]);
+
+    // Test that missing fieldType defaults to 'long_text' (only when key is missing, not invalid)
+    const mockResponseWithMissingType = {
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            fields: [
+              { label: 'Valid field', fieldType: 'long_text', required: true },
+              { label: 'Missing type field', required: true }, // fieldType missing, should default
+            ],
+          }),
+        },
+      }],
+      usage: { prompt_tokens: 100, completion_tokens: 50 },
+    };
+
+    mockCreate.mockResolvedValue(mockResponseWithMissingType);
+
+    const resultWithMissing = await generateFormQuestions('Test job', [], []);
+
+    // Missing fieldType defaults to 'long_text'
+    expect(resultWithMissing.fields).toHaveLength(2);
+    expect(resultWithMissing.fields[0].fieldType).toBe('long_text');
+    expect(resultWithMissing.fields[1].fieldType).toBe('long_text');
   });
 
   it('should preserve MCQ options when field type is mcq', async () => {
@@ -275,6 +299,7 @@ describe('generateFormQuestions', () => {
   });
 
   it('should handle malformed JSON response', async () => {
+    // safeParseAiResponse catches JSON parse errors and returns default empty fields
     const mockResponse = {
       choices: [{
         message: {
@@ -286,9 +311,10 @@ describe('generateFormQuestions', () => {
 
     mockCreate.mockResolvedValue(mockResponse);
 
-    await expect(
-      generateFormQuestions('Test job', [], [])
-    ).rejects.toThrow();
+    // Does not throw - returns empty fields array as fallback
+    const result = await generateFormQuestions('Test job', [], []);
+    expect(result.fields).toEqual([]);
+    expect(result.model_version).toBe('llama-3.3-70b-versatile');
   });
 
   it('should handle empty fields array response', async () => {

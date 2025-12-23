@@ -31,7 +31,11 @@ beforeAll(async () => {
   const userIds = existingUsers.map(u => u.id);
 
   if (userIds.length > 0) {
-    // Delete dependent data first
+    // Delete dependent data first (order matters due to FK constraints)
+
+    // Delete forms created by these users
+    await db.delete(forms).where(inArray(forms.createdBy, userIds));
+
     const existingJobs = await db.select().from(jobs).where(inArray(jobs.postedBy, userIds));
     const jobIds = existingJobs.map(j => j.id);
 

@@ -28,6 +28,7 @@ coverage/
 # Sensitive files with secrets
 railway-vars.json
 test-brevo-smtp.js
+cookies.txt
 
 # Screenshots
 *.png

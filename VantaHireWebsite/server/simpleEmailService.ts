@@ -1,6 +1,17 @@
 import nodemailer from 'nodemailer';
 import type { ContactSubmission } from '@shared/schema';
 
+// HTML escape function to prevent XSS in emails
+function escapeHtml(str: string | null | undefined): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Simple interface for our email service
 export interface EmailService {
   sendContactNotification(submission: ContactSubmission): Promise<boolean>;
@@ -43,21 +54,28 @@ export class SMTPEmailService implements EmailService {
   async sendContactNotification(submission: ContactSubmission): Promise<boolean> {
     try {
       const { name, email, phone, company, message } = submission;
+      // Escape all user-provided fields to prevent HTML injection
+      const safeName = escapeHtml(name);
+      const safeEmail = escapeHtml(email);
+      const safePhone = escapeHtml(phone) || 'Not provided';
+      const safeCompany = escapeHtml(company) || 'Not provided';
+      const safeMessage = escapeHtml(message);
+
       const info = await this.transporter.sendMail({
         from: this.buildFrom(),
         to: this.notificationsTo || this.fromEmail,
-        subject: `New Contact Form Submission from ${name}`,
+        subject: `New Contact Form Submission from ${safeName}`,
         html: `
           <h2>New Contact Form Submission</h2>
           <p><strong>Date:</strong> ${new Date(submission.submittedAt || Date.now()).toLocaleString()}</p>
           <hr />
           <h3>Contact Details:</h3>
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
-          <p><strong>Company:</strong> ${company || 'Not provided'}</p>
+          <p><strong>Name:</strong> ${safeName}</p>
+          <p><strong>Email:</strong> ${safeEmail}</p>
+          <p><strong>Phone:</strong> ${safePhone}</p>
+          <p><strong>Company:</strong> ${safeCompany}</p>
           <h3>Message:</h3>
-          <p>${message}</p>
+          <p>${safeMessage}</p>
         `,
         text: `New submission from ${name} (${email})\nPhone: ${phone || 'N/A'}\nCompany: ${company || 'N/A'}\n\n${message}`,
       } as any);

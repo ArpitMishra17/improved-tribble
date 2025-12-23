@@ -5,8 +5,9 @@ import { insertFormSchema, insertFormFieldSchema, insertFormInvitationSchema, in
 import { requireAuth, requireRole } from "./auth";
 import { eq, and, desc, sql, or, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { randomBytes } from "crypto";
+import crypto from "crypto";
 import rateLimit from "express-rate-limit";
+import { storage } from "./storage";
 import type { RateLimitInfo } from "express-rate-limit";
 import { getEmailService } from "./simpleEmailService";
 import { upload, uploadToGCS } from "./gcs-storage";
@@ -658,7 +659,7 @@ VantaHire Team`;
         });
 
         // 5. Generate token and expiry
-        const token = randomBytes(32).toString('base64url');
+        const token = crypto.randomBytes(32).toString('base64url');
         const expiresAt = new Date(Date.now() + FORM_INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
         // 6. Create invitation (status = 'pending')
@@ -861,7 +862,7 @@ VantaHire Team`;
         const createdInvitations = await db.transaction(async (tx: any) => {
           const invitations = [];
           for (const app of validApplications) {
-            const token = randomBytes(32).toString('base64url');
+            const token = crypto.randomBytes(32).toString('base64url');
             const expiresAt = new Date(Date.now() + FORM_INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 
             const [invitation] = await tx.insert(formInvitations).values({
@@ -951,6 +952,175 @@ VantaHire Team`;
         }
         console.error('Error creating bulk form invitations:', error);
         return res.status(500).json({ error: 'Failed to create bulk form invitations' });
+      }
+    }
+  );
+
+  // Create external form invitation (for email-only invites without existing application)
+  app.post(
+    "/api/forms/invitations/external",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    csrf,
+    rateLimit({
+      windowMs: 60_000,
+      max: 50, // Allow more external invites per minute
+      keyGenerator: (req) => req.user?.id?.toString() || req.ip || 'anonymous',
+      handler: (req, res) => {
+        res.status(429).json({ error: 'Too many invitation requests. Please try again later.' });
+      },
+    }),
+    async (req: Request, res: Response) => {
+      try {
+        const bodySchema = z.object({
+          formId: z.number(),
+          email: z.string().email(),
+          candidateName: z.string().min(1).max(255),
+          jobId: z.number().optional(), // Optional job association
+          customMessage: z.string().max(1000).optional(),
+          expiresInDays: z.number().min(1).max(90).optional().default(14),
+        });
+
+        const { formId, email, candidateName, jobId, customMessage, expiresInDays } = bodySchema.parse(req.body);
+
+        // 1. Fetch form template
+        const form = await db.query.forms.findFirst({
+          where: eq(forms.id, formId),
+          with: {
+            fields: {
+              orderBy: (fields: any, { asc }: any) => [asc(fields.order)],
+            },
+          },
+        });
+
+        if (!form) {
+          return res.status(404).json({ error: 'Form template not found' });
+        }
+
+        // 2. Template access check
+        const isAdmin = req.user!.role === 'super_admin';
+        if (!isAdmin) {
+          const canAccess = form.isPublished || form.createdBy === req.user!.id;
+          if (!canAccess) {
+            return res.status(403).json({
+              error: 'Unauthorized: You can only use your own templates or published templates'
+            });
+          }
+        }
+
+        // 3. Check if job exists and belongs to user (if jobId provided)
+        if (jobId) {
+          const job = await storage.getJob(jobId);
+          if (!job) {
+            return res.status(404).json({ error: 'Job not found' });
+          }
+          if (!isAdmin && job.postedBy !== req.user!.id) {
+            return res.status(403).json({ error: 'Unauthorized: Job does not belong to you' });
+          }
+        }
+
+        // 4. Check for existing active invite (no duplicates)
+        const existingInvite = await storage.getActiveExternalInvite(email, formId);
+        if (existingInvite) {
+          return res.status(409).json({
+            error: 'An active invitation already exists for this email and form',
+            existingInviteId: existingInvite.id,
+          });
+        }
+
+        // 5. Generate token and calculate expiration
+        const token = crypto.randomBytes(32).toString('base64url');
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+        // 6. Prepare field snapshot
+        const fieldSnapshot = JSON.stringify(form.fields.map((f: any) => ({
+          id: f.id,
+          label: f.label,
+          type: f.type,
+          options: f.options,
+          required: f.required,
+          order: f.order,
+        })));
+
+        // 7. Create invitation (build object without undefined for exactOptionalPropertyTypes)
+        const invitationData: {
+          formId: number;
+          email: string;
+          candidateName: string;
+          jobId?: number;
+          token: string;
+          expiresAt: Date;
+          sentBy: number;
+          fieldSnapshot: string;
+          customMessage?: string;
+        } = {
+          formId,
+          email,
+          candidateName,
+          token,
+          expiresAt,
+          sentBy: req.user!.id,
+          fieldSnapshot,
+        };
+        if (jobId !== undefined) invitationData.jobId = jobId;
+        if (customMessage !== undefined) invitationData.customMessage = customMessage;
+
+        const invitation = await storage.createExternalFormInvitation(invitationData);
+
+        // 8. Send email invitation (invitationId is first parameter)
+        const emailResult = await sendFormInvitationEmail(
+          invitation.id,
+          email,
+          candidateName,
+          form.name,
+          token,
+          customMessage,
+          req.user!.id
+        );
+
+        // 9. Update invitation status
+        const updatedStatus = emailResult.success ? 'sent' : 'failed';
+        await db.update(formInvitations)
+          .set({
+            status: updatedStatus,
+            sentAt: emailResult.success ? new Date() : null,
+            errorMessage: emailResult.error,
+          })
+          .where(eq(formInvitations.id, invitation.id));
+
+        // 10. Log email (without applicationId for external invites)
+        await db.insert(emailAuditLog).values({
+          applicationId: null,
+          templateType: 'external_form_invitation',
+          recipientEmail: email,
+          subject: `Form Request: ${form.name}`,
+          sentAt: new Date(),
+          sentBy: req.user!.id,
+          status: emailResult.success ? 'success' : 'failed',
+          errorMessage: emailResult.error,
+          previewUrl: emailResult.previewUrl,
+        });
+
+        return res.status(201).json({
+          invitation: {
+            id: invitation.id,
+            token: invitation.token,
+            email: invitation.email,
+            candidateName: invitation.candidateName,
+            jobId: invitation.jobId,
+            expiresAt: invitation.expiresAt,
+            status: updatedStatus,
+          },
+          emailStatus: emailResult.success ? 'sent' : 'failed',
+          previewUrl: emailResult.previewUrl,
+        });
+      } catch (error: any) {
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+        }
+        console.error('Error creating external form invitation:', error);
+        return res.status(500).json({ error: 'Failed to create external form invitation' });
       }
     }
   );

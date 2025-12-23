@@ -17,6 +17,10 @@ import {
   clientShortlists,
   clientShortlistItems,
   clientFeedback,
+  talentPool,
+  formInvitations,
+  forms,
+  formResponses,
   type User,
   type InsertUser,
   type ContactSubmission,
@@ -45,6 +49,9 @@ import {
   type ClientShortlistItem,
   type ClientFeedback,
   type InsertClientFeedback,
+  type TalentPool,
+  type InsertTalentPool,
+  type FormInvitation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, sql, or, inArray, count } from "drizzle-orm";
@@ -1879,6 +1886,29 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getPipelineStage(id: number): Promise<PipelineStage | undefined> {
+    const [stage] = await db.select().from(pipelineStages).where(eq(pipelineStages.id, id));
+    return stage || undefined;
+  }
+
+  async updatePipelineStage(id: number, updates: Partial<Pick<PipelineStage, 'name' | 'color' | 'order'>>): Promise<PipelineStage | undefined> {
+    const [result] = await db
+      .update(pipelineStages)
+      .set(updates)
+      .where(eq(pipelineStages.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async deletePipelineStage(id: number): Promise<boolean> {
+    const result = await db.delete(pipelineStages).where(eq(pipelineStages.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getApplicationsInStage(stageId: number): Promise<Application[]> {
+    return db.select().from(applications).where(eq(applications.currentStage, stageId));
+  }
+
   async updateApplicationStage(appId: number, newStageId: number, changedBy: number, notes?: string): Promise<void> {
     // Use transaction to ensure atomicity of stage change + history insert
     await db.transaction(async (tx: any) => {
@@ -1928,6 +1958,64 @@ export class DatabaseStorage implements IStorage {
       .where(eq(applications.id, appId))
       .returning();
     return result || undefined;
+  }
+
+  // Atomic interview scheduling with optional stage update (for bulk scheduling)
+  async scheduleInterviewWithStage(
+    appId: number,
+    interviewFields: { date?: Date; time?: string; location?: string; notes?: string },
+    stageUpdate?: { targetStageId: number; changedBy: number; notes?: string; currentStageOrder: number | null; targetStageOrder: number }
+  ): Promise<Application | undefined> {
+    return await db.transaction(async (tx: any) => {
+      // Update interview details
+      const [updatedApp] = await tx.update(applications)
+        .set({
+          interviewDate: interviewFields.date || null,
+          interviewTime: interviewFields.time || null,
+          interviewLocation: interviewFields.location || null,
+          interviewNotes: interviewFields.notes || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(applications.id, appId))
+        .returning();
+
+      if (!updatedApp) {
+        throw new Error(`Application ${appId} not found`);
+      }
+
+      // Optionally update stage if needed
+      if (stageUpdate) {
+        const currentStageId = updatedApp.currentStage ?? null;
+
+        // Only advance stage if current stage is before target (or no current stage)
+        const shouldUpdateStage = currentStageId === null ||
+          stageUpdate.currentStageOrder === null ||
+          stageUpdate.currentStageOrder < stageUpdate.targetStageOrder;
+
+        if (shouldUpdateStage) {
+          // Update application stage
+          await tx.update(applications)
+            .set({
+              currentStage: stageUpdate.targetStageId,
+              stageChangedAt: new Date(),
+              stageChangedBy: stageUpdate.changedBy,
+              updatedAt: new Date()
+            })
+            .where(eq(applications.id, appId));
+
+          // Insert stage history
+          await tx.insert(applicationStageHistory).values({
+            applicationId: appId,
+            fromStage: currentStageId,
+            toStage: stageUpdate.targetStageId,
+            changedBy: stageUpdate.changedBy,
+            notes: stageUpdate.notes,
+          });
+        }
+      }
+
+      return updatedApp;
+    });
   }
 
   async addRecruiterNote(appId: number, note: string): Promise<Application | undefined> {
@@ -2086,6 +2174,217 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     return results;
+  }
+
+  // ===== TALENT POOL MANAGEMENT =====
+
+  async getTalentPoolByRecruiter(recruiterId: number): Promise<TalentPool[]> {
+    return db.select()
+      .from(talentPool)
+      .where(eq(talentPool.recruiterId, recruiterId))
+      .orderBy(desc(talentPool.createdAt));
+  }
+
+  async getTalentPoolCandidate(id: number): Promise<TalentPool | undefined> {
+    const [result] = await db.select().from(talentPool).where(eq(talentPool.id, id));
+    return result || undefined;
+  }
+
+  async getTalentPoolByEmail(recruiterId: number, email: string): Promise<TalentPool | undefined> {
+    const [result] = await db.select()
+      .from(talentPool)
+      .where(and(
+        eq(talentPool.recruiterId, recruiterId),
+        eq(talentPool.email, email.toLowerCase())
+      ));
+    return result || undefined;
+  }
+
+  async createTalentPoolCandidate(data: InsertTalentPool & { recruiterId: number }): Promise<TalentPool> {
+    const [result] = await db.insert(talentPool).values({
+      ...data,
+      email: data.email.toLowerCase(),
+    }).returning();
+    return result;
+  }
+
+  async updateTalentPoolCandidate(id: number, data: Partial<InsertTalentPool>): Promise<TalentPool | undefined> {
+    const updateData = { ...data, updatedAt: new Date() };
+    if (data.email) {
+      updateData.email = data.email.toLowerCase();
+    }
+    const [result] = await db
+      .update(talentPool)
+      .set(updateData)
+      .where(eq(talentPool.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async deleteTalentPoolCandidate(id: number): Promise<boolean> {
+    const result = await db.delete(talentPool).where(eq(talentPool.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Check if an application exists for email + job combination
+  async getApplicationByEmailAndJob(email: string, jobId: number): Promise<Application | undefined> {
+    const [result] = await db.select()
+      .from(applications)
+      .where(and(
+        sql`LOWER(${applications.email}) = LOWER(${email})`,
+        eq(applications.jobId, jobId)
+      ));
+    return result || undefined;
+  }
+
+  // Convert talent pool candidate to job application
+  async convertTalentPoolToApplication(
+    talentPoolId: number,
+    jobId: number,
+    recruiterId: number
+  ): Promise<{ application: Application; talentPool: TalentPool } | undefined> {
+    const candidate = await this.getTalentPoolCandidate(talentPoolId);
+    if (!candidate || candidate.recruiterId !== recruiterId) {
+      return undefined;
+    }
+
+    const job = await this.getJob(jobId);
+    if (!job || job.postedBy !== recruiterId) {
+      return undefined;
+    }
+
+    // Get first pipeline stage for initial placement
+    const stages = await this.getPipelineStages();
+    const firstStage = stages.length > 0 ? stages[0] : null;
+
+    // Create application from talent pool data
+    const [application] = await db.insert(applications).values({
+      jobId,
+      name: candidate.name,
+      email: candidate.email,
+      phone: candidate.phone || null,
+      resumeUrl: candidate.resumeUrl || null,
+      currentStage: firstStage?.id || null,
+      source: 'talent_pool',
+      status: 'submitted',
+    }).returning();
+
+    return { application, talentPool: candidate };
+  }
+
+  // ===== EXTERNAL FORM INVITATIONS =====
+
+  // Check if there's an active external invite for this email + form
+  async getActiveExternalInvite(email: string, formId: number): Promise<FormInvitation | undefined> {
+    const [result] = await db.select()
+      .from(formInvitations)
+      .where(and(
+        eq(formInvitations.email, email.toLowerCase()),
+        eq(formInvitations.formId, formId),
+        sql`${formInvitations.applicationId} IS NULL`, // External invite has no applicationId
+        or(
+          eq(formInvitations.status, 'pending'),
+          eq(formInvitations.status, 'sent'),
+          eq(formInvitations.status, 'viewed')
+        ),
+        sql`${formInvitations.expiresAt} > NOW()`
+      ));
+    return result || undefined;
+  }
+
+  // Create external form invitation (for email-only invites)
+  async createExternalFormInvitation(data: {
+    formId: number;
+    email: string;
+    candidateName: string;
+    jobId?: number;
+    token: string;
+    expiresAt: Date;
+    sentBy: number;
+    fieldSnapshot: string;
+    customMessage?: string;
+  }): Promise<FormInvitation> {
+    const [result] = await db.insert(formInvitations).values({
+      formId: data.formId,
+      applicationId: null, // External invite has no application
+      email: data.email.toLowerCase(),
+      candidateName: data.candidateName,
+      jobId: data.jobId || null,
+      token: data.token,
+      expiresAt: data.expiresAt,
+      sentBy: data.sentBy,
+      fieldSnapshot: data.fieldSnapshot,
+      customMessage: data.customMessage || null,
+      status: 'pending',
+    }).returning();
+    return result;
+  }
+
+  // Get external invite by token
+  async getExternalInviteByToken(token: string): Promise<FormInvitation | undefined> {
+    const [result] = await db.select()
+      .from(formInvitations)
+      .where(eq(formInvitations.token, token));
+    return result || undefined;
+  }
+
+  // Process external form completion - creates application or talent pool entry
+  async processExternalFormCompletion(
+    invitationId: number,
+    formResponseId: number
+  ): Promise<{ type: 'application' | 'talent_pool'; id: number } | undefined> {
+    const invitationRows = await db.select()
+      .from(formInvitations)
+      .where(eq(formInvitations.id, invitationId));
+    const invitation = invitationRows[0];
+
+    if (!invitation || !invitation.email || !invitation.candidateName) {
+      return undefined;
+    }
+
+    // Get the form to find the recruiter
+    const formRows = await db.select()
+      .from(forms)
+      .where(eq(forms.id, invitation.formId));
+    const form = formRows[0];
+
+    if (!form) {
+      return undefined;
+    }
+
+    const recruiterId = form.recruiterId;
+
+    // If invitation has a jobId, create an application
+    if (invitation.jobId) {
+      const job = await this.getJob(invitation.jobId);
+      if (job) {
+        // Get first pipeline stage
+        const stages = await this.getPipelineStages();
+        const firstStage = stages.length > 0 ? stages[0] : null;
+
+        const [application] = await db.insert(applications).values({
+          jobId: invitation.jobId,
+          name: invitation.candidateName,
+          email: invitation.email,
+          currentStage: firstStage?.id || null,
+          source: 'external_form',
+          status: 'submitted',
+        }).returning();
+
+        return { type: 'application', id: application.id };
+      }
+    }
+
+    // No job association - create talent pool entry
+    const [talentPoolEntry] = await db.insert(talentPool).values({
+      email: invitation.email.toLowerCase(),
+      name: invitation.candidateName,
+      recruiterId,
+      source: 'external_form',
+      formResponseId,
+    }).returning();
+
+    return { type: 'talent_pool', id: talentPoolEntry.id };
   }
 }
 

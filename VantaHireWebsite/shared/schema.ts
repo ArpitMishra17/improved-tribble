@@ -365,7 +365,7 @@ export const formFields = pgTable("form_fields", {
 
 export const formInvitations = pgTable("form_invitations", {
   id: serial("id").primaryKey(),
-  applicationId: integer("application_id").notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  applicationId: integer("application_id").references(() => applications.id, { onDelete: 'cascade' }), // Nullable for external invites
   formId: integer("form_id").notNull().references(() => forms.id),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -379,11 +379,16 @@ export const formInvitations = pgTable("form_invitations", {
   reminderSentAt: timestamp("reminder_sent_at"),
   errorMessage: text("error_message"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // External invite fields (when applicationId is null)
+  email: text("email"), // Candidate email for external invites
+  candidateName: text("candidate_name"), // Candidate name for external invites
+  jobId: integer("job_id").references(() => jobs.id), // Optional job association for auto-creating application
 }, (table) => ({
   tokenIdx: index("form_invitations_token_idx").on(table.token),
   applicationIdStatusIdx: index("form_invitations_app_status_idx").on(table.applicationId, table.status),
   createdAtIdx: index("form_invitations_created_at_idx").on(table.createdAt),
   formIdIdx: index("form_invitations_form_id_idx").on(table.formId),
+  emailFormIdx: index("form_invitations_email_form_idx").on(table.email, table.formId),
 }));
 
 export const formResponses = pgTable("form_responses", {
@@ -437,6 +442,25 @@ export const userAiUsage = pgTable("user_ai_usage", {
   userIdIdx: index("user_ai_usage_user_id_idx").on(table.userId),
   kindIdx: index("user_ai_usage_kind_idx").on(table.kind),
   computedAtIdx: index("user_ai_usage_computed_at_idx").on(table.computedAt),
+}));
+
+// Talent Pool: Candidates added via external form invites (no job application yet)
+export const talentPool = pgTable("talent_pool", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  recruiterId: integer("recruiter_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  source: text("source").notNull().default('external_form'), // 'external_form', 'manual', 'import'
+  formResponseId: integer("form_response_id").references(() => formResponses.id),
+  notes: text("notes"),
+  resumeUrl: text("resume_url"), // Optional resume URL from form response
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  recruiterEmailIdx: uniqueIndex("talent_pool_recruiter_email_idx").on(table.recruiterId, table.email),
+  recruiterIdIdx: index("talent_pool_recruiter_id_idx").on(table.recruiterId),
+  createdAtIdx: index("talent_pool_created_at_idx").on(table.createdAt),
 }));
 
 // Relations
@@ -999,6 +1023,27 @@ export type InsertFormResponse = z.infer<typeof insertFormResponseSchema>;
 
 export type FormResponseAnswer = typeof formResponseAnswers.$inferSelect;
 export type InsertFormResponseAnswer = z.infer<typeof insertFormResponseAnswerSchema>;
+
+// Talent Pool: Insert schema and types
+export const insertTalentPoolSchema = createInsertSchema(talentPool).pick({
+  email: true,
+  name: true,
+  phone: true,
+  source: true,
+  formResponseId: true,
+  notes: true,
+  resumeUrl: true,
+}).extend({
+  email: z.string().email().max(255),
+  name: z.string().min(1).max(255),
+  phone: z.string().max(50).optional(),
+  source: z.enum(['external_form', 'manual', 'import']).optional(),
+  notes: z.string().max(2000).optional(),
+  resumeUrl: z.string().url().optional(),
+});
+
+export type TalentPool = typeof talentPool.$inferSelect;
+export type InsertTalentPool = z.infer<typeof insertTalentPoolSchema>;
 
 // AI Matching: Insert schemas and types
 export const insertCandidateResumeSchema = createInsertSchema(candidateResumes).pick({

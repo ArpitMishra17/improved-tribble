@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => ({
     css: true,
     exclude: [
       'node_modules/**',
+      '**/node_modules/**',    // Exclude all nested node_modules
+      'provisioning-portal/**', // Exclude provisioning portal
       'dist/**',
       'test/e2e/**',           // Exclude Playwright E2E tests
       '**/*.spec.ts',          // Exclude .spec.ts files (Playwright)

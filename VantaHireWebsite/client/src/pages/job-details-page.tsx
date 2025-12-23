@@ -63,16 +63,18 @@ export default function JobDetailsPage() {
     enabled: !!jobId,
   });
 
-  // Check if AI features are enabled
-  const { data: aiFeatures } = useQuery<{ enabled: boolean }>({
-    queryKey: ["/api/features/ai"],
+  // Check if AI features are enabled (standardized endpoint)
+  const { data: aiFeatures } = useQuery<{ resumeAdvisor: boolean; fitScoring: boolean }>({
+    queryKey: ["/api/ai/features"],
     queryFn: async () => {
-      const response = await fetch("/api/features/ai");
-      if (!response.ok) return { enabled: false };
+      const response = await fetch("/api/ai/features");
+      if (!response.ok) return { resumeAdvisor: false, fitScoring: false };
       return response.json();
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+  // Derive enabled flag for backward compatibility
+  const aiEnabled = aiFeatures?.resumeAdvisor || aiFeatures?.fitScoring;
 
   // Check if current user is recruiter/admin (for showing admin features)
   const isRecruiterOrAdmin = user?.role === 'recruiter' || user?.role === 'super_admin';
@@ -461,7 +463,7 @@ export default function JobDetailsPage() {
                         </div>
 
                         {/* AI Score Badge - Conditionally shown */}
-                        {aiFeatures?.enabled && (
+                        {aiEnabled && (
                           <div className="p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-lg border border-primary/30">
                             <div className="flex items-center gap-2 mb-2">
                               <Sparkles className="h-4 w-4 text-primary" />

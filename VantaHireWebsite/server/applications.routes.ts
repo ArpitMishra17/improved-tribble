@@ -530,22 +530,28 @@ export function registerApplicationsRoutes(
             if (typeof notes === "string" && notes.length > 0) {
               interviewFields.notes = notes;
             }
-            await storage.scheduleInterview(appId, interviewFields);
 
-            // Optional: move to a specific stage
+            // Get current stage order for comparison (if stage update is needed)
+            let stageUpdateParams: { targetStageId: number; changedBy: number; notes?: string; currentStageOrder: number | null; targetStageOrder: number } | undefined;
             if (targetStageId !== null && targetStageOrder !== null) {
               const appRecord = await storage.getApplication(appId);
               const currentStageId = appRecord?.currentStage ?? null;
+              const currentOrder = currentStageId !== null ? stageOrderMap.get(currentStageId) ?? null : null;
 
-              if (currentStageId == null) {
-                await storage.updateApplicationStage(appId, targetStageId, req.user!.id, notes);
-              } else {
-                const currentOrder = stageOrderMap.get(currentStageId) ?? null;
-                if (currentOrder === null || currentOrder < targetStageOrder) {
-                  await storage.updateApplicationStage(appId, targetStageId, req.user!.id, notes);
-                }
+              stageUpdateParams = {
+                targetStageId,
+                changedBy: req.user!.id,
+                currentStageOrder: currentOrder,
+                targetStageOrder,
+              };
+              // Only add notes if defined (exactOptionalPropertyTypes compatibility)
+              if (notes !== undefined) {
+                stageUpdateParams.notes = notes;
               }
             }
+
+            // Use atomic method for interview + stage update (prevents partial state)
+            await storage.scheduleInterviewWithStage(appId, interviewFields, stageUpdateParams);
 
             // Fire-and-forget interview invite (if automation enabled)
             const autoEmails = process.env.EMAIL_AUTOMATION_ENABLED === "true" || process.env.EMAIL_AUTOMATION_ENABLED === "1";
@@ -707,8 +713,9 @@ export function registerApplicationsRoutes(
           const ext = filename.split('.').pop()?.toLowerCase() || 'pdf';
           const contentType = ext === 'pdf' ? 'application/pdf' : 'application/octet-stream';
 
-          // Allow embedding in iframes from same origin
-          res.removeHeader('X-Frame-Options');
+          // Allow embedding in iframes from same origin only (security fix)
+          res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+          res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
           res.setHeader('Content-Type', contentType);
           res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
           res.setHeader('Content-Length', buffer.length);
@@ -755,6 +762,94 @@ export function registerApplicationsRoutes(
         res.status(400).json({ error: 'Validation error', details: e.errors });
         return;
       }
+      next(e);
+    }
+  });
+
+  // Update pipeline stage (recruiters or admin - stages are global)
+  app.patch("/api/pipeline/stages/:id", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing stage ID parameter' });
+        return;
+      }
+      const stageId = parseInt(idParam, 10);
+      if (isNaN(stageId) || stageId <= 0) {
+        res.status(400).json({ error: 'Invalid stage ID' });
+        return;
+      }
+
+      const updateSchema = z.object({
+        name: z.string().min(1).max(50).optional(),
+        color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+        order: z.number().int().min(0).optional(),
+      });
+
+      const validation = updateSchema.safeParse(req.body);
+      if (!validation.success) {
+        res.status(400).json({ error: 'Validation error', details: validation.error.errors });
+        return;
+      }
+
+      // Verify stage exists
+      const stage = await storage.getPipelineStage(stageId);
+      if (!stage) {
+        res.status(404).json({ error: 'Stage not found' });
+        return;
+      }
+
+      // Stages are global - all recruiters can edit. Build update object without undefined values.
+      const updateData: { name?: string; color?: string | null; order?: number } = {};
+      if (validation.data.name !== undefined) updateData.name = validation.data.name;
+      if (validation.data.color !== undefined) updateData.color = validation.data.color;
+      if (validation.data.order !== undefined) updateData.order = validation.data.order;
+
+      const updated = await storage.updatePipelineStage(stageId, updateData);
+      res.json(updated);
+      return;
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // Delete pipeline stage (recruiters or admin - stages are global)
+  app.delete("/api/pipeline/stages/:id", csrfProtection, requireRole(['recruiter', 'super_admin']), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing stage ID parameter' });
+        return;
+      }
+      const stageId = parseInt(idParam, 10);
+      if (isNaN(stageId) || stageId <= 0) {
+        res.status(400).json({ error: 'Invalid stage ID' });
+        return;
+      }
+
+      // Verify stage exists
+      const stage = await storage.getPipelineStage(stageId);
+      if (!stage) {
+        res.status(404).json({ error: 'Stage not found' });
+        return;
+      }
+
+      // Stages are global - all recruiters can delete (but check for applications first)
+
+      // Check if stage has applications
+      const appsInStage = await storage.getApplicationsInStage(stageId);
+      if (appsInStage.length > 0) {
+        res.status(400).json({
+          error: 'Cannot delete stage with applications. Move applications first.',
+          applicationCount: appsInStage.length
+        });
+        return;
+      }
+
+      await storage.deletePipelineStage(stageId);
+      res.status(204).send();
+      return;
+    } catch (e) {
       next(e);
     }
   });

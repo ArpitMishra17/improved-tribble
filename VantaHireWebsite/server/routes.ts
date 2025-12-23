@@ -21,6 +21,7 @@ import { registerApplicationsRoutes } from "./applications.routes";
 import { registerCommunicationsRoutes } from "./communications.routes";
 import { registerResumeRoutes } from "./resume.routes";
 import { registerProfileRoutes } from "./profile.routes";
+import { registerTalentPoolRoutes } from "./talent-pool.routes";
 import { doubleCsrfProtection as csrfProtectionModule, generateToken as generateTokenModule } from "./csrf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -165,7 +166,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI features status
+  // AI features status (DEPRECATED: use /api/ai/features instead)
+  // Kept for backward compatibility - will be removed in future version
   app.get("/api/features/ai", (req: Request, res: Response) => {
     res.json({
       enabled: isAIEnabled(),
@@ -397,6 +399,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register forms routes (recruiter-sent candidate forms feature)
   registerFormsRoutes(app, doubleCsrfProtection);
+
+  // Register talent pool routes (manage external candidates)
+  registerTalentPoolRoutes(app);
 
   // Register AI matching routes (resume library + fit scoring)
   registerAIRoutes(app);

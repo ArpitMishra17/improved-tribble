@@ -8,6 +8,7 @@ import { MessageSquare, Star, ThumbsUp, Clock, User, CheckCircle, AlertCircle, X
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface FeedbackPanelProps {
   applicationId: number;
@@ -54,19 +55,9 @@ export function FeedbackPanel({ applicationId, jobId, canAdd = true }: FeedbackP
 
   const addFeedbackMutation = useMutation({
     mutationFn: async (data: { overallScore: number; recommendation: string; notes: string }) => {
-      const response = await fetch(`/api/applications/${applicationId}/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to add feedback');
-      }
-
-      return response.json();
+      // Use apiRequest to include CSRF token automatically
+      const response = await apiRequest("POST", `/api/applications/${applicationId}/feedback`, data);
+      return response;
     },
     onSuccess: () => {
       // Reset form

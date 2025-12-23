@@ -377,6 +377,60 @@ export async function ensureAtsSchema(): Promise<void> {
     WHERE status IN ('pending', 'sent', 'viewed');
   `);
 
+  // External Invites Feature: Add columns to form_invitations for external candidate invites
+  console.log('  Adding external invite columns to form_invitations...');
+  // Make application_id nullable (external invites have no application yet)
+  await db.execute(sql`ALTER TABLE form_invitations ALTER COLUMN application_id DROP NOT NULL;`);
+  // Add email column for external candidate
+  await db.execute(sql`ALTER TABLE form_invitations ADD COLUMN IF NOT EXISTS email TEXT;`);
+  // Add candidate_name column for external candidate
+  await db.execute(sql`ALTER TABLE form_invitations ADD COLUMN IF NOT EXISTS candidate_name TEXT;`);
+  // Add job_id column for optional job association
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'form_invitations' AND column_name = 'job_id'
+      ) THEN
+        ALTER TABLE form_invitations ADD COLUMN job_id INTEGER REFERENCES jobs(id);
+        CREATE INDEX IF NOT EXISTS form_invitations_job_id_idx ON form_invitations(job_id);
+      END IF;
+    END $$;
+  `);
+  // Create index for external invite lookups by email
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS form_invitations_email_idx ON form_invitations(email);`);
+
+  // Talent Pool Feature: Create talent_pool table for managing external candidates
+  console.log('  Creating talent_pool table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS talent_pool (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT,
+      recruiter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      source TEXT NOT NULL DEFAULT 'external_form',
+      form_response_id INTEGER REFERENCES form_responses(id),
+      notes TEXT,
+      resume_url TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Talent Pool: Create indexes
+  console.log('  Creating talent_pool indexes...');
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS talent_pool_recruiter_id_idx ON talent_pool(recruiter_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS talent_pool_email_idx ON talent_pool(email);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS talent_pool_source_idx ON talent_pool(source);`);
+
+  // Talent Pool: Create unique index for email per recruiter
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS talent_pool_recruiter_email_unique
+    ON talent_pool(recruiter_id, LOWER(email));
+  `);
+
   // AI Matching Feature: Add columns to existing tables
   console.log('  Adding AI matching columns to existing tables...');
 

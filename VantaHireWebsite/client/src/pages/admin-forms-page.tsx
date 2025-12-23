@@ -49,9 +49,10 @@ export default function AdminFormsPage() {
   // Bulk invite state
   const [bulkInviteDialogOpen, setBulkInviteDialogOpen] = useState(false);
   const [bulkInviteTemplate, setBulkInviteTemplate] = useState<FormTemplateDTO | null>(null);
+  const [nameInput, setNameInput] = useState("");
   const [emailInput, setEmailInput] = useState("");
-  const [emailList, setEmailList] = useState<string[]>([]);
-  const [bulkInviteProgress, setBulkInviteProgress] = useState<{ sent: number; total: number; results: Array<{ email: string; status: string }> } | null>(null);
+  const [inviteList, setInviteList] = useState<Array<{ email: string; name: string }>>([]);
+  const [bulkInviteProgress, setBulkInviteProgress] = useState<{ sent: number; total: number; results: Array<{ email: string; name: string; status: string }> } | null>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
   // Redirect if not admin or recruiter
@@ -115,28 +116,29 @@ export default function AdminFormsPage() {
     staleTime: 30_000,
   });
 
-  // Bulk invite mutation - sends to email addresses directly
+  // Bulk invite mutation - sends to email addresses directly (with name)
   const bulkInviteMutation = useMutation({
-    mutationFn: async ({ templateId, emails }: { templateId: number; emails: string[] }) => {
-      const results: Array<{ email: string; status: string; error?: string }> = [];
-      setBulkInviteProgress({ sent: 0, total: emails.length, results: [] });
+    mutationFn: async ({ templateId, invites }: { templateId: number; invites: Array<{ email: string; name: string }> }) => {
+      const results: Array<{ email: string; name: string; status: string; error?: string }> = [];
+      setBulkInviteProgress({ sent: 0, total: invites.length, results: [] });
 
       let sent = 0;
-      for (const email of emails) {
+      for (const invite of invites) {
         try {
           await apiRequest("POST", "/api/forms/invitations/external", {
             formId: templateId,
-            email: email.trim(),
+            email: invite.email.trim(),
+            candidateName: invite.name.trim(),
           });
-          results.push({ email, status: 'sent' });
+          results.push({ email: invite.email, name: invite.name, status: 'sent' });
         } catch (err: any) {
-          results.push({ email, status: 'failed', error: err.message });
+          results.push({ email: invite.email, name: invite.name, status: 'failed', error: err.message });
         }
         sent++;
-        setBulkInviteProgress({ sent, total: emails.length, results: [...results] });
+        setBulkInviteProgress({ sent, total: invites.length, results: [...results] });
       }
 
-      return { results, summary: { total: emails.length, sent: results.filter(r => r.status === 'sent').length, failed: results.filter(r => r.status === 'failed').length } };
+      return { results, summary: { total: invites.length, sent: results.filter(r => r.status === 'sent').length, failed: results.filter(r => r.status === 'failed').length } };
     },
     onSuccess: ({ summary }) => {
       queryClient.invalidateQueries({ queryKey: formsQueryKeys.invitationQuota() });
@@ -181,8 +183,9 @@ export default function AdminFormsPage() {
   // Bulk invite handlers
   const handleOpenBulkInvite = (template: FormTemplateDTO) => {
     setBulkInviteTemplate(template);
+    setNameInput("");
     setEmailInput("");
-    setEmailList([]);
+    setInviteList([]);
     setBulkInviteProgress(null);
     setBulkInviteDialogOpen(true);
   };
@@ -190,25 +193,51 @@ export default function AdminFormsPage() {
   const handleCloseBulkInvite = () => {
     setBulkInviteDialogOpen(false);
     setBulkInviteTemplate(null);
+    setNameInput("");
     setEmailInput("");
-    setEmailList([]);
+    setInviteList([]);
     setBulkInviteProgress(null);
   };
 
-  const handleAddEmails = () => {
-    const newEmails = emailInput
-      .split(/[\n,;]+/)
-      .map(e => e.trim().toLowerCase())
-      .filter(e => e && isValidEmail(e));
+  const handleAddInvite = () => {
+    const email = emailInput.trim().toLowerCase();
+    const name = nameInput.trim();
 
-    // Add new emails, removing duplicates
-    const combined = [...new Set([...emailList, ...newEmails])];
-    setEmailList(combined);
+    if (!email || !isValidEmail(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!name) {
+      toast({
+        title: "Name Required",
+        description: "Please enter the candidate's name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate email
+    if (inviteList.some(i => i.email === email)) {
+      toast({
+        title: "Duplicate Email",
+        description: "This email is already in the list.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setInviteList([...inviteList, { email, name }]);
     setEmailInput("");
+    setNameInput("");
   };
 
-  const handleRemoveEmail = (email: string) => {
-    setEmailList(emailList.filter(e => e !== email));
+  const handleRemoveInvite = (email: string) => {
+    setInviteList(inviteList.filter(i => i.email !== email));
   };
 
   const handleCsvUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,17 +247,52 @@ export default function AdminFormsPage() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      const emails = text
-        .split(/[\n,;]+/)
-        .map(e => e.trim().toLowerCase())
-        .filter(e => e && isValidEmail(e));
+      const lines = text.split(/[\n]+/).filter(line => line.trim());
+      const newInvites: Array<{ email: string; name: string }> = [];
 
-      const combined = [...new Set([...emailList, ...emails])];
-      setEmailList(combined);
-      toast({
-        title: "CSV Imported",
-        description: `Added ${emails.length} email(s) from CSV`,
-      });
+      for (const line of lines) {
+        // Support formats: "name,email" or "email,name" or just "email" (name defaults to email prefix)
+        const parts = line.split(',').map(p => p.trim());
+        let email = '';
+        let name = '';
+
+        if (parts.length >= 2) {
+          const part0 = parts[0] ?? '';
+          const part1 = parts[1] ?? '';
+          // Check which part is email
+          if (isValidEmail(part0)) {
+            email = part0.toLowerCase();
+            name = part1;
+          } else if (isValidEmail(part1)) {
+            name = part0;
+            email = part1.toLowerCase();
+          }
+        } else if (parts.length === 1) {
+          const part0 = parts[0] ?? '';
+          if (isValidEmail(part0)) {
+            email = part0.toLowerCase();
+            name = email.split('@')[0] ?? ''; // Use email prefix as name
+          }
+        }
+
+        if (email && name && !inviteList.some(i => i.email === email) && !newInvites.some(i => i.email === email)) {
+          newInvites.push({ email, name });
+        }
+      }
+
+      if (newInvites.length > 0) {
+        setInviteList([...inviteList, ...newInvites]);
+        toast({
+          title: "CSV Imported",
+          description: `Added ${newInvites.length} candidate(s) from CSV`,
+        });
+      } else {
+        toast({
+          title: "No Valid Entries",
+          description: "No valid name/email pairs found in CSV. Format: name,email (one per line)",
+          variant: "destructive",
+        });
+      }
     };
     reader.readAsText(file);
 
@@ -239,15 +303,12 @@ export default function AdminFormsPage() {
   };
 
   const handleSendBulkInvites = () => {
-    if (!bulkInviteTemplate || emailList.length === 0) return;
+    if (!bulkInviteTemplate || inviteList.length === 0) return;
     bulkInviteMutation.mutate({
       templateId: bulkInviteTemplate.id,
-      emails: emailList,
+      invites: inviteList,
     });
   };
-
-  // Find duplicates in current list
-  const duplicateEmails = emailList.filter((email, index) => emailList.indexOf(email) !== index);
 
   const templates = templatesData?.templates || [];
 
@@ -474,26 +535,38 @@ export default function AdminFormsPage() {
               </div>
             )}
 
-            {/* Email Input Section */}
+            {/* Candidate Input Section */}
             <div className="space-y-3">
-              <Label htmlFor="emailInput" className="text-foreground">
-                Add Email Addresses
+              <Label className="text-foreground">
+                Add Candidate
               </Label>
-              <Textarea
-                id="emailInput"
-                placeholder="Enter email addresses (one per line, or comma/semicolon separated)"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                rows={4}
-                className="resize-none"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Input
+                    id="nameInput"
+                    placeholder="Candidate name"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Input
+                    id="emailInput"
+                    type="email"
+                    placeholder="Email address"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddInvite()}
+                  />
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleAddEmails}
-                  disabled={!emailInput.trim()}
+                  onClick={handleAddInvite}
+                  disabled={!emailInput.trim() || !nameInput.trim()}
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add to List
@@ -510,39 +583,38 @@ export default function AdminFormsPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => csvInputRef.current?.click()}
+                  title="CSV format: name,email (one per line)"
                 >
                   <Upload className="w-4 h-4 mr-1" />
                   Import CSV
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                CSV format: name,email (one candidate per line)
+              </p>
             </div>
 
-            {/* Email Preview List */}
-            {emailList.length > 0 && (
+            {/* Invite Preview List */}
+            {inviteList.length > 0 && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-foreground">
-                    Recipients ({emailList.length})
-                  </Label>
-                  {duplicateEmails.length > 0 && (
-                    <span className="flex items-center gap-1 text-sm text-warning">
-                      <AlertTriangle className="w-4 h-4" />
-                      {duplicateEmails.length} duplicate(s) removed
-                    </span>
-                  )}
-                </div>
+                <Label className="text-foreground">
+                  Recipients ({inviteList.length})
+                </Label>
                 <div className="max-h-48 overflow-y-auto border border-border rounded-lg p-2 space-y-1">
-                  {emailList.map((email, index) => (
+                  {inviteList.map((invite, index) => (
                     <div
-                      key={`${email}-${index}`}
+                      key={`${invite.email}-${index}`}
                       className="flex items-center justify-between py-1 px-2 bg-muted/50 rounded text-sm"
                     >
-                      <span className="text-foreground">{email}</span>
+                      <div className="flex flex-col">
+                        <span className="text-foreground font-medium">{invite.name}</span>
+                        <span className="text-muted-foreground text-xs">{invite.email}</span>
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemoveEmail(email)}
+                        onClick={() => handleRemoveInvite(invite.email)}
                         className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                       >
                         <X className="w-3 h-3" />
@@ -606,7 +678,7 @@ export default function AdminFormsPage() {
                 <Button
                   type="button"
                   onClick={handleSendBulkInvites}
-                  disabled={emailList.length === 0 || bulkInviteMutation.isPending}
+                  disabled={inviteList.length === 0 || bulkInviteMutation.isPending}
                 >
                   {bulkInviteMutation.isPending ? (
                     <>
@@ -616,7 +688,7 @@ export default function AdminFormsPage() {
                   ) : (
                     <>
                       <Users className="w-4 h-4 mr-2" />
-                      Send {emailList.length} Invitation{emailList.length !== 1 ? 's' : ''}
+                      Send {inviteList.length} Invitation{inviteList.length !== 1 ? 's' : ''}
                     </>
                   )}
                 </Button>

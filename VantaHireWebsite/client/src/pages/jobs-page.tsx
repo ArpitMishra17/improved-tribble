@@ -42,16 +42,18 @@ export default function JobsPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Fetch AI feature flag
-  const { data: aiFeatures } = useQuery<{ enabled: boolean }>({
-    queryKey: ["/api/features/ai"],
+  // Fetch AI feature flag (standardized endpoint)
+  const { data: aiFeatures } = useQuery<{ resumeAdvisor: boolean; fitScoring: boolean }>({
+    queryKey: ["/api/ai/features"],
     queryFn: async () => {
-      const response = await fetch("/api/features/ai");
-      if (!response.ok) return { enabled: false };
+      const response = await fetch("/api/ai/features");
+      if (!response.ok) return { resumeAdvisor: false, fitScoring: false };
       return response.json();
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
+  // Derive enabled flag for backward compatibility
+  const aiEnabled = aiFeatures?.resumeAdvisor || aiFeatures?.fitScoring;
 
   // Fetch jobs from API (server only supports: search, location, type, skills)
   const { data, isLoading, error } = useQuery<JobsResponse>({
@@ -282,7 +284,7 @@ export default function JobsPage() {
                     <SelectContent>
                       <SelectItem value="recent">Most Recent</SelectItem>
                       <SelectItem value="deadline">Deadline: Soonest</SelectItem>
-                      {aiFeatures?.enabled && (
+                      {aiEnabled && (
                         <SelectItem value="relevant">Most Relevant (AI)</SelectItem>
                       )}
                     </SelectContent>
