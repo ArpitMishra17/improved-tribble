@@ -129,11 +129,11 @@ export default function JobEditPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocation("/my-jobs")}
-              className="text-slate-600 hover:bg-slate-100"
+              onClick={() => setLocation(`/jobs/${jobId}/applications`)}
+              className="text-muted-foreground hover:text-foreground hover:bg-muted"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to My Jobs
+              Back to Job
             </Button>
           </div>
 
