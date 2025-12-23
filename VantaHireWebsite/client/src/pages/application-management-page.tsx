@@ -1341,43 +1341,44 @@ export default function ApplicationManagementPage() {
                 </div>
 
                 {/* AI Fit Label Filter Chips */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Label className="text-sm font-medium text-foreground">Filter by AI Fit:</Label>
-                  {['Exceptional', 'Strong', 'Good'].map((label) => {
-                    const isActive = fitLabelFilter.includes(label);
-                    return (
-                      <Badge
-                        key={label}
-                        variant={isActive ? "default" : "outline"}
-                        className={`cursor-pointer transition-all ${
-                          isActive
-                            ? 'bg-primary text-foreground hover:bg-primary/90'
-                            : 'hover:bg-muted'
-                        }`}
-                        onClick={() => {
-                          setFitLabelFilter((prev) =>
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-sm font-medium text-foreground whitespace-nowrap">AI Fit:</Label>
+                  <div className="flex items-center gap-1.5">
+                    {['Exceptional', 'Strong', 'Good'].map((label) => {
+                      const isActive = fitLabelFilter.includes(label);
+                      return (
+                        <Badge
+                          key={label}
+                          variant={isActive ? "default" : "outline"}
+                          className={`cursor-pointer transition-all text-xs ${
                             isActive
-                              ? prev.filter((l) => l !== label)
-                              : [...prev, label]
-                          );
-                        }}
+                              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                              : 'hover:bg-muted'
+                          }`}
+                          onClick={() => {
+                            setFitLabelFilter((prev) =>
+                              isActive
+                                ? prev.filter((l) => l !== label)
+                                : [...prev, label]
+                            );
+                          }}
+                        >
+                          {label}
+                        </Badge>
+                      );
+                    })}
+                    {fitLabelFilter.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setFitLabelFilter([])}
                       >
-                        {isActive && <Sparkles className="h-3 w-3 mr-1" />}
-                        {label}
-                      </Badge>
-                    );
-                  })}
-                  {fitLabelFilter.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                      onClick={() => setFitLabelFilter([])}
-                    >
-                      <X className="h-3 w-3 mr-1" />
-                      Clear
-                    </Button>
-                  )}
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Results Count */}
