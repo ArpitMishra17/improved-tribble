@@ -6,11 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, LogIn, Briefcase, Users, Star, Shield, Rocket } from "lucide-react";
+import { UserPlus, LogIn, Briefcase, Users, ArrowLeft, Mail } from "lucide-react";
 import Layout from "@/components/Layout";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const { toast } = useToast();
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [registerData, setRegisterData] = useState({
     username: "",
@@ -20,12 +22,44 @@ export default function AuthPage() {
     role: "recruiter"
   });
   const [isVisible, setIsVisible] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   // Fade-in animation on mount
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 200);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotPasswordEmail) return;
+
+    setIsSendingReset(true);
+    try {
+      const res = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+      const data = await res.json();
+      toast({
+        title: "Check your email",
+        description: data.message || "If an account exists with this email, a password reset link has been sent.",
+      });
+      setShowForgotPassword(false);
+      setForgotPasswordEmail("");
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingReset(false);
+    }
+  };
 
   // Redirect if already logged in based on role
   if (user) {
@@ -78,52 +112,112 @@ export default function AuthPage() {
 
             <TabsContent value="login">
               <Card className="bg-muted/50 backdrop-blur-sm border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground flex items-center gap-2">
-                    <LogIn className="h-5 w-5" />
-                    Welcome Back
-                  </CardTitle>
-                  <CardDescription className="text-muted-foreground/50">
-                    Sign in to your recruiter account
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div>
-                      <Label htmlFor="login-username" className="text-foreground">Username</Label>
-                      <Input
-                        id="login-username"
-                        type="text"
-                        value={loginData.username}
-                        onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
-                        required
-                        className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                        placeholder="Enter your username"
-                      />
-                    </div>
+                {showForgotPassword ? (
+                  <>
+                    <CardHeader>
+                      <CardTitle className="text-foreground flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Reset Password
+                      </CardTitle>
+                      <CardDescription className="text-muted-foreground/50">
+                        Enter your email to receive a password reset link
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <div>
+                          <Label htmlFor="forgot-email" className="text-foreground">Email</Label>
+                          <Input
+                            id="forgot-email"
+                            type="email"
+                            value={forgotPasswordEmail}
+                            onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                            required
+                            className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
+                            placeholder="Enter your email"
+                          />
+                        </div>
 
-                    <div>
-                      <Label htmlFor="login-password" className="text-foreground">Password</Label>
-                      <Input
-                        id="login-password"
-                        type="password"
-                        value={loginData.password}
-                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                        required
-                        className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                        placeholder="Enter your password"
-                      />
-                    </div>
+                        <Button
+                          type="submit"
+                          disabled={isSendingReset}
+                          className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                        >
+                          {isSendingReset ? "Sending..." : "Send Reset Link"}
+                        </Button>
 
-                    <Button
-                      type="submit"
-                      disabled={loginMutation.isPending}
-                      className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-                    >
-                      {loginMutation.isPending ? "Signing in..." : "Sign In"}
-                    </Button>
-                  </form>
-                </CardContent>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setShowForgotPassword(false)}
+                          className="w-full text-muted-foreground hover:text-foreground"
+                        >
+                          <ArrowLeft className="h-4 w-4 mr-2" />
+                          Back to Login
+                        </Button>
+                      </form>
+                    </CardContent>
+                  </>
+                ) : (
+                  <>
+                    <CardHeader>
+                      <CardTitle className="text-foreground flex items-center gap-2">
+                        <LogIn className="h-5 w-5" />
+                        Welcome Back
+                      </CardTitle>
+                      <CardDescription className="text-muted-foreground/50">
+                        Sign in with your email address
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleLogin} className="space-y-4">
+                        <div>
+                          <Label htmlFor="login-username" className="text-foreground">Email</Label>
+                          <Input
+                            id="login-username"
+                            type="email"
+                            value={loginData.username}
+                            onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                            required
+                            className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
+                            placeholder="Enter your email"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="login-password" className="text-foreground">Password</Label>
+                          <Input
+                            id="login-password"
+                            type="password"
+                            value={loginData.password}
+                            onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                            required
+                            className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
+                            placeholder="Enter your password"
+                          />
+                        </div>
+
+                        <Button
+                          type="submit"
+                          disabled={loginMutation.isPending}
+                          className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                        >
+                          {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                        </Button>
+
+                        <div className="text-center">
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotPassword(true)}
+                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            Forgot your password?
+                          </button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </>
+                )}
               </Card>
             </TabsContent>
 
@@ -166,15 +260,15 @@ export default function AuthPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="register-username" className="text-foreground">Username *</Label>
+                      <Label htmlFor="register-username" className="text-foreground">Email *</Label>
                       <Input
                         id="register-username"
-                        type="text"
+                        type="email"
                         value={registerData.username}
                         onChange={(e) => setRegisterData({ ...registerData, username: e.target.value })}
                         required
                         className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                        placeholder="Choose a username"
+                        placeholder="Enter your email address"
                       />
                     </div>
 

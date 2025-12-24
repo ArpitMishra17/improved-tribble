@@ -90,6 +90,11 @@ export interface IStorage {
   getUserByVerificationToken(token: string): Promise<User | undefined>;
   verifyUserEmail(userId: number): Promise<User | undefined>;
 
+  // Password reset operations
+  setPasswordResetToken(userId: number, token: string, expires: Date): Promise<void>;
+  getUserByPasswordResetToken(token: string): Promise<User | undefined>;
+  clearPasswordResetToken(userId: number): Promise<void>;
+
   // Contact form operations
   createContactSubmission(submission: InsertContact): Promise<ContactSubmission>;
   getAllContactSubmissions(): Promise<ContactSubmission[]>;
@@ -301,6 +306,35 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user || undefined;
+  }
+
+  // Password reset methods
+  async setPasswordResetToken(userId: number, tokenHash: string, expires: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        passwordResetToken: tokenHash,
+        passwordResetExpires: expires,
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserByPasswordResetToken(tokenHash: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.passwordResetToken, tokenHash));
+    return user || undefined;
+  }
+
+  async clearPasswordResetToken(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      })
+      .where(eq(users.id, userId));
   }
 
   // Contact form methods

@@ -766,6 +766,11 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT;`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires TIMESTAMP;`);
 
+  // Password Reset: Add password reset columns to users table
+  console.log('  Adding password reset columns to users table...');
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT;`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP;`);
+
   // Recruiter Profiles: Add profile columns to user_profiles table
   console.log('  Adding recruiter profile columns to user_profiles table...');
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS display_name TEXT;`);

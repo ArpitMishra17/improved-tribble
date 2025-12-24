@@ -40,6 +40,15 @@ const resendVerificationLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Rate limiter for password reset endpoint
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: { error: 'Too many password reset requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Send verification email
 async function sendVerificationEmail(email: string, token: string, firstName?: string | null): Promise<boolean> {
   const emailService = await getEmailService();
@@ -188,7 +197,7 @@ export function setupAuth(app: Express) {
       const { username, password, firstName, lastName, role = 'recruiter' } = req.body;
 
       if (!username || !password) {
-        res.status(400).json({ error: "Username and password are required" });
+        res.status(400).json({ error: "Email and password are required" });
         return;
       }
 
@@ -197,6 +206,13 @@ export function setupAuth(app: Express) {
       const allowedRoles = ['candidate', 'recruiter'];
       if (!allowedRoles.includes(role)) {
         res.status(403).json({ error: "Invalid role. Public registration only allows 'candidate' or 'recruiter' roles." });
+        return;
+      }
+
+      // Email format validation (username is used as email for verification)
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(username)) {
+        res.status(400).json({ error: "Please enter a valid email address" });
         return;
       }
 
@@ -227,7 +243,7 @@ export function setupAuth(app: Express) {
 
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
-        res.status(400).json({ error: "Username already exists" });
+        res.status(400).json({ error: "An account with this email already exists" });
         return;
       }
 
@@ -413,6 +429,122 @@ export function setupAuth(app: Express) {
       await sendVerificationEmail(email, token, user.firstName);
 
       res.json({ message: "If an account exists with this email, a verification link has been sent." });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Forgot password - request password reset
+  app.post("/api/forgot-password", passwordResetLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ error: "Email is required" });
+        return;
+      }
+
+      // Always respond with success to prevent email enumeration
+      const genericResponse = { message: "If an account exists with this email, a password reset link has been sent." };
+
+      const user = await storage.getUserByUsername(email);
+      if (!user) {
+        res.json(genericResponse);
+        return;
+      }
+
+      // Generate password reset token
+      const { token, hash } = generateVerificationToken();
+      const expires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+      await storage.setPasswordResetToken(user.id, hash, expires);
+
+      // Send password reset email
+      const emailService = await getEmailService();
+      if (emailService) {
+        const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+        const resetUrl = `${baseUrl}/reset-password/${token}`;
+        const name = user.firstName || 'there';
+
+        await emailService.sendEmail({
+          to: email,
+          subject: 'Reset Your VantaHire Password',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #7B38FB;">Reset Your Password</h2>
+              <p>Hi ${name},</p>
+              <p>We received a request to reset your password. Click the button below to create a new password:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetUrl}" style="background: linear-gradient(to right, #7B38FB, #FF5BA8); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reset Password</a>
+              </div>
+              <p>Or copy and paste this link into your browser:</p>
+              <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+              <p style="color: #999; font-size: 12px; margin-top: 30px;">This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+              <p style="color: #999; font-size: 12px;">© VantaHire - AI-Powered Recruitment Platform</p>
+            </div>
+          `,
+          text: `Hi ${name}, Reset your VantaHire password by visiting: ${resetUrl} (expires in 1 hour)`,
+        });
+      }
+
+      res.json(genericResponse);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/reset-password", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        res.status(400).json({ error: "Token and password are required" });
+        return;
+      }
+
+      if (token.length !== 64) {
+        res.status(400).json({ error: "Invalid reset token" });
+        return;
+      }
+
+      // Password strength validation
+      if (password.length < 10) {
+        res.status(400).json({ error: "Password must be at least 10 characters long" });
+        return;
+      }
+
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasLowercase = /[a-z]/.test(password);
+      const hasDigit = /\d/.test(password);
+      const hasSpecial = /[^A-Za-z0-9]/.test(password);
+
+      if (!hasUppercase || !hasLowercase || !hasDigit || !hasSpecial) {
+        res.status(400).json({
+          error: "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character"
+        });
+        return;
+      }
+
+      // Look up user by token hash
+      const hash = hashToken(token);
+      const user = await storage.getUserByPasswordResetToken(hash);
+
+      if (!user) {
+        res.status(400).json({ error: "Invalid or expired reset token" });
+        return;
+      }
+
+      // Check if token has expired
+      if (!user.passwordResetExpires || new Date() > user.passwordResetExpires) {
+        await storage.clearPasswordResetToken(user.id);
+        res.status(400).json({ error: "Reset token has expired. Please request a new password reset." });
+        return;
+      }
+
+      // Update password and clear reset token
+      await storage.updateUserPassword(user.id, await hashPassword(password));
+      await storage.clearPasswordResetToken(user.id);
+
+      res.json({ message: "Password has been reset successfully. You can now log in with your new password." });
     } catch (error) {
       next(error);
     }

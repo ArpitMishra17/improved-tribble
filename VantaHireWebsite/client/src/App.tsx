@@ -41,6 +41,7 @@ import TermsOfServicePage from "@/pages/terms-of-service-page";
 import CookiePolicyPage from "@/pages/cookie-policy-page";
 import BrandAssetsPage from "@/pages/brand-assets-page";
 import VerifyEmailPage from "@/pages/verify-email-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import ProfileSettingsPage from "@/pages/profile-settings-page";
 import RecruiterProfilePage from "@/pages/recruiter-profile-page";
 import { CookieConsent, AnalyticsOnConsent } from "@/components/CookieConsent";
@@ -68,6 +69,7 @@ function Router() {
       <Route path="/cookie-policy" component={CookiePolicyPage} />
       <Route path="/brand" component={BrandAssetsPage} />
       <Route path="/verify-email/:token" component={VerifyEmailPage} />
+      <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route path="/recruiters/:id" component={RecruiterProfilePage} />
       <Route path="/jobs" component={JobsPage} />
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'super_admin']} />
