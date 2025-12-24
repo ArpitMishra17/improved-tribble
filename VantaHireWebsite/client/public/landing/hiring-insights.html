@@ -935,7 +935,13 @@
         if (redirectTriggered) return; // Prevent multiple triggers
         redirectTriggered = true;
 
-        const pdfUrl = reportDownloads[reportId] || reportDownloads[defaultReport];
+        let pdfUrl = reportDownloads[reportId] || reportDownloads[defaultReport];
+
+        // Append UTM source to download URL for tracking
+        if (utmSource) {
+          pdfUrl += (pdfUrl.includes('?') ? '&' : '?') + 'utm_source=' + encodeURIComponent(utmSource);
+        }
+
         console.log('[VantaHire Landing] Success detected! Redirecting to:', pdfUrl);
         // Small delay so user sees the success message
         setTimeout(function() {
