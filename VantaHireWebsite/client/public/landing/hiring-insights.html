@@ -939,13 +939,39 @@
       }
 
       // Watch for successful submission and redirect to PDF
-      const observer = new MutationObserver(function () {
-        if (wrapper.classList.contains('mauticform-success')) {
-          const pdfUrl = reportDownloads[reportId] || reportDownloads.generic;
+      // Mautic signals success by: 1) adding .mauticform-success class, OR 2) showing message in .mauticform-message div
+      const messageDiv = document.getElementById('mauticform_vantahireinsights_message');
+      let redirectTriggered = false;
+
+      function triggerDownload() {
+        if (redirectTriggered) return; // Prevent multiple triggers
+        redirectTriggered = true;
+
+        const pdfUrl = reportDownloads[reportId] || reportDownloads.generic;
+        console.log('[VantaHire Landing] Success detected! Redirecting to:', pdfUrl);
+        // Small delay so user sees the success message
+        setTimeout(function() {
           window.location.href = pdfUrl;
+        }, 1500);
+      }
+
+      // Method 1: Watch for class change on wrapper
+      const classObserver = new MutationObserver(function () {
+        if (wrapper.classList.contains('mauticform-success')) {
+          triggerDownload();
         }
       });
-      observer.observe(wrapper, { attributes: true, attributeFilter: ['class'] });
+      classObserver.observe(wrapper, { attributes: true, attributeFilter: ['class'] });
+
+      // Method 2: Watch for content appearing in message div (Mautic shows "Thanks!" here)
+      if (messageDiv) {
+        const messageObserver = new MutationObserver(function () {
+          if (messageDiv.textContent.trim().length > 0) {
+            triggerDownload();
+          }
+        });
+        messageObserver.observe(messageDiv, { childList: true, characterData: true, subtree: true });
+      }
 
       console.log('[VantaHire Landing] Form wired up:', { reportId, utmSource });
       return true;
