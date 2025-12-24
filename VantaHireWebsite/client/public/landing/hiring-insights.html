@@ -891,33 +891,21 @@
 
     // 1) report_id -> label mapping
     const reportNames = {
-      onsite:      "Onsite vs Hybrid vs Remote Hiring Insights",
-      seniority:   "Seniority Distribution in Indian Tech Hiring",
-      experience:  "Experience Band Demand (3–5 Years, etc.)",
-      salary:      "Salary Benchmarks for Indian Tech Roles",
-      ai:          "AI Hiring Reality Check",
-      multiskill:  "Multi-Skilled Engineer Demand Trends",
-      generalist:  "Generalist Developer Hiring Trends",
-      roleskills:  "Role → Skill Expectations Report",
-      tech_salary: "Tech Salary Benchmarks in India"
+      india:  "Global vs India Hiring Reality Report 2026",
+      global: "Global Hiring Data 2026"
     };
 
-    // 2) report_id -> PDF URL (update paths when PDFs are ready)
+    // 2) report_id -> Mautic asset URL
     const reportDownloads = {
-      onsite:      "/reports/onsite_hybrid_remote.pdf",
-      seniority:   "/reports/seniority_distribution.pdf",
-      experience:  "/reports/experience_bands.pdf",
-      salary:      "/reports/salary_benchmarks.pdf",
-      ai:          "/reports/ai_hiring_reality.pdf",
-      multiskill:  "/reports/multiskill_engineers.pdf",
-      generalist:  "/reports/generalist_developers.pdf",
-      roleskills:  "/reports/role_skill_mapping.pdf",
-      tech_salary: "/reports/tech_salary_benchmarks.pdf",
-      generic:     "/reports/vantahire_insights.pdf"
+      india:  "https://mautic.evalmatch.app/asset/6:global-vs-india-hiring-reality-report-for-2026",
+      global: "https://mautic.evalmatch.app/asset/7:global-hiring-data-2026"
     };
+
+    // Default report if none specified
+    const defaultReport = "india";
 
     const params    = new URLSearchParams(window.location.search);
-    const reportId  = params.get('report_id')  || params.get('reportId')  || 'generic';
+    const reportId  = params.get('report_id')  || params.get('reportId')  || defaultReport;
     const utmSource = params.get('utm_source') || params.get('utmSource') || '';
 
     function wireUpFormOnce() {
@@ -935,7 +923,7 @@
       // Update visual label on page
       const labelEl = document.getElementById('report-label');
       if (labelEl) {
-        labelEl.textContent = reportNames[reportId] || "Hiring Insights Report";
+        labelEl.textContent = reportNames[reportId] || reportNames[defaultReport];
       }
 
       // Watch for successful submission and redirect to PDF
@@ -947,7 +935,7 @@
         if (redirectTriggered) return; // Prevent multiple triggers
         redirectTriggered = true;
 
-        const pdfUrl = reportDownloads[reportId] || reportDownloads.generic;
+        const pdfUrl = reportDownloads[reportId] || reportDownloads[defaultReport];
         console.log('[VantaHire Landing] Success detected! Redirecting to:', pdfUrl);
         // Small delay so user sees the success message
         setTimeout(function() {
