@@ -36,11 +36,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        // scriptSrc: Only allow unsafe directives in development
-        // Mautic form embed requires inline scripts and external script
+        // scriptSrc: Mautic form embed requires inline scripts for form handling
+        // 'unsafe-inline' needed in both dev and prod for Mautic form functionality
         scriptSrc: isDevelopment
           ? ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://assets.apollo.io", "https://mautic.evalmatch.app"]
-          : ["'self'", "https://assets.apollo.io", "https://mautic.evalmatch.app"],
+          : ["'self'", "'unsafe-inline'", "https://assets.apollo.io", "https://mautic.evalmatch.app"],
         // style: allow inline attributes for UI libraries (Radix/Popper). Some components also inject small <style> tags,
         // so allow inline element styles with 'unsafe-inline' to prevent layout breakage.
         styleSrc: isDevelopment
@@ -70,6 +70,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         objectSrc: ["'self'"],
         mediaSrc: ["'self'"],
         frameSrc: ["'self'", "https://mautic.evalmatch.app"],
+        // formAction: Allow form submissions to Mautic for lead capture forms
+        formAction: ["'self'", "https://mautic.evalmatch.app"],
       },
     },
   }));
