@@ -82,11 +82,24 @@ export function serveStatic(app: Express) {
   // Compute dirname in ESM
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const distPath = path.resolve(__dirname, "public");
+  const clientPublicPath = path.resolve(__dirname, "..", "client", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
+  }
+
+  // Serve static landing pages from client/public (e.g., /landing/hiring-insights.html)
+  // These bypass the SPA and are served directly as static HTML
+  if (fs.existsSync(clientPublicPath)) {
+    app.use(express.static(clientPublicPath, {
+      extensions: ['html'],
+      index: false,
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+      }
+    }));
   }
 
   // Cache policy: cache-bust hashed assets aggressively, but keep index.html no-cache
