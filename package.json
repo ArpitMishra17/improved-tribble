@@ -9,8 +9,10 @@
   "scripts": {
     "postinstall": "npm --prefix VantaHireWebsite ci --no-audit --no-fund || npm --prefix VantaHireWebsite install",
     "build": "npm --prefix VantaHireWebsite run build",
+    "db:migrate": "npm --prefix VantaHireWebsite run db:migrate",
     "start": "npm --prefix VantaHireWebsite run start",
+    "start:web": "npm --prefix VantaHireWebsite run start:web",
+    "start:worker": "npm --prefix VantaHireWebsite run start:worker",
     "dev": "npm --prefix VantaHireWebsite run dev"
   }
 }
-

@@ -267,14 +267,14 @@ export default function RecruiterAuth() {
                   <TabsContent value="login">
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="username" className="text-foreground">Username</Label>
+                        <Label htmlFor="email" className="text-foreground">Email</Label>
                         <Input
-                          id="username"
-                          type="text"
+                          id="email"
+                          type="email"
                           value={loginData.username}
                           onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
                           className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                          placeholder="Enter your username"
+                          placeholder="Enter your email"
                           required
                         />
                       </div>
@@ -329,26 +329,26 @@ export default function RecruiterAuth() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="regUsername" className="text-foreground">Username</Label>
+                        <Label htmlFor="regEmail" className="text-foreground">Email *</Label>
                         <Input
-                          id="regUsername"
-                          type="text"
+                          id="regEmail"
+                          type="email"
                           value={registerData.username}
                           onChange={(e) => setRegisterData(prev => ({ ...prev, username: e.target.value }))}
                           className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                          placeholder="Choose a username"
+                          placeholder="Enter your email address"
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="regPassword" className="text-foreground">Password</Label>
+                        <Label htmlFor="regPassword" className="text-foreground">Password *</Label>
                         <Input
                           id="regPassword"
                           type="password"
                           value={registerData.password}
                           onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
                           className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                          placeholder="Create a password"
+                          placeholder="Create a strong password"
                           required
                         />
                       </div>

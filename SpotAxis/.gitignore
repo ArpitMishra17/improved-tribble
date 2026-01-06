@@ -50,6 +50,13 @@ env/
 [Rr]elease/
 x64/
 build/
+
+# TLS certs / secrets (never commit)
+ssl/*.key
+ssl/*.pem
+ssl/*.crt
+ssl/*.csr
+ssl/*.pfx
 [Bb]in/
 [Oo]bj/
 
