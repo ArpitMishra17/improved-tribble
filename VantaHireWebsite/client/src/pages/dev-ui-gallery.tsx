@@ -8,7 +8,7 @@
  */
 
 import { useState } from "react";
-import { PageShell, PageHeader, Container, Section } from "@/components/layout";
+import { PageShell, PageHeader, Container, Section } from "@/components/layout/index";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";

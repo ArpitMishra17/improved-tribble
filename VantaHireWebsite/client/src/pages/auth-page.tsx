@@ -90,7 +90,7 @@ export default function AuthPage() {
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse-slow"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-info/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.2s' }}></div>
-        
+
         {/* Left Side - Auth Forms */}
         <div className={`flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative z-10 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className="w-full max-w-md">
@@ -175,12 +175,12 @@ export default function AuthPage() {
                           <Label htmlFor="login-username" className="text-foreground">Email</Label>
                           <Input
                             id="login-username"
-                            type="email"
+                            type="text"
                             value={loginData.username}
                             onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
                             required
                             className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                            placeholder="Enter your email"
+                            placeholder="Enter your username or email"
                           />
                         </div>
 
