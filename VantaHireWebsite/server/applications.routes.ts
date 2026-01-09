@@ -13,7 +13,7 @@
 
 import type { Express, Request, Response, NextFunction } from 'express';
 import type { Multer } from 'multer';
-import { sql, eq, and } from 'drizzle-orm';
+import { sql, eq, and, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from './db';
 import { storage } from './storage';
@@ -39,6 +39,7 @@ import {
   sendApplicationReceivedEmail,
   sendOfferEmail,
   sendRejectionEmail,
+  notifyRecruitersNewApplication,
 } from './emailTemplateService';
 import { generateInterviewICS, getICSFilename } from './lib/icsGenerator';
 import { extractResumeText, validateResumeText } from './lib/resumeExtractor';
@@ -211,57 +212,24 @@ export function registerApplicationsRoutes(
         sendApplicationReceivedEmail(application.id).catch(err => console.error('Application received email error:', err));
       }
 
-      // Send notification email to recruiter (if enabled)
+      // Send notification email to all recruiters on this job (if enabled)
       try {
         const shouldNotifyRecruiter = await storage.isAutomationEnabled('notify_recruiter_new_application');
         if (shouldNotifyRecruiter) {
-          const emailService = await getEmailService();
-          if (emailService) {
-            // Get the recruiter's email from job.postedBy (username is the email)
-            const recruiter = await storage.getUser(job.postedBy);
-            if (recruiter?.username) {
-              const applicationUrl = `${BASE_URL}/jobs/${job.id}/applications`;
-              const resumeUrl = `${BASE_URL}/api/applications/${application.id}/resume`;
-
-              await emailService.sendEmail({
-                to: recruiter.username,
-                subject: `New Application: ${application.name} applied for ${job.title}`,
-                html: `
-                  <h2>New Application Received</h2>
-                  <p>A new candidate has applied for your job posting.</p>
-
-                  <h3>Candidate Details</h3>
-                  <ul>
-                    <li><strong>Name:</strong> ${application.name}</li>
-                    <li><strong>Email:</strong> ${application.email}</li>
-                    <li><strong>Phone:</strong> ${application.phone || 'Not provided'}</li>
-                  </ul>
-
-                  <h3>Job Details</h3>
-                  <ul>
-                    <li><strong>Position:</strong> ${job.title}</li>
-                    <li><strong>Location:</strong> ${job.location}</li>
-                  </ul>
-
-                  ${application.coverLetter ? `<h3>Cover Letter</h3><p>${application.coverLetter}</p>` : ''}
-
-                  <p style="margin-top: 20px;">
-                    <a href="${applicationUrl}" style="background-color: #7B38FB; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                      View Application
-                    </a>
-                    &nbsp;&nbsp;
-                    <a href="${resumeUrl}" style="background-color: #6b7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                      Download Resume
-                    </a>
-                  </p>
-
-                  <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-                    This is an automated notification from VantaHire ATS.
-                  </p>
-                `,
-              });
+          notifyRecruitersNewApplication(
+            application.id,
+            job.id,
+            {
+              name: application.name,
+              email: application.email,
+              phone: application.phone,
+              coverLetter: application.coverLetter,
+            },
+            {
+              title: job.title,
+              location: job.location,
             }
-          }
+          ).catch(err => console.error('Failed to send recruiter notification:', err));
         }
       } catch (emailError) {
         console.error('Failed to send recruiter notification:', emailError);
@@ -309,14 +277,15 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        // Permission guard: Verify job ownership (recruiters must own job, admins bypass)
+        // Permission guard: Verify job access (primary recruiter, co-recruiter, or admin)
         const job = await storage.getJob(jobId);
         if (!job) {
           res.status(404).json({ error: 'Job not found' });
           return;
         }
 
-        if (req.user!.role === 'recruiter' && job.postedBy !== req.user!.id) {
+        const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: 'Access denied: You can only add candidates to your own jobs' });
           return;
         }
@@ -683,8 +652,9 @@ export function registerApplicationsRoutes(
       if (role === 'super_admin') {
         // allowed
       } else if (role === 'recruiter') {
-        const job = await storage.getJob(appRecord.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(appRecord.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: 'Access denied' });
           return;
         }
@@ -1410,8 +1380,9 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        const job = await storage.getJob(application.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(application.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: "Access denied" });
           return;
         }
@@ -1453,16 +1424,18 @@ export function registerApplicationsRoutes(
           applicationIds.map(id => storage.getApplication(parseInt(id)))
         );
 
-        const jobIds = applicationsList
-          .filter(app => app)
-          .map(app => app!.jobId);
+        const jobIds = Array.from(new Set(
+          applicationsList
+            .filter(app => app)
+            .map(app => app!.jobId)
+        ));
 
-        const jobs = await Promise.all(
-          jobIds.map(id => storage.getJob(id))
+        // Check access to each unique job (includes co-recruiters)
+        const accessChecks = await Promise.all(
+          jobIds.map(jobId => storage.isRecruiterOnJob(jobId, req.user!.id))
         );
 
-        const unauthorizedJob = jobs.find(job => !job || job.postedBy !== req.user!.id);
-        if (unauthorizedJob) {
+        if (accessChecks.includes(false)) {
           res.status(403).json({ error: "Access denied to one or more applications" });
           return;
         }
@@ -1507,8 +1480,9 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        const job = await storage.getJob(application.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(application.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: "Access denied" });
           return;
         }
@@ -1550,8 +1524,9 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        const job = await storage.getJob(application.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(application.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: "Access denied" });
           return;
         }
@@ -1625,10 +1600,30 @@ export function registerApplicationsRoutes(
     }
   });
 
-  // Get user's applications (bound to userId)
+  // Get user's applications (bound to userId, with email fallback for unclaimed applications)
   app.get("/api/my-applications", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applicationsList = await storage.getApplicationsByUserId(req.user!.id);
+      // Pass user's email to also find unclaimed applications that match by email
+      const applicationsList = await storage.getApplicationsByUserId(req.user!.id, req.user!.username);
+
+      // Claim-on-read: if any applications were found by email but not yet claimed, claim them now
+      // This ensures subsequent actions (withdraw, etc.) work properly
+      const unclaimedIds = applicationsList
+        .filter(app => app.userId === null || app.userId === undefined)
+        .map(app => app.id);
+
+      if (unclaimedIds.length > 0) {
+        await db
+          .update(applications)
+          .set({ userId: req.user!.id })
+          .where(
+            and(
+              inArray(applications.id, unclaimedIds),
+              sql`${applications.userId} IS NULL`
+            )
+          );
+      }
+
       res.json(applicationsList);
       return;
     } catch (error) {

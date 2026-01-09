@@ -21,6 +21,9 @@ import {
   formInvitations,
   forms,
   formResponses,
+  hiringManagerInvitations,
+  jobRecruiters,
+  coRecruiterInvitations,
   type User,
   type InsertUser,
   type ContactSubmission,
@@ -52,6 +55,9 @@ import {
   type TalentPool,
   type InsertTalentPool,
   type FormInvitation,
+  type HiringManagerInvitation,
+  type JobRecruiter,
+  type CoRecruiterInvitation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, sql, or, inArray, count } from "drizzle-orm";
@@ -147,7 +153,7 @@ export interface IStorage {
   createUserProfile(profile: InsertUserProfile & { userId: number }): Promise<UserProfile>;
   updateUserProfile(userId: number, profile: Partial<InsertUserProfile>): Promise<UserProfile | undefined>;
   getApplicationsByEmail(email: string): Promise<(Application & { job: Job })[]>;
-  getApplicationsByUserId(userId: number): Promise<(Application & { job: Job })[]>;
+  getApplicationsByUserId(userId: number, userEmail?: string): Promise<(Application & { job: Job })[]>;
   withdrawApplication(applicationId: number, userId: number): Promise<boolean>;
   getRecruiterApplications(recruiterId: number): Promise<(Application & { job: Job; feedbackCount?: number })[]>;
   claimApplicationsForUser(userId: number, username: string): Promise<number>;
@@ -240,6 +246,46 @@ export interface IStorage {
     aiFitLabel: string | null;
     currentStage: number | null;
   }>>;
+
+  // Hiring Manager Invitation operations
+  createHiringManagerInvitation(data: {
+    email: string;
+    name?: string;
+    tokenHash: string;
+    invitedBy: number;
+    inviterName: string;
+    expiresAt: Date;
+  }): Promise<HiringManagerInvitation>;
+  getHiringManagerInvitationByToken(tokenHash: string): Promise<HiringManagerInvitation | undefined>;
+  getHiringManagerInvitationByEmail(email: string, status?: string): Promise<HiringManagerInvitation | undefined>;
+  getPendingHiringManagerInvitations(invitedBy?: number): Promise<HiringManagerInvitation[]>;
+  markHiringManagerInvitationAccepted(id: number): Promise<HiringManagerInvitation | undefined>;
+  deleteHiringManagerInvitation(id: number): Promise<boolean>;
+  invalidateHiringManagerInvitation(id: number): Promise<boolean>;
+
+  // Job Recruiters operations (co-recruiters)
+  addJobRecruiter(jobId: number, recruiterId: number, addedBy: number): Promise<JobRecruiter>;
+  removeJobRecruiter(jobId: number, recruiterId: number): Promise<boolean>;
+  getJobRecruiters(jobId: number): Promise<User[]>;
+  isRecruiterOnJob(jobId: number, userId: number): Promise<boolean>;
+
+  // Co-Recruiter Invitation operations
+  createCoRecruiterInvitation(data: {
+    jobId: number;
+    email: string;
+    tokenHash: string;
+    invitedBy: number;
+    inviterName: string;
+    jobTitle: string;
+    expiresAt: Date;
+  }): Promise<CoRecruiterInvitation>;
+  getCoRecruiterInvitationByToken(tokenHash: string): Promise<CoRecruiterInvitation | undefined>;
+  getCoRecruiterInvitationByEmail(email: string, jobId: number): Promise<CoRecruiterInvitation | undefined>;
+  getCoRecruiterInvitation(id: number): Promise<CoRecruiterInvitation | undefined>;
+  getPendingCoRecruiterInvitations(jobId: number): Promise<CoRecruiterInvitation[]>;
+  updateCoRecruiterInvitationStatus(id: number, status: string): Promise<CoRecruiterInvitation | undefined>;
+  markCoRecruiterInvitationAccepted(id: number): Promise<CoRecruiterInvitation | undefined>;
+  deleteCoRecruiterInvitation(id: number): Promise<boolean>;
 }
 
 // Database storage implementation using Drizzle ORM
@@ -573,6 +619,14 @@ export class DatabaseStorage implements IStorage {
       .insert(jobs)
       .values(jobData)
       .returning();
+
+    // Auto-insert primary recruiter into job_recruiters for easy querying
+    await db.insert(jobRecruiters).values({
+      jobId: result.id,
+      recruiterId: job.postedBy,
+      addedBy: job.postedBy,
+    }).onConflictDoNothing();
+
     return result;
   }
   
@@ -786,6 +840,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getJobsByUser(userId: number): Promise<(Job & { applicationCount: number; hiringManager?: { id: number; firstName: string | null; lastName: string | null; username: string }; clientName?: string | null })[]> {
+    // Include jobs where user is primary (postedBy) OR co-recruiter (in job_recruiters)
     const results = await db
       .select({
         job: jobs,
@@ -802,7 +857,13 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(applications, eq(applications.jobId, jobs.id))
       .leftJoin(users, eq(jobs.hiringManagerId, users.id))
       .leftJoin(clients, eq(jobs.clientId, clients.id))
-      .where(eq(jobs.postedBy, userId))
+      .leftJoin(jobRecruiters, eq(jobRecruiters.jobId, jobs.id))
+      .where(
+        or(
+          eq(jobs.postedBy, userId),
+          eq(jobRecruiters.recruiterId, userId)
+        )
+      )
       .groupBy(jobs.id, users.id, users.firstName, users.lastName, users.username, clients.id, clients.name)
       .orderBy(desc(jobs.createdAt));
 
@@ -1090,11 +1151,23 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async getApplicationsByUserId(userId: number): Promise<(Application & { job: Job })[]> {
+  async getApplicationsByUserId(userId: number, userEmail?: string): Promise<(Application & { job: Job })[]> {
+    // Build WHERE clause: match by userId OR by email (for unclaimed applications)
+    const whereClause = userEmail
+      ? or(
+          eq(applications.userId, userId),
+          and(
+            sql`${applications.userId} IS NULL`,
+            sql`LOWER(${applications.email}) = LOWER(${userEmail})`
+          )
+        )
+      : eq(applications.userId, userId);
+
     const results = await db
       .select({
         id: applications.id,
         jobId: applications.jobId,
+        userId: applications.userId,
         name: applications.name,
         email: applications.email,
         phone: applications.phone,
@@ -1139,7 +1212,7 @@ export class DatabaseStorage implements IStorage {
       .from(applications)
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
       .leftJoin(pipelineStages, eq(applications.currentStage, pipelineStages.id))
-      .where(eq(applications.userId, userId))
+      .where(whereClause)
       .orderBy(desc(applications.appliedAt));
 
     return results.map((result: any) => ({
@@ -1210,7 +1283,13 @@ export class DatabaseStorage implements IStorage {
       .from(applications)
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
       .leftJoin(applicationFeedback, eq(applicationFeedback.applicationId, applications.id))
-      .where(eq(jobs.postedBy, recruiterId))
+      .leftJoin(jobRecruiters, eq(jobRecruiters.jobId, jobs.id))
+      .where(
+        or(
+          eq(jobs.postedBy, recruiterId),
+          eq(jobRecruiters.recruiterId, recruiterId)
+        )
+      )
       .groupBy(applications.id, jobs.id)
       .orderBy(desc(applications.appliedAt));
 
@@ -1678,7 +1757,14 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(clients, eq(jobs.clientId, clients.id));
 
     if (userId) {
-      query = query.where(eq(jobs.postedBy, userId)) as any;
+      // Include jobs where user is primary (postedBy) OR co-recruiter (in job_recruiters)
+      const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, userId));
+      query = query.where(
+        or(
+          eq(jobs.postedBy, userId),
+          inArray(jobs.id, coRecruiterJobIds)
+        )
+      ) as any;
     }
 
     const results = await query.orderBy(desc(jobs.createdAt));
@@ -1710,7 +1796,14 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(applications, eq(applications.jobId, jobs.id));
 
     if (userId) {
-      query = query.where(eq(jobs.postedBy, userId)) as any;
+      // Include jobs where user is primary (postedBy) OR co-recruiter (in job_recruiters)
+      const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, userId));
+      query = query.where(
+        or(
+          eq(jobs.postedBy, userId),
+          inArray(jobs.id, coRecruiterJobIds)
+        )
+      ) as any;
     }
 
     const rows = await query
@@ -1816,7 +1909,14 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(jobs, eq(applications.jobId, jobs.id));
 
     if (userId) {
-      query = query.where(eq(jobs.postedBy, userId)) as any;
+      // Include jobs where user is primary (postedBy) OR co-recruiter (in job_recruiters)
+      const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, userId));
+      query = query.where(
+        or(
+          eq(jobs.postedBy, userId),
+          inArray(jobs.id, coRecruiterJobIds)
+        )
+      ) as any;
     }
 
     const rows = await query;
@@ -1894,7 +1994,14 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(applications, eq(applications.jobId, jobs.id));
 
     if (userId) {
-      query = query.where(eq(jobs.postedBy, userId)) as any;
+      // Include jobs where user is primary (postedBy) OR co-recruiter (in job_recruiters)
+      const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, userId));
+      query = query.where(
+        or(
+          eq(jobs.postedBy, userId),
+          inArray(jobs.id, coRecruiterJobIds)
+        )
+      ) as any;
     }
 
     const rows = await query
@@ -2196,7 +2303,11 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(jobs, eq(applications.jobId, jobs.id))
       .where(
         and(
-          eq(jobs.postedBy, recruiterId),
+          // Include jobs where recruiter is primary OR co-recruiter
+          or(
+            eq(jobs.postedBy, recruiterId),
+            inArray(jobs.id, db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, recruiterId)))
+          ),
           sql`${jobs.id} <> ${jobId}`,
           sql`${applications.aiFitScore} IS NOT NULL AND ${applications.aiFitScore} >= ${minFit}`,
           job.skills && job.skills.length > 0
@@ -2283,7 +2394,9 @@ export class DatabaseStorage implements IStorage {
     }
 
     const job = await this.getJob(jobId);
-    if (!job || job.postedBy !== recruiterId) {
+    // Use isRecruiterOnJob to check access (includes co-recruiters)
+    const hasAccess = await this.isRecruiterOnJob(jobId, recruiterId);
+    if (!job || !hasAccess) {
       return undefined;
     }
 
@@ -2419,6 +2532,247 @@ export class DatabaseStorage implements IStorage {
     }).returning();
 
     return { type: 'talent_pool', id: talentPoolEntry.id };
+  }
+
+  // Hiring Manager Invitation methods
+  async createHiringManagerInvitation(data: {
+    email: string;
+    name?: string;
+    tokenHash: string;
+    invitedBy: number;
+    inviterName: string;
+    expiresAt: Date;
+  }): Promise<HiringManagerInvitation> {
+    const [invitation] = await db.insert(hiringManagerInvitations).values({
+      email: data.email.toLowerCase(),
+      name: data.name || null,
+      token: data.tokenHash,
+      invitedBy: data.invitedBy,
+      inviterName: data.inviterName,
+      expiresAt: data.expiresAt,
+      status: 'pending',
+    }).returning();
+    return invitation;
+  }
+
+  async getHiringManagerInvitationByToken(tokenHash: string): Promise<HiringManagerInvitation | undefined> {
+    const [invitation] = await db.select()
+      .from(hiringManagerInvitations)
+      .where(eq(hiringManagerInvitations.token, tokenHash));
+    return invitation || undefined;
+  }
+
+  async getHiringManagerInvitationByEmail(email: string, status?: string): Promise<HiringManagerInvitation | undefined> {
+    const conditions = [eq(hiringManagerInvitations.email, email.toLowerCase())];
+    if (status) {
+      conditions.push(eq(hiringManagerInvitations.status, status));
+    }
+    const [invitation] = await db.select()
+      .from(hiringManagerInvitations)
+      .where(and(...conditions))
+      .orderBy(desc(hiringManagerInvitations.createdAt));
+    return invitation || undefined;
+  }
+
+  async getPendingHiringManagerInvitations(invitedBy?: number): Promise<HiringManagerInvitation[]> {
+    const conditions = [eq(hiringManagerInvitations.status, 'pending')];
+    if (invitedBy !== undefined) {
+      conditions.push(eq(hiringManagerInvitations.invitedBy, invitedBy));
+    }
+    return await db.select()
+      .from(hiringManagerInvitations)
+      .where(and(...conditions))
+      .orderBy(desc(hiringManagerInvitations.createdAt));
+  }
+
+  async markHiringManagerInvitationAccepted(id: number): Promise<HiringManagerInvitation | undefined> {
+    const [updated] = await db.update(hiringManagerInvitations)
+      .set({
+        status: 'accepted',
+        acceptedAt: new Date(),
+      })
+      .where(eq(hiringManagerInvitations.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteHiringManagerInvitation(id: number): Promise<boolean> {
+    const result = await db.delete(hiringManagerInvitations)
+      .where(eq(hiringManagerInvitations.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async invalidateHiringManagerInvitation(id: number): Promise<boolean> {
+    const result = await db.update(hiringManagerInvitations)
+      .set({ status: 'expired' })
+      .where(eq(hiringManagerInvitations.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // ===== Job Recruiters (Co-Recruiters) =====
+  async addJobRecruiter(jobId: number, recruiterId: number, addedBy: number): Promise<JobRecruiter> {
+    const [recruiter] = await db.insert(jobRecruiters).values({
+      jobId,
+      recruiterId,
+      addedBy,
+    }).onConflictDoNothing().returning();
+
+    // If conflict (already exists), fetch and return existing
+    if (!recruiter) {
+      const [existing] = await db.select()
+        .from(jobRecruiters)
+        .where(and(
+          eq(jobRecruiters.jobId, jobId),
+          eq(jobRecruiters.recruiterId, recruiterId)
+        ));
+      return existing;
+    }
+    return recruiter;
+  }
+
+  async removeJobRecruiter(jobId: number, recruiterId: number): Promise<boolean> {
+    // Guard: cannot remove primary recruiter (check job.postedBy)
+    const job = await this.getJob(jobId);
+    if (job && job.postedBy === recruiterId) {
+      return false; // Cannot remove primary recruiter
+    }
+
+    const result = await db.delete(jobRecruiters)
+      .where(and(
+        eq(jobRecruiters.jobId, jobId),
+        eq(jobRecruiters.recruiterId, recruiterId)
+      ));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getJobRecruiters(jobId: number): Promise<User[]> {
+    const results = await db.select({
+      id: users.id,
+      username: users.username,
+      password: users.password,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      role: users.role,
+      emailVerified: users.emailVerified,
+      emailVerificationToken: users.emailVerificationToken,
+      emailVerificationExpires: users.emailVerificationExpires,
+      passwordResetToken: users.passwordResetToken,
+      passwordResetExpires: users.passwordResetExpires,
+      aiContentFreeUsed: users.aiContentFreeUsed,
+      aiOnboardedAt: users.aiOnboardedAt,
+    })
+      .from(jobRecruiters)
+      .innerJoin(users, eq(jobRecruiters.recruiterId, users.id))
+      .where(eq(jobRecruiters.jobId, jobId));
+    return results;
+  }
+
+  async isRecruiterOnJob(jobId: number, userId: number): Promise<boolean> {
+    // Check both job_recruiters table AND jobs.postedBy for backward compatibility
+    // Also allow super_admin
+    const user = await this.getUser(userId);
+    if (user?.role === 'super_admin') return true;
+
+    // Check primary recruiter (jobs.postedBy)
+    const job = await this.getJob(jobId);
+    if (job?.postedBy === userId) return true;
+
+    // Check job_recruiters table
+    const [result] = await db.select({ count: count() })
+      .from(jobRecruiters)
+      .where(and(
+        eq(jobRecruiters.jobId, jobId),
+        eq(jobRecruiters.recruiterId, userId)
+      ));
+    return (result?.count ?? 0) > 0;
+  }
+
+  // ===== Co-Recruiter Invitations =====
+  async createCoRecruiterInvitation(data: {
+    jobId: number;
+    email: string;
+    tokenHash: string;
+    invitedBy: number;
+    inviterName: string;
+    jobTitle: string;
+    expiresAt: Date;
+  }): Promise<CoRecruiterInvitation> {
+    const [invitation] = await db.insert(coRecruiterInvitations).values({
+      jobId: data.jobId,
+      email: data.email.toLowerCase(),
+      token: data.tokenHash,
+      invitedBy: data.invitedBy,
+      inviterName: data.inviterName,
+      jobTitle: data.jobTitle,
+      expiresAt: data.expiresAt,
+      status: 'pending',
+    }).returning();
+    return invitation;
+  }
+
+  async getCoRecruiterInvitationByToken(tokenHash: string): Promise<CoRecruiterInvitation | undefined> {
+    const [invitation] = await db.select()
+      .from(coRecruiterInvitations)
+      .where(eq(coRecruiterInvitations.token, tokenHash));
+    return invitation || undefined;
+  }
+
+  async getCoRecruiterInvitationByEmail(email: string, jobId: number): Promise<CoRecruiterInvitation | undefined> {
+    const [invitation] = await db.select()
+      .from(coRecruiterInvitations)
+      .where(and(
+        eq(coRecruiterInvitations.email, email.toLowerCase()),
+        eq(coRecruiterInvitations.jobId, jobId),
+        eq(coRecruiterInvitations.status, 'pending')
+      ))
+      .orderBy(desc(coRecruiterInvitations.createdAt));
+    return invitation || undefined;
+  }
+
+  async getCoRecruiterInvitation(id: number): Promise<CoRecruiterInvitation | undefined> {
+    const [invitation] = await db.select()
+      .from(coRecruiterInvitations)
+      .where(eq(coRecruiterInvitations.id, id));
+    return invitation || undefined;
+  }
+
+  async getPendingCoRecruiterInvitations(jobId: number): Promise<CoRecruiterInvitation[]> {
+    return await db.select()
+      .from(coRecruiterInvitations)
+      .where(and(
+        eq(coRecruiterInvitations.jobId, jobId),
+        eq(coRecruiterInvitations.status, 'pending')
+      ))
+      .orderBy(desc(coRecruiterInvitations.createdAt));
+  }
+
+  async updateCoRecruiterInvitationStatus(id: number, status: string): Promise<CoRecruiterInvitation | undefined> {
+    const updates: { status: string; acceptedAt?: Date } = { status };
+    if (status === 'accepted') {
+      updates.acceptedAt = new Date();
+    }
+    const [updated] = await db.update(coRecruiterInvitations)
+      .set(updates)
+      .where(eq(coRecruiterInvitations.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async markCoRecruiterInvitationAccepted(id: number): Promise<CoRecruiterInvitation | undefined> {
+    const [updated] = await db.update(coRecruiterInvitations)
+      .set({
+        status: 'accepted',
+        acceptedAt: new Date(),
+      })
+      .where(eq(coRecruiterInvitations.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteCoRecruiterInvitation(id: number): Promise<boolean> {
+    const result = await db.delete(coRecruiterInvitations)
+      .where(eq(coRecruiterInvitations.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

@@ -16,6 +16,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { JobSubNav } from "@/components/JobSubNav";
 import { PageHeaderSkeleton } from "@/components/skeletons";
+import { CoRecruiterManagement } from "@/components/CoRecruiterManagement";
 
 export default function JobEditPage() {
   const [match, params] = useRoute("/jobs/:id/edit");
@@ -219,6 +220,9 @@ export default function JobEditPage() {
               </form>
             </CardContent>
           </Card>
+
+          {/* Co-Recruiter Management */}
+          <CoRecruiterManagement jobId={jobId!} className="shadow-sm" />
         </div>
       </div>
     </Layout>

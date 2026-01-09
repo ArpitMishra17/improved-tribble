@@ -133,6 +133,52 @@ VantaHire Recruitment Team`,
       templateType: 'rejection',
       isDefault: true,
     },
+    {
+      name: 'Co-Recruiter Invitation',
+      subject: "You're invited to collaborate on \"{{job_title}}\"",
+      body: `{{greeting}}
+
+{{inviter_name}} has invited you to collaborate as a co-recruiter on the job posting:
+
+📋 {{job_title}}
+
+As a co-recruiter, you'll have full access to:
+• View and manage all applications for this job
+• Update candidate stages and statuses
+• Send forms and emails to candidates
+• Access job analytics and reports
+
+Click the link below to accept your invitation:
+{{accept_url}}
+
+This invitation expires in {{expiry_days}} days.
+
+If you didn't expect this invitation, you can safely ignore this email.
+
+Best regards,
+VantaHire Team`,
+      templateType: 'co_recruiter_invitation',
+      isDefault: true,
+    },
+    {
+      name: 'Co-Recruiter Added Notification',
+      subject: "You've been added as a co-recruiter on \"{{job_title}}\"",
+      body: `{{greeting}}
+
+{{inviter_name}} has added you as a co-recruiter on the job posting:
+
+📋 {{job_title}}
+
+You now have full access to manage applications and collaborate on this hiring process.
+
+Login to view the job dashboard:
+{{dashboard_url}}
+
+Best regards,
+VantaHire Team`,
+      templateType: 'co_recruiter_added',
+      isDefault: true,
+    },
   ];
 
   for (const template of defaultTemplates) {

@@ -12,7 +12,7 @@ import type { Express, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { storage } from './storage';
 import { requireAuth, requireRole } from './auth';
-import { insertJobSchema, applications, applicationStageHistory, jobs, pipelineStages, users } from '@shared/schema';
+import { insertJobSchema, applications, applicationStageHistory, jobs, pipelineStages, users, jobRecruiters } from '@shared/schema';
 import { getHiringMetrics } from './lib/analyticsHelper';
 import {
   analyzeJobDescription,
@@ -24,7 +24,7 @@ import {
 import { aiAnalysisRateLimit, jobPostingRateLimit } from './rateLimit';
 import type { CsrfMiddleware } from './types/routes';
 import { db } from './db';
-import { and, eq, gte, lte, inArray } from 'drizzle-orm';
+import { and, eq, gte, lte, inArray, or } from 'drizzle-orm';
 
 /**
  * Register all job-related routes
@@ -172,8 +172,9 @@ export function registerJobsRoutes(
         return;
       }
 
-      // Non-admins can only edit their own jobs
-      if (req.user!.role !== 'super_admin' && existingJob.postedBy !== req.user!.id) {
+      // Verify user has access (primary recruiter, co-recruiter, or super_admin)
+      const hasAccess = await storage.isRecruiterOnJob(existingJob.id, req.user!.id);
+      if (!hasAccess) {
         res.status(403).json({ error: 'Access denied' });
         return;
       }
@@ -255,10 +256,16 @@ export function registerJobsRoutes(
         return;
       }
 
-      // Verify job exists
+      // Verify job exists and user has access
       const job = await storage.getJob(jobId);
       if (!job) {
         res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: 'Access denied' });
         return;
       }
 
@@ -299,6 +306,13 @@ export function registerJobsRoutes(
 
       if (typeof isActive !== 'boolean') {
         res.status(400).json({ error: 'isActive must be a boolean' });
+        return;
+      }
+
+      // Verify user has access to this job
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: 'Access denied' });
         return;
       }
 
@@ -440,13 +454,11 @@ export function registerJobsRoutes(
         return;
       }
 
-      // Verify ownership if not admin
-      if (req.user!.role !== 'super_admin') {
-        const job = await storage.getJob(jobId);
-        if (!job || job.postedBy !== req.user!.id) {
-          res.status(403).json({ error: "Access denied" });
-          return;
-        }
+      // Verify user has access (primary recruiter, co-recruiter, or super_admin)
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: "Access denied" });
+        return;
       }
 
       const analytics = await storage.getJobAnalytics(jobId);
@@ -567,7 +579,11 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applications.appliedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applications.appliedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        whereClauses.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let appsQuery = db
         .select({
@@ -643,7 +659,11 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applications.appliedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applications.appliedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        whereClauses.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let sourceQuery = db
         .select({
@@ -737,7 +757,11 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applicationStageHistory.changedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applicationStageHistory.changedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        whereClauses.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let historyQuery = db
         .select({
@@ -845,10 +869,14 @@ export function registerJobsRoutes(
         if (!Number.isNaN(idNum) && idNum > 0) parsedJobId = idNum;
       }
 
-      // Scoped jobs for current user (recruiter sees own jobs only)
+      // Scoped jobs for current user (recruiter sees own or co-recruited jobs)
       const jobFilters: any[] = [];
       if (parsedJobId) jobFilters.push(eq(jobs.id, parsedJobId));
-      if (req.user!.role !== 'super_admin') jobFilters.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        jobFilters.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let jobsQuery = db
         .select({

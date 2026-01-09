@@ -22,6 +22,8 @@ import { registerCommunicationsRoutes } from "./communications.routes";
 import { registerResumeRoutes } from "./resume.routes";
 import { registerProfileRoutes } from "./profile.routes";
 import { registerTalentPoolRoutes } from "./talent-pool.routes";
+import { registerHiringManagerInvitationRoutes } from "./hiringManagerInvitations.routes";
+import { registerCoRecruiterInvitationRoutes } from "./coRecruiterInvitations.routes";
 import { doubleCsrfProtection as csrfProtectionModule, generateToken as generateTokenModule } from "./csrf";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -393,6 +395,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register talent pool routes (manage external candidates)
   registerTalentPoolRoutes(app);
+
+  // Register hiring manager invitation routes
+  registerHiringManagerInvitationRoutes(app, doubleCsrfProtection);
+
+  // Register co-recruiter invitation routes
+  registerCoRecruiterInvitationRoutes(app, doubleCsrfProtection);
 
   // Register AI matching routes (resume library + fit scoring)
   registerAIRoutes(app);

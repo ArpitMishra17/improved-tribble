@@ -44,6 +44,9 @@ import VerifyEmailPage from "@/pages/verify-email-page";
 import ResetPasswordPage from "@/pages/reset-password-page";
 import ProfileSettingsPage from "@/pages/profile-settings-page";
 import RecruiterProfilePage from "@/pages/recruiter-profile-page";
+import RegisterHiringManager from "@/pages/register-hiring-manager";
+import AcceptCoRecruiter from "@/pages/accept-co-recruiter";
+import RegisterCoRecruiter from "@/pages/register-co-recruiter";
 import { CookieConsent, AnalyticsOnConsent } from "@/components/CookieConsent";
 import { lazy, Suspense } from "react";
 
@@ -70,6 +73,9 @@ function Router() {
       <Route path="/brand" component={BrandAssetsPage} />
       <Route path="/verify-email/:token" component={VerifyEmailPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
+      <Route path="/register-hiring-manager/:token" component={RegisterHiringManager} />
+      <Route path="/accept-co-recruiter/:token" component={AcceptCoRecruiter} />
+      <Route path="/register-co-recruiter/:token" component={RegisterCoRecruiter} />
       <Route path="/recruiters/:id" component={RecruiterProfilePage} />
       <Route path="/jobs" component={JobsPage} />
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'super_admin']} />

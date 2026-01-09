@@ -778,6 +778,72 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;`);
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE;`);
 
+  // Hiring Manager Invitations: Create table for inviting hiring managers
+  console.log('  Creating hiring_manager_invitations table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS hiring_manager_invitations (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      name TEXT,
+      token TEXT NOT NULL,
+      invited_by INTEGER NOT NULL REFERENCES users(id),
+      inviter_name TEXT,
+      expires_at TIMESTAMP NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      accepted_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Hiring Manager Invitations: Create indexes
+  console.log('  Creating hiring_manager_invitations indexes...');
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS hm_invitations_email_idx ON hiring_manager_invitations(email);`);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS hm_invitations_token_idx ON hiring_manager_invitations(token);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS hm_invitations_invited_by_idx ON hiring_manager_invitations(invited_by);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS hm_invitations_status_idx ON hiring_manager_invitations(status);`);
+
+  // Job Recruiters: Many-to-many table for co-recruiters on jobs
+  console.log('  Creating job_recruiters table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS job_recruiters (
+      id SERIAL PRIMARY KEY,
+      job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      recruiter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      added_by INTEGER REFERENCES users(id),
+      added_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Job Recruiters: Create indexes
+  console.log('  Creating job_recruiters indexes...');
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS job_recruiter_unique_idx ON job_recruiters(job_id, recruiter_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS job_recruiters_job_idx ON job_recruiters(job_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS job_recruiters_recruiter_idx ON job_recruiters(recruiter_id);`);
+
+  // Co-Recruiter Invitations: Invite recruiters to collaborate on jobs
+  console.log('  Creating co_recruiter_invitations table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS co_recruiter_invitations (
+      id SERIAL PRIMARY KEY,
+      job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      token TEXT NOT NULL,
+      invited_by INTEGER NOT NULL REFERENCES users(id),
+      inviter_name TEXT,
+      job_title TEXT,
+      expires_at TIMESTAMP NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      accepted_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Co-Recruiter Invitations: Create indexes
+  console.log('  Creating co_recruiter_invitations indexes...');
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS co_recruiter_invite_token_idx ON co_recruiter_invitations(token);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS co_recruiter_invite_job_email_idx ON co_recruiter_invitations(job_id, email);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS co_recruiter_invite_status_idx ON co_recruiter_invitations(status);`);
+
   });
 
   console.log('✅ ATS schema ready');

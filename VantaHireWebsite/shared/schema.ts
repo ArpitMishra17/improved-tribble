@@ -466,6 +466,57 @@ export const talentPool = pgTable("talent_pool", {
   createdAtIdx: index("talent_pool_created_at_idx").on(table.createdAt),
 }));
 
+// Hiring Manager Invitations: Invite hiring managers via email
+export const hiringManagerInvitations = pgTable("hiring_manager_invitations", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  name: text("name"), // Optional invitee name
+  token: text("token").notNull(), // SHA256 hashed token
+  invitedBy: integer("invited_by").notNull().references(() => users.id),
+  inviterName: text("inviter_name"), // Denormalized for email template
+  expiresAt: timestamp("expires_at").notNull(), // 7 days default
+  status: text("status").notNull().default('pending'), // 'pending', 'accepted', 'expired'
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  emailIdx: index("hm_invitations_email_idx").on(table.email),
+  tokenIdx: uniqueIndex("hm_invitations_token_idx").on(table.token),
+  invitedByIdx: index("hm_invitations_invited_by_idx").on(table.invitedBy),
+  statusIdx: index("hm_invitations_status_idx").on(table.status),
+}));
+
+// Job Recruiters: Many-to-many relationship for co-recruiters on jobs
+export const jobRecruiters = pgTable("job_recruiters", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  recruiterId: integer("recruiter_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  addedBy: integer("added_by").references(() => users.id),
+  addedAt: timestamp("added_at").defaultNow().notNull(),
+}, (table) => ({
+  jobRecruiterUnique: uniqueIndex("job_recruiter_unique_idx").on(table.jobId, table.recruiterId),
+  jobIdx: index("job_recruiters_job_idx").on(table.jobId),
+  recruiterIdx: index("job_recruiters_recruiter_idx").on(table.recruiterId),
+}));
+
+// Co-Recruiter Invitations: Invite recruiters to collaborate on jobs
+export const coRecruiterInvitations = pgTable("co_recruiter_invitations", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => jobs.id, { onDelete: 'cascade' }),
+  email: text("email").notNull(),
+  token: text("token").notNull(), // SHA256 hashed
+  invitedBy: integer("invited_by").notNull().references(() => users.id),
+  inviterName: text("inviter_name"), // Denormalized for email template
+  jobTitle: text("job_title"), // Denormalized for email template
+  expiresAt: timestamp("expires_at").notNull(), // 7 days default
+  status: text("status").notNull().default('pending'), // 'pending', 'accepted', 'expired'
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  tokenIdx: uniqueIndex("co_recruiter_invite_token_idx").on(table.token),
+  jobEmailIdx: index("co_recruiter_invite_job_email_idx").on(table.jobId, table.email), // Composite for getByEmail
+  statusIdx: index("co_recruiter_invite_status_idx").on(table.status),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   jobs: many(jobs),
@@ -743,6 +794,39 @@ export const candidateResumesRelations = relations(candidateResumes, ({ one, man
 export const userAiUsageRelations = relations(userAiUsage, ({ one }) => ({
   user: one(users, {
     fields: [userAiUsage.userId],
+    references: [users.id],
+  }),
+}));
+
+export const hiringManagerInvitationsRelations = relations(hiringManagerInvitations, ({ one }) => ({
+  invitedByUser: one(users, {
+    fields: [hiringManagerInvitations.invitedBy],
+    references: [users.id],
+  }),
+}));
+
+export const jobRecruitersRelations = relations(jobRecruiters, ({ one }) => ({
+  job: one(jobs, {
+    fields: [jobRecruiters.jobId],
+    references: [jobs.id],
+  }),
+  recruiter: one(users, {
+    fields: [jobRecruiters.recruiterId],
+    references: [users.id],
+  }),
+  addedByUser: one(users, {
+    fields: [jobRecruiters.addedBy],
+    references: [users.id],
+  }),
+}));
+
+export const coRecruiterInvitationsRelations = relations(coRecruiterInvitations, ({ one }) => ({
+  job: one(jobs, {
+    fields: [coRecruiterInvitations.jobId],
+    references: [jobs.id],
+  }),
+  invitedByUser: one(users, {
+    fields: [coRecruiterInvitations.invitedBy],
     references: [users.id],
   }),
 }));
@@ -1107,3 +1191,30 @@ export const insertAutomationEventSchema = z.object({
 
 export type AutomationEvent = typeof automationEvents.$inferSelect;
 export type InsertAutomationEvent = z.infer<typeof insertAutomationEventSchema>;
+
+// Hiring Manager Invitations: Insert schemas and types
+export const insertHiringManagerInvitationSchema = z.object({
+  email: z.string().email().max(255),
+  name: z.string().max(100).optional(),
+});
+
+export type HiringManagerInvitation = typeof hiringManagerInvitations.$inferSelect;
+export type InsertHiringManagerInvitation = z.infer<typeof insertHiringManagerInvitationSchema>;
+
+// Job Recruiters: Insert schemas and types
+export const insertJobRecruiterSchema = z.object({
+  jobId: z.number().int().positive(),
+  recruiterId: z.number().int().positive(),
+});
+
+export type JobRecruiter = typeof jobRecruiters.$inferSelect;
+export type InsertJobRecruiter = z.infer<typeof insertJobRecruiterSchema>;
+
+// Co-Recruiter Invitations: Insert schemas and types
+export const insertCoRecruiterInvitationSchema = z.object({
+  jobId: z.number().int().positive(),
+  email: z.string().email().max(255),
+});
+
+export type CoRecruiterInvitation = typeof coRecruiterInvitations.$inferSelect;
+export type InsertCoRecruiterInvitation = z.infer<typeof insertCoRecruiterInvitationSchema>;
