@@ -226,6 +226,51 @@ export const tourConfigs: TourConfig[] = [
       },
     ],
   },
+  {
+    id: "co-recruiter-collaboration",
+    title: "Co-Recruiter Collaboration",
+    description: "Invite teammates to collaborate on job postings",
+    roles: ["super_admin", "recruiter"],
+    steps: [
+      {
+        target: '[data-tour="co-recruiter-panel"]',
+        content: "The Co-Recruiters panel lets you invite colleagues to collaborate on this job posting. Co-recruiters get full access to view applications, update candidate stages, and manage the hiring process alongside you.",
+        disableBeacon: true,
+        tourId: "co-recruiter-collaboration",
+      },
+      {
+        target: '[data-tour="co-recruiter-invite-btn"]',
+        content: "Click 'Invite' to add a co-recruiter. Enter their email - if they already have an account, they're added instantly. Otherwise, they'll receive an email invitation to join and collaborate.",
+        tourId: "co-recruiter-collaboration",
+      },
+      {
+        target: '[data-tour="co-recruiter-list"]',
+        content: "Active co-recruiters are listed here with their role. The primary recruiter (job owner) is marked with a crown. You can remove co-recruiters at any time - they'll lose access to this job's applications.",
+        tourId: "co-recruiter-collaboration",
+      },
+    ],
+  },
+  {
+    id: "hiring-manager-invitations",
+    title: "Hiring Manager Invitations",
+    description: "Invite hiring managers to review candidates",
+    roles: ["super_admin", "recruiter"],
+    steps: [
+      {
+        target: '[data-tour="invite-hiring-manager-btn"]',
+        content: "Invite hiring managers to collaborate on candidate reviews. They'll receive an email with a registration link to create their account and access the hiring manager portal.",
+        disableBeacon: true,
+        route: "/recruiter-dashboard",
+        tourId: "hiring-manager-invitations",
+      },
+      {
+        target: '[data-tour="dashboard-metrics"]',
+        content: "Once hiring managers join, they can review candidates, provide feedback, and help make hiring decisions. You'll see their activity reflected in your dashboard metrics and pipeline progress.",
+        route: "/recruiter-dashboard",
+        tourId: "hiring-manager-invitations",
+      },
+    ],
+  },
 
   // ==================== SUPER ADMIN TOURS ====================
   {

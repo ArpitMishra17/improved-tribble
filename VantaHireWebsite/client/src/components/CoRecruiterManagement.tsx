@@ -213,7 +213,7 @@ export function CoRecruiterManagement({ jobId, className = "" }: CoRecruiterMana
   const totalCollaborators = recruiters.length + pendingInvitations.length;
 
   return (
-    <Card className={className}>
+    <Card className={className} data-tour="co-recruiter-panel">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -227,7 +227,7 @@ export function CoRecruiterManagement({ jobId, className = "" }: CoRecruiterMana
           </div>
           <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" data-tour="co-recruiter-invite-btn">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Invite
               </Button>
@@ -286,7 +286,7 @@ export function CoRecruiterManagement({ jobId, className = "" }: CoRecruiterMana
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Active Recruiters */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-tour="co-recruiter-list">
           <h4 className="text-sm font-medium text-muted-foreground">Active ({recruiters.length})</h4>
           <div className="space-y-2">
             {recruiters.map((recruiter) => (

@@ -749,6 +749,7 @@ type HmFeedbackResponse = {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowInviteHMDialog(true)}
+                data-tour="invite-hiring-manager-btn"
               >
                 <Mail className="h-4 w-4 mr-2" />
                 Invite Hiring Manager
