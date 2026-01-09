@@ -22,7 +22,7 @@ type AuthContextType = {
   registerMutation: UseMutationResult<RegisterResponse, Error, InsertUser>;
 };
 
-type ExpectedRole = 'candidate' | 'recruiter' | 'super_admin';
+type ExpectedRole = 'candidate' | 'recruiter' | 'super_admin' | 'hiring_manager';
 type LoginData = Pick<InsertUser, "username" | "password"> & {
   expectedRole?: ExpectedRole | ExpectedRole[];
 };

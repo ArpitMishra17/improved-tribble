@@ -273,6 +273,11 @@ export default function AdminSuperDashboard() {
   const [opsRange, setOpsRange] = useState("7d");
   const [opsClientId, setOpsClientId] = useState<string>("all");
 
+  // Hiring Manager Invitation state
+  const [showInviteHMDialog, setShowInviteHMDialog] = useState(false);
+  const [inviteHMEmail, setInviteHMEmail] = useState("");
+  const [inviteHMName, setInviteHMName] = useState("");
+
   // Fetch admin statistics
   const { data: stats } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
@@ -488,6 +493,30 @@ export default function AdminSuperDashboard() {
     onError: (error: Error) => {
       toast({
         title: "Failed to update automation setting",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Invite hiring manager mutation
+  const inviteHiringManagerMutation = useMutation({
+    mutationFn: async (data: { email: string; name?: string }) => {
+      const res = await apiRequest("POST", "/api/hiring-manager-invitations", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invitation Sent",
+        description: `Invitation sent to ${inviteHMEmail}`,
+      });
+      setShowInviteHMDialog(false);
+      setInviteHMEmail("");
+      setInviteHMName("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Send Invitation",
         description: error.message,
         variant: "destructive",
       });
@@ -1662,7 +1691,15 @@ export default function AdminSuperDashboard() {
                       Manage user roles and permissions
                     </CardDescription>
                   </div>
-                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 items-end sm:items-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowInviteHMDialog(true)}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Invite Hiring Manager
+                    </Button>
                     <div className="flex items-center space-x-2">
                       <Search className="h-4 w-4 text-foreground/50" />
                       <Input
@@ -1682,6 +1719,7 @@ export default function AdminSuperDashboard() {
                         <SelectItem value="admin">Admins</SelectItem>
                         <SelectItem value="recruiter">Recruiters</SelectItem>
                         <SelectItem value="candidate">Candidates</SelectItem>
+                        <SelectItem value="hiring_manager">Hiring Managers</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -2161,8 +2199,8 @@ export default function AdminSuperDashboard() {
               )}
             </div>
             <DialogFooter>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setSelectedApplication(null)}
                 className="border-border text-foreground hover:bg-muted"
               >
@@ -2172,6 +2210,85 @@ export default function AdminSuperDashboard() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Invite Hiring Manager Dialog */}
+      <Dialog open={showInviteHMDialog} onOpenChange={setShowInviteHMDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite Hiring Manager</DialogTitle>
+            <DialogDescription>
+              Send an email invitation to collaborate on candidate reviews.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="hm-email" className="text-sm font-medium">
+                Email <span className="text-destructive">*</span>
+              </label>
+              <Input
+                id="hm-email"
+                type="email"
+                placeholder="hiring.manager@company.com"
+                value={inviteHMEmail}
+                onChange={(e) => setInviteHMEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="hm-name" className="text-sm font-medium">
+                Name <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <Input
+                id="hm-name"
+                placeholder="John Smith"
+                value={inviteHMName}
+                onChange={(e) => setInviteHMName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowInviteHMDialog(false);
+                setInviteHMEmail("");
+                setInviteHMName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!inviteHMEmail) {
+                  toast({
+                    title: "Email Required",
+                    description: "Please enter an email address.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const data: { email: string; name?: string } = { email: inviteHMEmail };
+                if (inviteHMName.trim()) {
+                  data.name = inviteHMName.trim();
+                }
+                inviteHiringManagerMutation.mutate(data);
+              }}
+              disabled={inviteHiringManagerMutation.isPending}
+            >
+              {inviteHiringManagerMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Invitation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

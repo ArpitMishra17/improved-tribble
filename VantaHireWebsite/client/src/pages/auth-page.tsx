@@ -67,6 +67,8 @@ export default function AuthPage() {
       return <Redirect to="/recruiter-dashboard" />;
     } else if (user.role === 'super_admin') {
       return <Redirect to="/admin" />;
+    } else if (user.role === 'hiring_manager') {
+      return <Redirect to="/hiring-manager" />;
     } else if (user.role === 'candidate') {
       return <Redirect to="/jobs" />;
     }

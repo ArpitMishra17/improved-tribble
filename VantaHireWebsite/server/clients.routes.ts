@@ -345,13 +345,11 @@ export function registerClientsRoutes(
         return;
       }
 
-      // Verify ownership if not super_admin
-      if (req.user!.role !== 'super_admin') {
-        const job = await storage.getJob(jobId);
-        if (!job || job.postedBy !== req.user!.id) {
-          res.status(403).json({ error: 'Access denied' });
-          return;
-        }
+      // Verify job access (use isRecruiterOnJob to include co-recruiters)
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
       }
 
       const shortlists = await storage.getClientShortlistsByJob(jobId);

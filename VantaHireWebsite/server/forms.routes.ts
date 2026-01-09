@@ -595,7 +595,9 @@ VantaHire Team`;
           return res.status(404).json({ error: 'Application not found' });
         }
 
-        if (!application.job || application.job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = application.job && await storage.isRecruiterOnJob(application.job.id, req.user!.id);
+        if (!hasAccess) {
           return res.status(403).json({ error: 'Unauthorized: You can only send forms for your own job postings' });
         }
 
@@ -791,8 +793,9 @@ VantaHire Team`;
         const validApplications: typeof fetchedApplications = [];
 
         for (const app of fetchedApplications) {
-          // Check ownership
-          if (!app.job || app.job.postedBy !== req.user!.id) {
+          // Check ownership (use isRecruiterOnJob to include co-recruiters)
+          const hasAccess = app.job && await storage.isRecruiterOnJob(app.job.id, req.user!.id);
+          if (!hasAccess) {
             results.push({
               applicationId: app.id,
               status: 'unauthorized',
@@ -1008,13 +1011,15 @@ VantaHire Team`;
           }
         }
 
-        // 3. Check if job exists and belongs to user (if jobId provided)
+        // 3. Check if job exists and user has access (if jobId provided)
         if (jobId) {
           const job = await storage.getJob(jobId);
           if (!job) {
             return res.status(404).json({ error: 'Job not found' });
           }
-          if (!isAdmin && job.postedBy !== req.user!.id) {
+          // Use isRecruiterOnJob to check access (includes co-recruiters)
+          const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+          if (!hasAccess) {
             return res.status(403).json({ error: 'Unauthorized: Job does not belong to you' });
           }
         }
@@ -1148,7 +1153,9 @@ VantaHire Team`;
           return res.status(404).json({ error: 'Application not found' });
         }
 
-        if (!application.job || application.job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = application.job && await storage.isRecruiterOnJob(application.job.id, req.user!.id);
+        if (!hasAccess) {
           return res.status(403).json({ error: 'Unauthorized' });
         }
 
@@ -1199,8 +1206,9 @@ VantaHire Team`;
           return res.status(404).json({ error: 'Invitation not found' });
         }
 
-        // Verify ownership
-        if (!invitation.application?.job || invitation.application.job.postedBy !== req.user!.id) {
+        // Verify ownership (use isRecruiterOnJob to include co-recruiters)
+        const hasAccess = invitation.application?.job && await storage.isRecruiterOnJob(invitation.application.job.id, req.user!.id);
+        if (!hasAccess) {
           return res.status(403).json({ error: 'Unauthorized: You can only send reminders for your own job postings' });
         }
 
@@ -1552,7 +1560,9 @@ VantaHire Team`;
           return res.status(404).json({ error: 'Application not found' });
         }
 
-        if (!application.job || application.job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = application.job && await storage.isRecruiterOnJob(application.job.id, req.user!.id);
+        if (!hasAccess) {
           return res.status(403).json({ error: 'Unauthorized: You can only view responses for your own job postings' });
         }
 
@@ -1679,8 +1689,9 @@ VantaHire Team`;
           return res.status(404).json({ error: 'Response not found' });
         }
 
-        // Verify ownership
-        if (!response.application?.job || response.application.job.postedBy !== req.user!.id) {
+        // Verify ownership (use isRecruiterOnJob to include co-recruiters)
+        const hasAccess = response.application?.job && await storage.isRecruiterOnJob(response.application.job.id, req.user!.id);
+        if (!hasAccess) {
           return res.status(403).json({ error: 'Unauthorized: You can only view responses for your own job postings' });
         }
 
@@ -1746,7 +1757,9 @@ VantaHire Team`;
           return res.status(404).json({ error: 'Application not found' });
         }
 
-        if (!application.job || application.job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = application.job && await storage.isRecruiterOnJob(application.job.id, req.user!.id);
+        if (!hasAccess) {
           return res.status(403).json({ error: 'Unauthorized: You can only export responses for your own job postings' });
         }
 

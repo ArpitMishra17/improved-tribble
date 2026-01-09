@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import Layout from "@/components/Layout";
 import type { Job, Application, PipelineStage } from "@shared/schema";
@@ -7,6 +7,12 @@ import { TimeSeriesChart } from "@/components/dashboards/TimeSeriesChart";
 import { StageFunnel } from "@/components/dashboards/StageFunnel";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Mail, Send, Loader2 } from "lucide-react";
 import { RecruiterKpiRibbon } from "@/components/recruiter/RecruiterKpiRibbon";
 import { PipelineActionChecklist } from "@/components/recruiter/PipelineActionChecklist";
 import { AiPipelineSummary } from "@/components/recruiter/AiPipelineSummary";
@@ -83,9 +89,39 @@ const RANGE_PRESETS: Record<string, number> = {
 };
 
 export default function RecruiterDashboard() {
+  const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [rangePreset, setRangePreset] = useState<keyof typeof RANGE_PRESETS>("30d");
   const [selectedJobId, setSelectedJobId] = useState<number | "all">("all");
+
+  // Hiring Manager Invitation state
+  const [showInviteHMDialog, setShowInviteHMDialog] = useState(false);
+  const [inviteHMEmail, setInviteHMEmail] = useState("");
+  const [inviteHMName, setInviteHMName] = useState("");
+
+  // Invite hiring manager mutation
+  const inviteHiringManagerMutation = useMutation({
+    mutationFn: async (data: { email: string; name?: string }) => {
+      const res = await apiRequest("POST", "/api/hiring-manager-invitations", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invitation Sent",
+        description: `Invitation sent to ${inviteHMEmail}`,
+      });
+      setShowInviteHMDialog(false);
+      setInviteHMEmail("");
+      setInviteHMName("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Send Invitation",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch recruiter's jobs
   const { data: jobs = [], isLoading: jobsLoading } = useQuery<JobWithCounts[]>({
@@ -709,6 +745,14 @@ type HmFeedbackResponse = {
                   Overview of jobs, applications, and hiring performance
                 </p>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowInviteHMDialog(true)}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Invite Hiring Manager
+              </Button>
             </div>
             <Card className="shadow-sm border-border" data-tour="dashboard-metrics">
               <CardContent className="pt-4">
@@ -800,6 +844,85 @@ type HmFeedbackResponse = {
           </div>
         </div>
       </div>
+
+      {/* Invite Hiring Manager Dialog */}
+      <Dialog open={showInviteHMDialog} onOpenChange={setShowInviteHMDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite Hiring Manager</DialogTitle>
+            <DialogDescription>
+              Send an email invitation to collaborate on candidate reviews.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="hm-email" className="text-sm font-medium">
+                Email <span className="text-destructive">*</span>
+              </label>
+              <Input
+                id="hm-email"
+                type="email"
+                placeholder="hiring.manager@company.com"
+                value={inviteHMEmail}
+                onChange={(e) => setInviteHMEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="hm-name" className="text-sm font-medium">
+                Name <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <Input
+                id="hm-name"
+                placeholder="John Smith"
+                value={inviteHMName}
+                onChange={(e) => setInviteHMName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowInviteHMDialog(false);
+                setInviteHMEmail("");
+                setInviteHMName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!inviteHMEmail) {
+                  toast({
+                    title: "Email Required",
+                    description: "Please enter an email address.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const data: { email: string; name?: string } = { email: inviteHMEmail };
+                if (inviteHMName.trim()) {
+                  data.name = inviteHMName.trim();
+                }
+                inviteHiringManagerMutation.mutate(data);
+              }}
+              disabled={inviteHiringManagerMutation.isPending}
+            >
+              {inviteHiringManagerMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Invitation
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

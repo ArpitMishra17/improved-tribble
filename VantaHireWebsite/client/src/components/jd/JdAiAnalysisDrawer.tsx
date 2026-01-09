@@ -52,7 +52,8 @@ export function JdAiAnalysisDrawer({
       });
       if (!res.ok) throw new Error("AI analysis unavailable");
       const data = await res.json();
-      const rewrite = [
+      // Use server-provided AI rewrite, with fallback template if not available
+      const rewrite = data.rewrite || [
         `Role: ${title}`,
         "",
         "Responsibilities:",
@@ -88,8 +89,8 @@ export function JdAiAnalysisDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl">
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-xl flex flex-col h-full">
+        <SheetHeader className="flex-shrink-0">
           <SheetTitle className="flex items-center gap-2">
             AI JD analysis
             <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
@@ -98,7 +99,7 @@ export function JdAiAnalysisDrawer({
           </SheetTitle>
           <SheetDescription>Optional AI help to improve clarity and inclusivity.</SheetDescription>
         </SheetHeader>
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4 flex-1 overflow-y-auto pr-2">
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               Title: <span className="font-medium text-foreground">{title || "Untitled role"}</span>

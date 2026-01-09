@@ -308,7 +308,9 @@ export function registerTalentPoolRoutes(app: Express) {
           return;
         }
 
-        if (job.postedBy !== req.user!.id && req.user!.role !== 'super_admin') {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: 'Not authorized to add applications to this job' });
           return;
         }
@@ -376,7 +378,9 @@ export function registerTalentPoolRoutes(app: Express) {
           return;
         }
 
-        if (job.postedBy !== req.user!.id && req.user!.role !== 'super_admin') {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: 'Not authorized to view suggestions for this job' });
           return;
         }

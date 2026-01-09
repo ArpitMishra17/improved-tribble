@@ -143,14 +143,14 @@ export default function CandidateAuth() {
                   <TabsContent value="login">
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="username" className="text-foreground">Username</Label>
+                        <Label htmlFor="loginEmail" className="text-foreground">Email</Label>
                         <Input
-                          id="username"
-                          type="text"
+                          id="loginEmail"
+                          type="email"
                           value={loginData.username}
                           onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
                           className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                          placeholder="Enter your username"
+                          placeholder="Enter your email"
                           required
                         />
                       </div>
@@ -205,14 +205,14 @@ export default function CandidateAuth() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="regUsername" className="text-foreground">Username</Label>
+                        <Label htmlFor="regEmail" className="text-foreground">Email</Label>
                         <Input
-                          id="regUsername"
-                          type="text"
+                          id="regEmail"
+                          type="email"
                           value={registerData.username}
                           onChange={(e) => setRegisterData(prev => ({ ...prev, username: e.target.value }))}
                           className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                          placeholder="Choose a username"
+                          placeholder="Enter your email"
                           required
                         />
                       </div>
