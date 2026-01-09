@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Application, PipelineStage } from "@shared/schema";
 import { ApplicationCard } from "./ApplicationCard";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export interface StageColumnProps {
   onQuickEmail?: ((applicationId: number) => void) | undefined;
   onQuickInterview?: ((applicationId: number) => void) | undefined;
   onQuickDownload?: ((applicationId: number) => void) | undefined;
+  onToggleStageSelect?: ((stageId: number | null, shouldSelect: boolean) => void) | undefined;
 }
 
 // Categorize applications into sub-sections
@@ -128,6 +130,7 @@ export function StageColumn({
   onQuickEmail,
   onQuickInterview,
   onQuickDownload,
+  onToggleStageSelect,
 }: StageColumnProps) {
   // Make Unassigned column (id === 0) read-only - server requires positive stageId
   const isUnassigned = stage.id === 0;
@@ -140,6 +143,9 @@ export function StageColumn({
     },
     disabled: isUnassigned,
   });
+
+  // Check if all applications in this stage are selected
+  const areAllSelected = applications.length > 0 && applications.every(app => selectedIds.includes(app.id));
 
   // Categorize applications into sub-sections
   const { active, advanced, archived } = categorizeApplications(applications);
@@ -156,12 +162,24 @@ export function StageColumn({
       >
         <CardHeader className="pb-3 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-foreground text-base font-semibold flex items-center gap-2">
-              {stage.name}
-              {isUnassigned && (
-                <span className="text-xs text-muted-foreground font-normal">(read-only)</span>
+            <div className="flex items-center gap-2">
+              {applications.length > 0 && onToggleStageSelect && (
+                <Checkbox
+                  checked={areAllSelected}
+                  onCheckedChange={(checked) => {
+                    const stageId = stage.id === 0 ? null : stage.id;
+                    onToggleStageSelect(stageId, checked === true);
+                  }}
+                  className="mr-1"
+                />
               )}
-            </CardTitle>
+              <CardTitle className="text-foreground text-base font-semibold flex items-center gap-2">
+                {stage.name}
+                {isUnassigned && (
+                  <span className="text-xs text-muted-foreground font-normal">(read-only)</span>
+                )}
+              </CardTitle>
+            </div>
             <Badge
               variant="secondary"
               className="bg-muted text-foreground border-border"

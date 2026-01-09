@@ -27,6 +27,7 @@ interface KanbanBoardProps {
   onQuickEmail?: (applicationId: number) => void;
   onQuickInterview?: (applicationId: number) => void;
   onQuickDownload?: (applicationId: number) => void;
+  onToggleStageSelect?: (stageId: number | null, shouldSelect: boolean) => void;
 }
 
 export function KanbanBoard({
@@ -41,6 +42,7 @@ export function KanbanBoard({
   onQuickEmail,
   onQuickInterview,
   onQuickDownload,
+  onToggleStageSelect,
 }: KanbanBoardProps) {
   const [activeApp, setActiveApp] = useState<Application | null>(null);
 
@@ -174,6 +176,7 @@ export function KanbanBoard({
               onQuickEmail={onQuickEmail}
               onQuickInterview={onQuickInterview}
               onQuickDownload={onQuickDownload}
+              onToggleStageSelect={onToggleStageSelect}
             />
           );
         })}
