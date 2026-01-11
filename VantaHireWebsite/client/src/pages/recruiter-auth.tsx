@@ -267,14 +267,14 @@ export default function RecruiterAuth() {
                   <TabsContent value="login">
                     <form onSubmit={handleLogin} className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-foreground">Email</Label>
+                        <Label htmlFor="username" className="text-foreground">Username or Email</Label>
                         <Input
-                          id="email"
-                          type="email"
+                          id="username"
+                          type="text"
                           value={loginData.username}
                           onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
                           className="bg-muted/30 border-border text-foreground placeholder:text-muted-foreground"
-                          placeholder="Enter your email"
+                          placeholder="Enter your username or email"
                           required
                         />
                       </div>
