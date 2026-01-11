@@ -1444,6 +1444,21 @@ export default function ApplicationManagementPage() {
               onQuickDownload={(appId) => {
                 window.open(`/api/applications/${appId}/resume`, '_blank');
               }}
+              onToggleStageSelect={(stageId, shouldSelect) => {
+                const stageApps = applications?.filter(app => 
+                  // Handle unassigned (stageId null) vs specific stage
+                  stageId === null ? app.currentStage === null : app.currentStage === stageId
+                ) || [];
+                const stageAppIds = stageApps.map(app => app.id);
+
+                if (shouldSelect) {
+                  // Exclusive selection: Select ONLY this stage's apps
+                  setSelectedApplications(stageAppIds);
+                } else {
+                  // Deselect ONLY this stage's apps
+                  setSelectedApplications(prev => prev.filter(id => !stageAppIds.includes(id)));
+                }
+              }}
             />
           </div>
 
