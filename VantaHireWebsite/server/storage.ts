@@ -3086,6 +3086,14 @@ export class DatabaseStorage implements IStorage {
     return job || undefined;
   }
 
+  async getAllAiFitJobs(statuses: Array<'pending' | 'active' | 'completed' | 'failed' | 'cancelled'>): Promise<AiFitJob[]> {
+    return db.select()
+      .from(aiFitJobs)
+      .where(inArray(aiFitJobs.status, statuses))
+      .orderBy(desc(aiFitJobs.createdAt))
+      .limit(100);
+  }
+
   async updateAiFitJobStatus(
     id: number,
     status: 'pending' | 'active' | 'completed' | 'failed' | 'cancelled',

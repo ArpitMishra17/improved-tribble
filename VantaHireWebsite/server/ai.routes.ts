@@ -1460,4 +1460,114 @@ export function registerAIRoutes(app: Express): void {
       }
     }
   );
+
+  /**
+   * POST /api/admin/ai/jobs/:id/cancel
+   * Admin endpoint to cancel any AI job (no CSRF required for admin cleanup)
+   */
+  app.post(
+    '/api/admin/ai/jobs/:id/cancel',
+    requireAuth,
+    requireRole(['super_admin', 'recruiter']),
+    async (req, res): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+        const userRole = req.user!.role;
+        const idParam = req.params.id;
+
+        if (!idParam) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        const jobId = parseInt(idParam, 10);
+        if (isNaN(jobId)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        // Get job - super_admin can cancel any job, recruiter can only cancel their own
+        const job = userRole === 'super_admin'
+          ? await storage.getAiFitJob(jobId)
+          : await storage.getAiFitJobForUser(jobId, userId);
+
+        if (!job) {
+          res.status(404).json({ error: 'Job not found' });
+          return;
+        }
+
+        // Allow cancelling pending, active, or stuck jobs
+        if (job.status === 'completed' || job.status === 'cancelled') {
+          res.status(400).json({ error: 'Job already finished', status: job.status });
+          return;
+        }
+
+        // Try to remove from BullMQ (might fail if queue uses old naming)
+        try {
+          const queueName = job.queueName as typeof QUEUES[keyof typeof QUEUES];
+          await removeJob(queueName, job.bullJobId);
+        } catch (queueError) {
+          console.warn(`[Admin Cancel] Failed to remove from queue (possibly old queue name):`, queueError);
+          // Continue to mark as cancelled in DB even if queue removal fails
+        }
+
+        // Force update DB status to cancelled
+        await storage.updateAiFitJobStatus(jobId, 'cancelled', {
+          completedAt: new Date(),
+          error: `Cancelled by admin (user ${userId})`,
+          errorCode: 'ADMIN_CANCELLED',
+        });
+
+        console.log(`[Admin Cancel] Job ${jobId} cancelled by user ${userId}`);
+
+        res.json({
+          cancelled: true,
+          jobId,
+          message: 'Job cancelled successfully'
+        });
+      } catch (error) {
+        console.error('Admin cancel job error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * GET /api/admin/ai/jobs
+   * Admin endpoint to list all AI jobs (for debugging)
+   */
+  app.get(
+    '/api/admin/ai/jobs',
+    requireAuth,
+    requireRole(['super_admin']),
+    async (req, res): Promise<void> => {
+      try {
+        const status = req.query.status as string | undefined;
+        const statuses = status ? [status] : ['pending', 'active', 'failed'];
+
+        const jobs = await storage.getAllAiFitJobs(statuses as any);
+
+        res.json({
+          jobs: jobs.map(j => ({
+            id: j.id,
+            userId: j.userId,
+            status: j.status,
+            queueName: j.queueName,
+            bullJobId: j.bullJobId,
+            progress: j.progress,
+            processedCount: j.processedCount,
+            totalCount: j.totalCount,
+            error: j.error,
+            errorCode: j.errorCode,
+            createdAt: j.createdAt,
+            startedAt: j.startedAt,
+            completedAt: j.completedAt,
+          })),
+        });
+      } catch (error) {
+        console.error('Admin list jobs error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
 }
