@@ -20,7 +20,6 @@ import { storage } from './storage';
 import { requireAuth, requireRole } from './auth';
 import { calculateAiCost } from './lib/aiMatchingEngine';
 import { syncProfileCompletionStatus } from './lib/profileCompletion';
-import { generatePublicId } from './lib/publicId';
 import {
   insertApplicationSchema,
   recruiterAddApplicationSchema,
@@ -1942,79 +1941,8 @@ export function registerApplicationsRoutes(
     }
   });
 
-  // ============= CANDIDATE DASHBOARD & PROFILE ROUTES =============
-
-  // Get user profile
-  app.get("/api/profile", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const profile = await storage.getUserProfile(req.user!.id);
-      res.json(profile || null);
-      return;
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Create or update user profile
-  app.post("/api/profile", csrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const profileData = { ...req.body };
-      const existingProfile = await storage.getUserProfile(req.user!.id);
-
-      // Generate publicId when making profile public for the first time
-      if (profileData.isPublic === true && (!existingProfile || !existingProfile.publicId)) {
-        profileData.publicId = generatePublicId();
-      }
-
-      let profile;
-      if (existingProfile) {
-        profile = await storage.updateUserProfile(req.user!.id, profileData);
-      } else {
-        profile = await storage.createUserProfile({
-          ...profileData,
-          userId: req.user!.id
-        });
-      }
-
-      if (profile) {
-        await syncProfileCompletionStatus(req.user!, { profile });
-      }
-
-      res.json(profile);
-      return;
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Update user profile
-  app.patch("/api/profile", csrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const profileData = { ...req.body };
-
-      // Generate publicId when making profile public for the first time
-      if (profileData.isPublic === true) {
-        const existingProfile = await storage.getUserProfile(req.user!.id);
-        if (existingProfile && !existingProfile.publicId) {
-          profileData.publicId = generatePublicId();
-        }
-      }
-
-      const profile = await storage.updateUserProfile(req.user!.id, profileData);
-
-      if (!profile) {
-        res.status(404).json({ error: "Profile not found" });
-        return;
-      }
-
-      await syncProfileCompletionStatus(req.user!, { profile });
-
-      res.json(profile);
-      return;
-    } catch (error) {
-      next(error);
-    }
-  });
+  // ============= CANDIDATE DASHBOARD ROUTES =============
+  // Note: Profile routes (GET/POST/PATCH /api/profile) are in profile.routes.ts
 
   // Get user's applications (bound to userId, with email fallback for unclaimed applications)
   app.get("/api/my-applications", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
