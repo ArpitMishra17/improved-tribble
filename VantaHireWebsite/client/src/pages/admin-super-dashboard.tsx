@@ -590,12 +590,13 @@ export default function AdminSuperDashboard() {
   };
 
   const getRoleColor = (role: string) => {
-    const colors = {
-      admin: "bg-destructive/10 text-destructive border-destructive/20",
+    const colors: Record<string, string> = {
+      super_admin: "bg-destructive/10 text-destructive border-destructive/20",
       recruiter: "bg-primary/10 text-primary border-primary/30",
       candidate: "bg-info/10 text-info-foreground border-info/20",
+      hiring_manager: "bg-warning/10 text-warning-foreground border-warning/20",
     };
-    return colors[role as keyof typeof colors] || colors.candidate;
+    return colors[role] || colors.candidate;
   };
 
   // Ops helper functions
@@ -1777,7 +1778,7 @@ export default function AdminSuperDashboard() {
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
                         <SelectItem value="all">All Users</SelectItem>
-                        <SelectItem value="admin">Admins</SelectItem>
+                        <SelectItem value="super_admin">Super Admins</SelectItem>
                         <SelectItem value="recruiter">Recruiters</SelectItem>
                         <SelectItem value="candidate">Candidates</SelectItem>
                         <SelectItem value="hiring_manager">Hiring Managers</SelectItem>
@@ -1849,7 +1850,7 @@ export default function AdminSuperDashboard() {
                               <SelectContent className="bg-card border-border">
                                 <SelectItem value="candidate">Candidate</SelectItem>
                                 <SelectItem value="recruiter">Recruiter</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
+                                <SelectItem value="super_admin">Super Admin</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
