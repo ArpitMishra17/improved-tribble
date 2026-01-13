@@ -40,8 +40,15 @@ export default defineConfig({
           if (id.includes('@radix-ui')) {
             return 'vendor-ui';
           }
-          // Charts and visualization
-          if (id.includes('recharts') || id.includes('d3-') || id.includes('victory')) {
+          // Charts and visualization - keep recharts together with its dependencies
+          if (id.includes('recharts')) {
+            return 'vendor-recharts';
+          }
+          // D3 utilities used by recharts
+          if (id.includes('d3-')) {
+            return 'vendor-d3';
+          }
+          if (id.includes('victory')) {
             return 'vendor-charts';
           }
           // Form handling
