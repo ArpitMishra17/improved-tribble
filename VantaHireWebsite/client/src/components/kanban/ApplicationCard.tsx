@@ -232,7 +232,7 @@ export function ApplicationCard({
                     Interview
                   </Badge>
                 )}
-                {application.clientFeedbackCount && application.clientFeedbackCount > 0 && (
+                {(application.clientFeedbackCount ?? 0) > 0 && (
                   <Badge
                     variant="outline"
                     className="text-xs border-primary/30 bg-primary/10 text-primary"
