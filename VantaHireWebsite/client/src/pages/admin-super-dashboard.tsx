@@ -643,13 +643,6 @@ export default function AdminSuperDashboard() {
           {/* Quick Actions */}
           <div className="flex flex-wrap gap-4 mt-6">
             <Button
-              onClick={() => window.location.href = '/analytics'}
-              variant="outline"
-            >
-              <Activity className="h-4 w-4 mr-2" />
-              Analytics
-            </Button>
-            <Button
               onClick={() => window.location.href = '/admin/ai-jobs'}
               variant="outline"
             >
