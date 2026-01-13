@@ -13,10 +13,10 @@
 import { Queue, QueueEvents } from 'bullmq';
 import IORedis from 'ioredis';
 
-// Queue names
+// Queue names (BullMQ doesn't allow colons in queue names)
 export const QUEUES = {
-  INTERACTIVE: 'ai:interactive',
-  BATCH: 'ai:batch',
+  INTERACTIVE: 'ai-interactive',
+  BATCH: 'ai-batch',
 } as const;
 
 // Configuration from environment

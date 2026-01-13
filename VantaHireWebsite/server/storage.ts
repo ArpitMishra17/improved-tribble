@@ -3040,7 +3040,7 @@ export class DatabaseStorage implements IStorage {
 
   async createAiFitJob(data: {
     bullJobId: string;
-    queueName: 'ai:interactive' | 'ai:batch';
+    queueName: 'ai-interactive' | 'ai-batch';
     userId: number;
     applicationId?: number | null;
     applicationIds?: number[] | null;
@@ -3206,7 +3206,7 @@ export class DatabaseStorage implements IStorage {
         .from(aiFitJobs)
         .where(and(
           ...baseConditions,
-          eq(aiFitJobs.queueName, 'ai:batch')
+          eq(aiFitJobs.queueName, 'ai-batch')
         ))
         .orderBy(desc(aiFitJobs.createdAt));
 
