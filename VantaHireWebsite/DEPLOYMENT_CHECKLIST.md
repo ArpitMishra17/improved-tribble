@@ -17,6 +17,19 @@
 - `ENABLE_SCHEDULER=true` ✅
 - All other application settings ✅
 
+**Optional (Async AI Fit Scoring Queue):**
+```bash
+AI_QUEUE_ENABLED=true
+REDIS_URL=redis://...
+AI_WORKER_INTERACTIVE_CONCURRENCY=2
+AI_WORKER_BATCH_CONCURRENCY=1
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+```
+If enabled, deploy a separate worker service with start command:
+```bash
+npm run start:ai-worker
+```
+
 **⚠️ MISSING - Need to Add to Railway:**
 ```bash
 SEO_ENABLE_SITEMAP_JOBS=true

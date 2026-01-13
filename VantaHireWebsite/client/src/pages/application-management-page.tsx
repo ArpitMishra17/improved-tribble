@@ -27,7 +27,10 @@ import {
   Plus,
   ArrowUpDown,
   Sparkles,
-  X
+  X,
+  Info,
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +56,8 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { FormsModal } from "@/components/FormsModal";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { BulkActionBar } from "@/components/kanban/BulkActionBar";
@@ -70,7 +75,7 @@ export default function ApplicationManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
   const [sortBy, setSortBy] = useState<'date' | 'ai_fit'>('date'); // AI Fit Sorting
-  const [fitLabelFilter, setFitLabelFilter] = useState<string[]>([]); // AI Fit Label Filter
+  const [actionFilter, setActionFilter] = useState<string[]>([]); // AI Suggested Action Filter
   const [isVisible, setIsVisible] = useState(false);
 
   // ATS features state
@@ -107,6 +112,11 @@ export default function ApplicationManagementPage() {
   const [shortlistExpiresAt, setShortlistExpiresAt] = useState("");
   const [shortlistUrl, setShortlistUrl] = useState<string | null>(null);
 
+  // AI Summary state
+  const [showAISummaryDialog, setShowAISummaryDialog] = useState(false);
+  const [aiSummaryJobId, setAiSummaryJobId] = useState<number | null>(null);
+  const [regenerateSummaries, setRegenerateSummaries] = useState(false);
+
   type JobShortlistSummary = {
     id: number;
     title: string | null;
@@ -142,11 +152,14 @@ export default function ApplicationManagementPage() {
     return <Redirect to="/auth" />;
   }
 
-  const { data: job, isLoading: jobLoading } = useQuery<Job>({
+  const { data: job, isLoading: jobLoading, error: jobError } = useQuery<Job>({
     queryKey: ["/api/jobs", jobId],
     queryFn: async () => {
       const response = await fetch(`/api/jobs/${jobId}`);
-      if (!response.ok) throw new Error("Failed to fetch job");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch job (${response.status})`);
+      }
       return response.json();
     },
     enabled: !!jobId,
@@ -223,6 +236,117 @@ export default function ApplicationManagementPage() {
     },
     enabled: !!selectedApp?.id && showHistoryDialog,
   });
+
+  // AI Summary: Rate limit status query
+  interface SummaryLimitStatus {
+    dailyLimit: number;
+    dailyUsed: number;
+    dailyRemaining: number;
+    dailyResetAt: string;
+    budgetAllowed: boolean;
+    budgetSpent: number;
+    budgetLimit: number;
+    effectiveRemaining: number;
+    maxBatchSize: number;
+  }
+
+  const { data: summaryLimitStatus } = useQuery<SummaryLimitStatus>({
+    queryKey: ['/api/ai/summary/limit-status'],
+    queryFn: async () => {
+      const response = await fetch('/api/ai/summary/limit-status', { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch limit status');
+      return response.json();
+    },
+    refetchInterval: 60000, // Refresh every minute
+    staleTime: 30000,
+  });
+
+  // AI Summary: Job status polling
+  interface SummaryJobStatus {
+    id: number;
+    status: 'pending' | 'active' | 'completed' | 'failed' | 'cancelled';
+    progress: number;
+    processedCount: number;
+    totalCount: number;
+    result?: {
+      results: Array<{ applicationId: number; status: string; error?: string }>;
+      summary: { total: number; succeeded: number; skipped: number; errors: number };
+    };
+    error?: string;
+  }
+
+  const { data: summaryJobStatus } = useQuery<SummaryJobStatus>({
+    queryKey: ['/api/ai/summary/jobs', aiSummaryJobId],
+    queryFn: async () => {
+      const response = await fetch(`/api/ai/summary/jobs/${aiSummaryJobId}`, { credentials: 'include' });
+      if (!response.ok) throw new Error('Failed to fetch job status');
+      return response.json();
+    },
+    enabled: !!aiSummaryJobId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === 'completed' || data?.status === 'failed' || data?.status === 'cancelled' ? false : 2000;
+    },
+  });
+
+  // AI Summary: Start mutation
+  const startAISummaryMutation = useMutation({
+    mutationFn: async ({ applicationIds, regenerate }: { applicationIds: number[]; regenerate: boolean }) => {
+      const res = await apiRequest('POST', '/api/applications/bulk/ai-summary/queue', { applicationIds, regenerate });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data.cached) {
+        toast({ title: 'All Selected Have Summaries', description: data.message });
+        setShowAISummaryDialog(false);
+      } else {
+        setAiSummaryJobId(data.jobId);
+        toast({ title: 'AI Summary Started', description: `Processing ${data.totalCount} candidates...` });
+      }
+    },
+    onError: (error: any) => {
+      const errorData = error.response?.data || {};
+      let msg = errorData.error || error.message || 'Failed to start AI summary generation';
+
+      // Handle specific error codes with clear messaging
+      if (errorData.errorCode === 'MAX_EXCEEDED') {
+        msg = `Please select 50 or fewer candidates.`;
+      } else if (errorData.errorCode === 'RATE_LIMIT_EXCEEDED') {
+        msg = `You have only ${errorData.remaining} analyses left today. Select fewer candidates.`;
+      } else if (errorData.errorCode === 'PENDING_LIMIT') {
+        msg = 'You have a job in progress. Please wait for it to complete.';
+      }
+
+      toast({ title: 'Cannot Generate Summaries', description: msg, variant: 'destructive' });
+    },
+  });
+
+  // AI Summary: Handle job completion effect
+  useEffect(() => {
+    if (summaryJobStatus?.status === 'completed') {
+      const result = summaryJobStatus.result?.summary || { succeeded: 0, skipped: 0, errors: 0 };
+      toast({
+        title: 'AI Summaries Generated',
+        description: `${result.succeeded} generated, ${result.skipped} skipped, ${result.errors} failed.`,
+      });
+      setShowAISummaryDialog(false);
+      setAiSummaryJobId(null);
+      setRegenerateSummaries(false);
+      // Refresh applications to show new summaries
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId, 'applications'] });
+      // Refresh limit status
+      queryClient.invalidateQueries({ queryKey: ['/api/ai/summary/limit-status'] });
+    }
+
+    if (summaryJobStatus?.status === 'failed') {
+      toast({
+        title: 'Summary Generation Failed',
+        description: summaryJobStatus.error || 'An error occurred during processing',
+        variant: 'destructive',
+      });
+      setAiSummaryJobId(null);
+    }
+  }, [summaryJobStatus?.status, summaryJobStatus?.result, summaryJobStatus?.error, jobId, toast]);
 
   // ATS: Auto-select an Interview stage in the batch interview dialog (if available)
   useEffect(() => {
@@ -964,11 +1088,11 @@ export default function ApplicationManagementPage() {
     const matchesSearch = searchQuery === '' ||
       app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase());
-    // AI Fit Label Filter
-    const matchesFitLabel = fitLabelFilter.length === 0 ||
-      (fitLabelFilter.includes('Not Scored') && !app.aiFitLabel) ||
-      (app.aiFitLabel && fitLabelFilter.includes(app.aiFitLabel));
-    return matchesStage && matchesSearch && matchesFitLabel;
+    // AI Suggested Action Filter
+    const matchesAction = actionFilter.length === 0 ||
+      (actionFilter.includes('Not Analyzed') && !app.aiSuggestedAction) ||
+      (app.aiSuggestedAction && actionFilter.includes(app.aiSuggestedAction));
+    return matchesStage && matchesSearch && matchesAction;
   }).sort((a, b) => {
     // AI Fit Sorting
     if (sortBy === 'ai_fit') {
@@ -979,6 +1103,14 @@ export default function ApplicationManagementPage() {
     // Default: Sort by date (newest first)
     return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
   }) || [];
+
+  // AI Summary: Calculate to-generate count (apps needing summaries)
+  // Use full applications list (not filteredApplications) to handle selections persisting across filters
+  const selectedAppsData = (applications || []).filter(app => selectedApplications.includes(app.id));
+  const appsWithSummary = selectedAppsData.filter(app => app.aiSummary);
+  const appsWithoutSummary = selectedAppsData.filter(app => !app.aiSummary);
+  const toGenerateCount = regenerateSummaries ? selectedAppsData.length : appsWithoutSummary.length;
+  const willSkipCount = regenerateSummaries ? 0 : appsWithSummary.length;
 
   // Visible apps for current tab (used by Select All)
   const getVisibleApplications = (): Application[] => {
@@ -1031,7 +1163,9 @@ export default function ApplicationManagementPage() {
           <Card className="shadow-sm">
             <CardContent className="p-8 text-center">
               <h3 className="text-xl font-semibold text-foreground mb-2">Job Not Found</h3>
-              <p className="text-muted-foreground">The requested job could not be found.</p>
+              <p className="text-muted-foreground">
+                {jobError?.message || "The requested job could not be found."}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -1058,7 +1192,9 @@ export default function ApplicationManagementPage() {
           </div>
 
           {/* Job-Level Sub Navigation */}
-          <JobSubNav jobId={jobId!} jobTitle={job.title} className="mb-6" />
+          <div data-tour="job-context">
+            <JobSubNav jobId={jobId!} jobTitle={job.title} className="mb-6" />
+          </div>
 
           {/* Quick Actions Toolbar */}
           <div className="flex flex-col md:flex-row justify-end gap-4 mb-6">
@@ -1208,90 +1344,8 @@ export default function ApplicationManagementPage() {
             </CardHeader>
           </Card>
 
-          {/* Client Shortlists Summary */}
-          {job.clientId && (
-            <Card className="mb-6 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-foreground text-base flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  Client Shortlists
-                </CardTitle>
-                <CardDescription className="text-muted-foreground text-sm">
-                  Links shared with your client for this role.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {shortlists.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No shortlists created yet. Select candidates and use{" "}
-                    <span className="font-medium">Share with Client</span> to
-                    generate a shortlist.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {shortlists.map((s) => (
-                      <div
-                        key={s.id}
-                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-border rounded-md p-3 bg-muted/50"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-foreground truncate">
-                              {s.title || job.title}
-                            </span>
-                            <Badge className="text-xs bg-muted text-foreground border-border">
-                              {s.candidateCount} candidate
-                              {s.candidateCount === 1 ? "" : "s"}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Created{" "}
-                            {new Date(s.createdAt).toLocaleDateString(undefined, {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                            {s.expiresAt && (
-                              <>
-                                {" "}
-                                · Expires{" "}
-                                {new Date(s.expiresAt).toLocaleDateString(
-                                  undefined,
-                                  {
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                  },
-                                )}
-                              </>
-                            )}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="outline"
-                            className="text-xs capitalize"
-                          >
-                            {s.status}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(s.fullUrl, "_blank")}
-                          >
-                            Open Link
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {/* Sort & Filter Controls */}
-          <Card className="mb-6 shadow-sm">
+          <Card className="mb-6 shadow-sm" data-tour="applications-filters">
             <CardContent className="p-4">
               <div className="flex items-center gap-4 flex-wrap">
                 {/* Sort Dropdown */}
@@ -1341,49 +1395,53 @@ export default function ApplicationManagementPage() {
                   </Select>
                 </div>
 
-                {/* AI Fit Label Filter Chips */}
+                {/* AI Recommended Action Filter */}
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-sm font-medium text-foreground whitespace-nowrap">AI Fit:</Label>
-                  <div className="flex items-center gap-1.5">
-                    {['Exceptional', 'Strong', 'Good', 'Partial', 'Low', 'Not Scored'].map((label) => {
-                      const isActive = fitLabelFilter.includes(label);
-                      // Color coding based on fit quality
-                      const getLabelStyle = () => {
+                  <Label className="text-sm font-medium text-foreground whitespace-nowrap">AI Action:</Label>
+                  <span
+                    className="cursor-help"
+                    title="Filter by AI's recommended next step for each candidate"
+                  >
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {['advance', 'hold', 'reject', 'Not Analyzed'].map((action) => {
+                      const isActive = actionFilter.includes(action);
+                      const displayLabel = action === 'Not Analyzed' ? 'Not Analyzed' : action.charAt(0).toUpperCase() + action.slice(1);
+                      const getActionStyle = () => {
                         if (!isActive) return 'hover:bg-muted';
-                        switch (label) {
-                          case 'Exceptional': return 'bg-emerald-500 text-white hover:bg-emerald-600';
-                          case 'Strong': return 'bg-green-500 text-white hover:bg-green-600';
-                          case 'Good': return 'bg-blue-500 text-white hover:bg-blue-600';
-                          case 'Partial': return 'bg-amber-500 text-white hover:bg-amber-600';
-                          case 'Low': return 'bg-red-500 text-white hover:bg-red-600';
-                          case 'Not Scored': return 'bg-gray-500 text-white hover:bg-gray-600';
+                        switch (action) {
+                          case 'advance': return 'bg-green-500 text-white hover:bg-green-600';
+                          case 'hold': return 'bg-amber-500 text-white hover:bg-amber-600';
+                          case 'reject': return 'bg-red-500 text-white hover:bg-red-600';
+                          case 'Not Analyzed': return 'bg-gray-500 text-white hover:bg-gray-600';
                           default: return 'bg-primary text-primary-foreground hover:bg-primary/90';
                         }
                       };
                       return (
                         <Badge
-                          key={label}
+                          key={action}
                           variant={isActive ? "default" : "outline"}
-                          className={`cursor-pointer transition-all text-xs ${getLabelStyle()}`}
+                          className={`cursor-pointer transition-all text-xs ${getActionStyle()}`}
                           onClick={() => {
-                            setFitLabelFilter((prev) =>
+                            setActionFilter((prev) =>
                               isActive
-                                ? prev.filter((l) => l !== label)
-                                : [...prev, label]
+                                ? prev.filter((a) => a !== action)
+                                : [...prev, action]
                             );
                           }}
                         >
-                          {label}
+                          {displayLabel}
                         </Badge>
                       );
                     })}
-                    {fitLabelFilter.length > 0 && (
+                    {actionFilter.length > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-5 px-1.5 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setFitLabelFilter([])}
+                        onClick={() => setActionFilter([])}
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -1400,6 +1458,7 @@ export default function ApplicationManagementPage() {
           </Card>
 
           {/* Kanban Board Section */}
+          <div data-tour="bulk-actions">
           <BulkActionBar
             selectedCount={selectedApplications.length}
             totalCount={filteredApplications.length}
@@ -1412,14 +1471,19 @@ export default function ApplicationManagementPage() {
             onSelectAll={handleSelectAll}
             onClearSelection={handleClearSelection}
             onArchiveSelected={handleArchiveSelected}
-            isBulkProcessing={sendBulkEmailsMutation.isPending || sendBulkFormsMutation.isPending || bulkUpdateMutation.isPending}
+            isBulkProcessing={sendBulkEmailsMutation.isPending || sendBulkFormsMutation.isPending || bulkUpdateMutation.isPending || startAISummaryMutation.isPending || !!aiSummaryJobId}
             bulkProgress={bulkProgress}
+            onGenerateAISummary={() => setShowAISummaryDialog(true)}
+            aiSummaryEnabled={true}
+            aiSummaryLimit={summaryLimitStatus?.effectiveRemaining}
+            aiSummaryToGenerateCount={toGenerateCount}
           />
+          </div>
 
           {/* Kanban Board */}
-          <div className="min-h-[600px] rounded-lg border border-border bg-card shadow-sm p-4 overflow-auto">
+          <div className="min-h-[600px] rounded-lg border border-border bg-card shadow-sm p-4 overflow-auto" data-tour="kanban-board">
             <KanbanBoard
-              applications={applications || []}
+              applications={filteredApplications}
               pipelineStages={pipelineStages.sort((a, b) => a.order - b.order)}
               selectedIds={selectedApplications}
               onToggleSelect={handleToggleSelect}
@@ -2148,6 +2212,199 @@ export default function ApplicationManagementPage() {
             onOpenChange={setAddCandidateModalOpen}
           />
         )}
+
+        {/* AI Summary Dialog */}
+        <Dialog open={showAISummaryDialog} onOpenChange={(open) => {
+          if (!open && !aiSummaryJobId) {
+            setShowAISummaryDialog(false);
+            setRegenerateSummaries(false);
+          }
+        }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Generate AI Summaries
+              </DialogTitle>
+              <DialogDescription>
+                Generate AI-powered candidate summaries with suggested actions.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Selection and generation counts */}
+              <div className="text-sm bg-muted/30 p-3 rounded-lg space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Selected candidates:</span>
+                  <span className="font-medium">{selectedApplications.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Will generate:</span>
+                  <span className="font-medium text-primary">{toGenerateCount}</span>
+                </div>
+                {willSkipCount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Already have summaries (will skip):</span>
+                    <span className="font-medium text-muted-foreground">{willSkipCount}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Error: selected > 50 */}
+              {selectedApplications.length > 50 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Too many selected</AlertTitle>
+                  <AlertDescription>
+                    Please select 50 or fewer candidates. You have {selectedApplications.length} selected.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Error: to-generate > remaining limit */}
+              {summaryLimitStatus && selectedApplications.length <= 50 && toGenerateCount > summaryLimitStatus.effectiveRemaining && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Daily limit exceeded</AlertTitle>
+                  <AlertDescription>
+                    You have only {summaryLimitStatus.effectiveRemaining} analyses left today.
+                    {toGenerateCount} would be generated. Reduce selection or check "Regenerate" to skip fewer.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Budget warning */}
+              {summaryLimitStatus && !summaryLimitStatus.budgetAllowed && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Service Unavailable</AlertTitle>
+                  <AlertDescription>
+                    AI service is temporarily unavailable. Please try again later.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Limit status info */}
+              {summaryLimitStatus && summaryLimitStatus.budgetAllowed && (
+                <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                  <div className="flex justify-between">
+                    <span>Daily limit:</span>
+                    <span>{summaryLimitStatus.dailyUsed} / {summaryLimitStatus.dailyLimit} used</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span>Remaining:</span>
+                    <span className="font-medium text-foreground">{summaryLimitStatus.effectiveRemaining}</span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span>Resets at:</span>
+                    <span>{new Date(summaryLimitStatus.dailyResetAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Regenerate checkbox */}
+              <div className="flex items-start gap-3 p-3 border border-border rounded-lg">
+                <Checkbox
+                  id="regenerate"
+                  checked={regenerateSummaries}
+                  onCheckedChange={(c) => setRegenerateSummaries(!!c)}
+                  className="mt-0.5"
+                />
+                <div>
+                  <label htmlFor="regenerate" className="text-sm font-medium cursor-pointer">
+                    Regenerate existing summaries
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    By default, candidates with existing summaries are skipped
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress section when job running */}
+              {aiSummaryJobId && (
+                <div className="space-y-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                    <span className="text-sm font-medium">Generating summaries...</span>
+                  </div>
+                  <Progress value={summaryJobStatus?.progress || 0} className="h-2" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    {summaryJobStatus?.processedCount || 0} / {summaryJobStatus?.totalCount || 0} processed
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAISummaryDialog(false);
+                  setRegenerateSummaries(false);
+                }}
+                disabled={startAISummaryMutation.isPending}
+              >
+                {aiSummaryJobId ? 'Close' : 'Cancel'}
+              </Button>
+              {aiSummaryJobId && (
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/api/ai/summary/jobs/${aiSummaryJobId}`, {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                      });
+                      if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || 'Failed to cancel job');
+                      }
+                      setAiSummaryJobId(null);
+                      toast({ title: 'Job Cancelled', description: 'AI summary generation cancelled.' });
+                    } catch (err) {
+                      toast({
+                        title: 'Cancel Failed',
+                        description: err instanceof Error ? err.message : 'Could not cancel the job',
+                        variant: 'destructive'
+                      });
+                    }
+                  }}
+                >
+                  Cancel Job
+                </Button>
+              )}
+              {!aiSummaryJobId && (
+                <Button
+                  onClick={() => startAISummaryMutation.mutate({
+                    applicationIds: selectedApplications,
+                    regenerate: regenerateSummaries,
+                  })}
+                  disabled={
+                    selectedApplications.length === 0 ||
+                    toGenerateCount === 0 ||
+                    selectedApplications.length > 50 ||
+                    (summaryLimitStatus && toGenerateCount > summaryLimitStatus.effectiveRemaining) ||
+                    (summaryLimitStatus && !summaryLimitStatus.budgetAllowed) ||
+                    startAISummaryMutation.isPending
+                  }
+                >
+                  {startAISummaryMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Starting...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate {toGenerateCount} {toGenerateCount === 1 ? 'Summary' : 'Summaries'}
+                    </>
+                  )}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

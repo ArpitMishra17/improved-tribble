@@ -925,6 +925,154 @@ Generate optimization score for job posting. **Requires recruiter or admin role.
 }
 ```
 
+## Async AI Queue Endpoints
+
+The async queue endpoints allow for background processing of AI fit scoring operations, with progress tracking and job management. These endpoints require `AI_QUEUE_ENABLED=true` environment variable.
+
+### POST /api/ai/match/queue
+Enqueue a single fit computation (async). **Requires candidate role.**
+
+**Request Body:**
+```json
+{
+  "applicationId": 123
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "jobId": 456,
+  "statusUrl": "/api/ai/match/jobs/456",
+  "totalCount": 1
+}
+```
+
+**Response (Cached - 200 OK):**
+```json
+{
+  "cached": true,
+  "fit": {
+    "score": 85,
+    "label": "Strong",
+    "reasons": ["Skills match well", "Experience aligned"],
+    "computedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+**Error Codes:**
+- `QUOTA_EXCEEDED` - Monthly fit computation quota exhausted
+- `PENDING_LIMIT` - Too many pending analyses
+- `RATE_LIMIT` - Too many requests, please wait
+
+### POST /api/ai/match/batch/queue
+Enqueue batch fit computation (async, max 50). **Requires candidate role.**
+
+**Request Body:**
+```json
+{
+  "applicationIds": [123, 124, 125, 126, 127]
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "jobId": 789,
+  "statusUrl": "/api/ai/match/jobs/789",
+  "totalCount": 5,
+  "cachedCount": 2
+}
+```
+
+**Response (All Cached - 200 OK):**
+```json
+{
+  "cached": true,
+  "results": [
+    { "applicationId": 123, "fit": { "score": 85, "label": "Strong", "cached": true } },
+    { "applicationId": 124, "fit": { "score": 72, "label": "Good", "cached": true } }
+  ],
+  "summary": { "total": 2, "cached": 2, "stale": 0 }
+}
+```
+
+**Error Codes:**
+- `QUOTA_EXCEEDED` - Not enough analyses left (includes `remaining` and `staleCount`)
+- `MAX_EXCEEDED` - Batch size exceeds maximum (50)
+- `PENDING_LIMIT` - Existing batch job still processing
+- `RATE_LIMIT` - Too many requests, please wait
+
+### GET /api/ai/match/jobs/:id
+Get job status (enforces user ownership). **Requires candidate role.**
+
+**Response:**
+```json
+{
+  "id": 456,
+  "status": "active",
+  "progress": 60,
+  "processedCount": 3,
+  "totalCount": 5,
+  "result": null,
+  "error": null,
+  "errorCode": null,
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "startedAt": "2025-01-01T00:00:05.000Z",
+  "completedAt": null
+}
+```
+
+**Status Values:**
+- `pending` - Job queued, not yet started
+- `active` - Job is being processed
+- `completed` - Job finished successfully
+- `failed` - Job failed with error
+- `cancelled` - Job was cancelled by user
+
+### GET /api/ai/match/jobs
+List user's pending/active jobs (for resume-on-return). **Requires candidate role.**
+
+**Response:**
+```json
+{
+  "jobs": [
+    {
+      "id": 456,
+      "status": "active",
+      "progress": 60,
+      "processedCount": 3,
+      "totalCount": 5,
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "queueName": "ai:batch"
+    }
+  ]
+}
+```
+
+### DELETE /api/ai/match/jobs/:id
+Cancel pending/active job (enforces user ownership). **Requires candidate role + CSRF token.**
+
+**Response:**
+```json
+{
+  "cancelled": true
+}
+```
+
+### GET /api/admin/ai/queue-health
+Get queue health metrics. **Requires super_admin role.**
+
+**Response:**
+```json
+{
+  "interactive": { "waiting": 2, "active": 1, "completed": 150, "failed": 3 },
+  "batch": { "waiting": 0, "active": 1, "completed": 45, "failed": 1 },
+  "redis": { "connected": true, "latencyMs": 5 }
+}
+```
+
 ## Admin Endpoints
 
 ### GET /admin/stats
@@ -1205,7 +1353,18 @@ GET /test-email
 
 ## Changelog
 
-### v1.1.0 (Current)
+### v1.2.0 (Current)
+- Async AI Queue for fit scoring
+  - BullMQ-based job queue with ioredis
+  - Batch processing (up to 50 applications at once)
+  - Server-side chunking for large batches
+  - Progress tracking and resume-on-return
+  - Quota-aware with user-friendly messaging
+  - Job cancellation support
+  - Admin queue health monitoring
+- Weekly cleanup of old AI fit jobs (30+ days)
+
+### v1.1.0
 - Co-recruiter collaboration feature
   - Invite multiple recruiters to collaborate on job postings
   - Email-based invitation system with token validation

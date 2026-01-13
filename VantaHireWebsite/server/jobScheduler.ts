@@ -71,6 +71,9 @@ export function startJobScheduler() {
       // Clean up expired hiring manager invitations
       await cleanupExpiredInvitations();
 
+      // Clean up old AI fit jobs
+      await cleanupOldAiFitJobs();
+
     } catch (error) {
       console.error('Error during weekly cleanup:', error);
     }
@@ -79,7 +82,7 @@ export function startJobScheduler() {
   console.log('📅 Job scheduler started successfully:');
   console.log('   - Warning emails: Daily at 2 AM (7 days before deactivation)');
   console.log('   - Job deactivation: Daily at 3 AM (activity-based)');
-  console.log('   - Weekly cleanup: Sunday at 4 AM (declined jobs + expired invitations)');
+  console.log('   - Weekly cleanup: Sunday at 4 AM (declined jobs + expired invitations + old AI fit jobs)');
 }
 
 /**
@@ -370,5 +373,22 @@ async function cleanupExpiredInvitations(): Promise<void> {
     }
   } catch (error) {
     console.error('Error cleaning up expired invitations:', error);
+  }
+}
+
+/**
+ * Clean up old AI fit jobs
+ * - Delete completed/failed/cancelled jobs older than 30 days
+ */
+async function cleanupOldAiFitJobs(): Promise<void> {
+  try {
+    const deleted = await storage.cleanupOldAiFitJobs(30);
+    if (deleted > 0) {
+      console.log(`Cleaned up ${deleted} old AI fit jobs`);
+    } else {
+      console.log('No old AI fit jobs to clean up');
+    }
+  } catch (error) {
+    console.error('Error cleaning up old AI fit jobs:', error);
   }
 }

@@ -438,6 +438,11 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_content_free_used BOOLEAN DEFAULT FALSE;`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_onboarded_at TIMESTAMP;`);
 
+  // Users table: Profile completion tracking
+  console.log('  Adding profile completion columns to users table...');
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_prompt_snooze_until TIMESTAMP;`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_completed_at TIMESTAMP;`);
+
   // Jobs table: JD digest caching
   await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS jd_digest JSONB;`);
   await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS jd_digest_version INTEGER DEFAULT 1;`);
@@ -702,6 +707,13 @@ export async function ensureAtsSchema(): Promise<void> {
     UPDATE users SET role = 'super_admin' WHERE role = 'admin';
   `);
 
+  // Migration: Update admin username to email format for login compatibility
+  console.log('  Updating admin username to email format...');
+  await db.execute(sql`
+    UPDATE users SET username = 'admin@vantahire.local'
+    WHERE username = 'admin' AND role = 'super_admin';
+  `);
+
   // Operations Command Center: Add rejection_reason column to applications
   console.log('  Adding rejection_reason column to applications table...');
   await db.execute(sql`
@@ -775,8 +787,14 @@ export async function ensureAtsSchema(): Promise<void> {
   console.log('  Adding recruiter profile columns to user_profiles table...');
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS display_name TEXT;`);
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS company TEXT;`);
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS phone TEXT;`);
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;`);
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE;`);
+
+  // URL Security: Add publicId column for non-enumerable recruiter URLs
+  console.log('  Adding publicId column to user_profiles table...');
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS public_id TEXT;`);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS user_profiles_public_id_idx ON user_profiles(public_id);`);
 
   // Hiring Manager Invitations: Create table for inviting hiring managers
   console.log('  Creating hiring_manager_invitations table...');
@@ -843,6 +861,41 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS co_recruiter_invite_token_idx ON co_recruiter_invitations(token);`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS co_recruiter_invite_job_email_idx ON co_recruiter_invitations(job_id, email);`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS co_recruiter_invite_status_idx ON co_recruiter_invitations(status);`);
+
+  // AI Fit Jobs: Async job processing for AI fit scoring
+  console.log('  Creating ai_fit_jobs table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ai_fit_jobs (
+      id SERIAL PRIMARY KEY,
+      bull_job_id TEXT NOT NULL,
+      queue_name TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      application_id INTEGER REFERENCES applications(id),
+      application_ids INTEGER[],
+      status TEXT NOT NULL DEFAULT 'pending',
+      progress INTEGER DEFAULT 0,
+      processed_count INTEGER DEFAULT 0,
+      total_count INTEGER,
+      result JSONB,
+      error TEXT,
+      error_code TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP
+    );
+  `);
+
+  // AI Fit Jobs: Create indexes
+  console.log('  Creating ai_fit_jobs indexes...');
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS ai_fit_jobs_bull_job_id_idx ON ai_fit_jobs(bull_job_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_fit_jobs_user_status_idx ON ai_fit_jobs(user_id, status);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_fit_jobs_application_id_idx ON ai_fit_jobs(application_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_fit_jobs_created_at_idx ON ai_fit_jobs(created_at);`);
+
+  // Client Shortlists: Add missing columns for existing tables
+  console.log('  Adding missing columns to client_shortlists table...');
+  await db.execute(sql`ALTER TABLE client_shortlists ADD COLUMN IF NOT EXISTS title TEXT;`);
+  await db.execute(sql`ALTER TABLE client_shortlists ADD COLUMN IF NOT EXISTS message TEXT;`);
 
   });
 

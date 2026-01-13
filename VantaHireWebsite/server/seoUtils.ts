@@ -50,8 +50,43 @@ export function mapEmploymentType(type: string | null): string | undefined {
 }
 
 /**
+ * Detect country from location string
+ */
+function detectCountry(location: string): string {
+  const lower = location.toLowerCase();
+
+  // India cities/regions
+  if (/\b(india|bangalore|bengaluru|mumbai|delhi|chennai|hyderabad|pune|kolkata|gurgaon|gurugram|noida|ahmedabad)\b/.test(lower)) {
+    return 'IN';
+  }
+  // Singapore
+  if (/\bsingapore\b/.test(lower)) return 'SG';
+  // Malaysia
+  if (/\b(malaysia|kuala lumpur|kl)\b/.test(lower)) return 'MY';
+  // Philippines
+  if (/\b(philippines|manila|cebu)\b/.test(lower)) return 'PH';
+  // Indonesia
+  if (/\b(indonesia|jakarta)\b/.test(lower)) return 'ID';
+  // Vietnam
+  if (/\b(vietnam|ho chi minh|hanoi)\b/.test(lower)) return 'VN';
+  // Thailand
+  if (/\b(thailand|bangkok)\b/.test(lower)) return 'TH';
+  // Australia
+  if (/\b(australia|sydney|melbourne|brisbane)\b/.test(lower)) return 'AU';
+  // USA
+  if (/\b(usa|united states|new york|san francisco|california|texas|seattle)\b/.test(lower)) return 'US';
+  // UK
+  if (/\b(uk|united kingdom|london|manchester)\b/.test(lower)) return 'GB';
+  // UAE
+  if (/\b(uae|dubai|abu dhabi)\b/.test(lower)) return 'AE';
+
+  return 'IN'; // Default to India for APAC focus
+}
+
+/**
  * Parse job location to determine if remote or physical location
  * Returns jobLocationType for remote, or jobLocation for physical
+ * For remote jobs, also returns applicantLocationRequirements if region-specific
  */
 export function parseJobLocation(location: string | null) {
   if (!location) return null;
@@ -59,23 +94,39 @@ export function parseJobLocation(location: string | null) {
   const lower = location.toLowerCase();
 
   // Check for remote indicators
-  const remoteKeywords = ['remote', 'work from home', 'wfh', 'anywhere', 'virtual'];
-  if (remoteKeywords.some(keyword => lower.includes(keyword))) {
-    return { jobLocationType: 'TELECOMMUTE' };
+  const remoteKeywords = ['remote', 'work from home', 'wfh', 'anywhere', 'virtual', 'distributed'];
+  const isRemote = remoteKeywords.some(keyword => lower.includes(keyword));
+
+  if (isRemote) {
+    // Check if remote is region-specific (e.g., "Remote - India", "Remote (US only)")
+    const countryCode = detectCountry(location);
+    const isGlobalRemote = lower.includes('anywhere') || lower.includes('global') || lower.includes('worldwide');
+
+    if (isGlobalRemote) {
+      return { jobLocationType: 'TELECOMMUTE' };
+    }
+
+    // Region-specific remote
+    return {
+      jobLocationType: 'TELECOMMUTE',
+      applicantLocationRequirements: {
+        '@type': 'Country',
+        name: countryCode,
+      },
+    };
   }
 
   // Handle multiple locations (e.g., "Bangalore/Mumbai") - use first one
   const firstLocation = location.split('/')[0]?.split(',')[0]?.trim() || '';
+  const countryCode = detectCountry(location);
 
-  // Default to India for APAC region
-  // In future, can add country detection logic
   return {
     jobLocation: {
       '@type': 'Place',
       address: {
         '@type': 'PostalAddress',
         addressLocality: firstLocation,
-        addressCountry: 'IN', // Default to India
+        addressCountry: countryCode,
       },
     },
   };
@@ -142,7 +193,10 @@ export function generateJobPostingSchema(job: {
   description: string;
   location: string;
   type: string | null;
+  skills?: string[] | null;
   company?: string | null;
+  clientName?: string | null;
+  clientDomain?: string | null;
   createdAt: Date | string;
   deadline?: Date | string | null;
   expiresAt?: Date | string | null;
@@ -168,13 +222,25 @@ export function generateJobPostingSchema(job: {
   const datePosted = formatISODate(job.createdAt);
   const validThrough = formatISODate(job.expiresAt || job.deadline);
 
-  // Build canonical URL with slug if available
+  // Build canonical URL with slug if available (prefer pure slug for SEO)
   const jobUrl = job.slug
-    ? `${baseUrl}/jobs/${job.id}-${job.slug}`
+    ? `${baseUrl}/jobs/${job.slug}`
     : `${baseUrl}/jobs/${job.id}`;
 
-  // Use company name from job if available, otherwise VantaHire
-  const companyName = job.company || 'VantaHire';
+  // Determine hiring organization (prefer client if available)
+  const orgName = job.clientName || job.company || 'VantaHire';
+  const hiringOrganization: any = {
+    '@type': 'Organization',
+    name: orgName,
+    logo: `${baseUrl}/logo.png`,
+  };
+
+  // Add client domain as sameAs if available
+  if (job.clientDomain) {
+    hiringOrganization.sameAs = job.clientDomain.startsWith('http')
+      ? job.clientDomain
+      : `https://${job.clientDomain}`;
+  }
 
   const jobPosting: any = {
     '@context': 'https://schema.org',
@@ -182,20 +248,26 @@ export function generateJobPostingSchema(job: {
     title: job.title,
     description: plainDescription,
     datePosted,
-    hiringOrganization: {
-      '@type': 'Organization',
-      name: companyName,
-      logo: `${baseUrl}/logo.png`,
-    },
+    hiringOrganization,
     identifier: {
       '@type': 'PropertyValue',
-      name: companyName,
+      name: orgName,
       value: job.id.toString(),
     },
     directApply: true,
-    jobLocation: locationData?.jobLocation,
-    jobLocationType: locationData?.jobLocationType,
+    url: jobUrl,
   };
+
+  // Add location data
+  if (locationData?.jobLocation) {
+    jobPosting.jobLocation = locationData.jobLocation;
+  }
+  if (locationData?.jobLocationType) {
+    jobPosting.jobLocationType = locationData.jobLocationType;
+  }
+  if ((locationData as any)?.applicantLocationRequirements) {
+    jobPosting.applicantLocationRequirements = (locationData as any).applicantLocationRequirements;
+  }
 
   // Add optional fields
   if (employmentType) {
@@ -206,8 +278,10 @@ export function generateJobPostingSchema(job: {
     jobPosting.validThrough = validThrough;
   }
 
-  // Add URL
-  jobPosting.url = jobUrl;
+  // Add skills if available
+  if (job.skills && job.skills.length > 0) {
+    jobPosting.skills = job.skills.join(', ');
+  }
 
   return jobPosting;
 }
@@ -222,8 +296,9 @@ export function generateJobsSitemapXML(jobs: Array<{
   createdAt: Date | string;
 }>, baseUrl: string = 'https://www.vantahire.com'): string {
   const urlEntries = jobs.map(job => {
+    // Prefer pure slug for SEO-friendly URLs
     const url = job.slug
-      ? `${baseUrl}/jobs/${job.id}-${job.slug}`
+      ? `${baseUrl}/jobs/${job.slug}`
       : `${baseUrl}/jobs/${job.id}`;
 
     const lastmod = formatISODate(job.updatedAt || job.createdAt);

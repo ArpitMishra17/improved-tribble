@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Mail, FileText, MoveRight, Archive } from "lucide-react";
+import { X, Mail, FileText, MoveRight, Archive, Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,6 +41,11 @@ interface BulkActionBarProps {
   onArchiveSelected: () => Promise<void>;
   isBulkProcessing: boolean;
   bulkProgress?: { sent: number; total: number };
+  // AI Summary props
+  onGenerateAISummary?: () => void;
+  aiSummaryEnabled?: boolean;
+  aiSummaryLimit?: number | undefined;
+  aiSummaryToGenerateCount?: number; // Count of apps that will actually be generated (excludes already-summarized)
 }
 
 export function BulkActionBar({
@@ -57,6 +62,10 @@ export function BulkActionBar({
   onArchiveSelected,
   isBulkProcessing,
   bulkProgress,
+  onGenerateAISummary,
+  aiSummaryEnabled,
+  aiSummaryLimit,
+  aiSummaryToGenerateCount,
 }: BulkActionBarProps) {
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
@@ -181,6 +190,36 @@ export function BulkActionBar({
               <Archive className="h-4 w-4 mr-2" />
               Archive
             </Button>
+
+            {/* AI Summary Button */}
+            {aiSummaryEnabled && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onGenerateAISummary}
+                disabled={isBulkProcessing || !hasSelection || selectedCount > 50}
+                className="text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                AI Summary
+              </Button>
+            )}
+
+            {/* Inline Warning: Max 50 selection exceeded */}
+            {selectedCount > 50 && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200 ml-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>Select max 50 for AI Summary ({selectedCount} selected)</span>
+              </div>
+            )}
+
+            {/* Inline Warning: Rate limit warning (when to-generate count exceeds limit) */}
+            {aiSummaryEnabled && aiSummaryLimit !== undefined && aiSummaryToGenerateCount !== undefined && aiSummaryToGenerateCount > 0 && selectedCount <= 50 && aiSummaryToGenerateCount > aiSummaryLimit && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 px-3 py-1.5 rounded-md border border-amber-200 ml-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>Only {aiSummaryLimit} AI summaries left today ({aiSummaryToGenerateCount} needed)</span>
+              </div>
+            )}
           </div>
 
           {/* Progress indicator */}

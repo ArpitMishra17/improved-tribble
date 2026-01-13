@@ -115,9 +115,9 @@ export async function checkCircuitBreaker(): Promise<CircuitBreakerStatus> {
 }
 
 /**
- * Track daily budget spending
+ * Track daily budget spending (exported for use by other AI processing modules)
  */
-async function trackBudgetSpending(costUsd: number): Promise<void> {
+export async function trackBudgetSpending(costUsd: number): Promise<void> {
   const today = new Date().toISOString().split('T')[0];
   const spentKey = `daily_budget:${today}`;
 

@@ -9,7 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Layout from "@/components/Layout";
 
 interface RecruiterProfile {
-  id: number;
+  id: number | string; // publicId if available, otherwise numeric ID
+  publicId: string | null;
   displayName: string;
   company: string | null;
   photoUrl: string | null;
@@ -32,7 +33,8 @@ export default function RecruiterProfilePage() {
   const [, params] = useRoute("/recruiters/:id");
   const [isVisible, setIsVisible] = useState(false);
 
-  const recruiterId = params?.id ? parseInt(params.id) : null;
+  // Support both numeric ID and publicId in URL
+  const recruiterIdOrPublicId = params?.id || null;
 
   // Fade-in animation on mount
   useEffect(() => {
@@ -42,27 +44,31 @@ export default function RecruiterProfilePage() {
 
   // Fetch recruiter profile
   const { data: profile, isLoading: profileLoading, error: profileError } = useQuery<RecruiterProfile>({
-    queryKey: ["/api/recruiters", recruiterId],
+    queryKey: ["/api/recruiters", recruiterIdOrPublicId],
     queryFn: async () => {
-      const response = await fetch(`/api/recruiters/${recruiterId}`);
+      const response = await fetch(`/api/recruiters/${recruiterIdOrPublicId}`);
       if (!response.ok) {
-        if (response.status === 404) throw new Error("Profile not found");
+        const data = await response.json().catch(() => ({}));
+        if (data.code === 'PROFILE_PRIVATE') {
+          throw new Error("PROFILE_PRIVATE");
+        }
+        if (response.status === 404) throw new Error("NOT_FOUND");
         throw new Error("Failed to fetch profile");
       }
       return response.json();
     },
-    enabled: !!recruiterId,
+    enabled: !!recruiterIdOrPublicId,
   });
 
-  // Fetch recruiter's jobs
+  // Fetch recruiter's jobs (use publicId from profile response if available)
   const { data: jobsData, isLoading: jobsLoading } = useQuery<{ jobs: RecruiterJob[] }>({
-    queryKey: ["/api/recruiters", recruiterId, "jobs"],
+    queryKey: ["/api/recruiters", recruiterIdOrPublicId, "jobs"],
     queryFn: async () => {
-      const response = await fetch(`/api/recruiters/${recruiterId}/jobs`);
+      const response = await fetch(`/api/recruiters/${recruiterIdOrPublicId}/jobs`);
       if (!response.ok) return { jobs: [] };
       return response.json();
     },
-    enabled: !!recruiterId && !!profile,
+    enabled: !!recruiterIdOrPublicId && !!profile,
   });
 
   const formatDate = (dateString: string) => {
@@ -83,7 +89,7 @@ export default function RecruiterProfilePage() {
       .slice(0, 2);
   };
 
-  if (!recruiterId) {
+  if (!recruiterIdOrPublicId) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -110,17 +116,34 @@ export default function RecruiterProfilePage() {
   }
 
   if (profileError || !profile) {
+    const isPrivate = profileError?.message === "PROFILE_PRIVATE";
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center text-foreground">
-            <h1 className="text-2xl font-bold mb-2">Profile Not Found</h1>
-            <p className="mb-4">This recruiter profile is private or doesn't exist.</p>
-            <Link href="/jobs">
-              <Button className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8]">
-                Browse Jobs
-              </Button>
-            </Link>
+          <div className="text-center text-foreground max-w-md">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+              <User className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">
+              {isPrivate ? "Profile Not Public" : "Profile Not Found"}
+            </h1>
+            <p className="mb-6 text-muted-foreground">
+              {isPrivate
+                ? "This recruiter has chosen to keep their profile private. You can still browse their job postings."
+                : "This recruiter profile doesn't exist or has been removed."}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Link href="/jobs">
+                <Button className="bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8]">
+                  Browse Jobs
+                </Button>
+              </Link>
+              <Link href="/recruiters">
+                <Button variant="outline">
+                  View All Recruiters
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </Layout>

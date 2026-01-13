@@ -24,6 +24,8 @@ import {
   hiringManagerInvitations,
   jobRecruiters,
   coRecruiterInvitations,
+  aiFitJobs,
+  candidateResumes,
   type User,
   type InsertUser,
   type ContactSubmission,
@@ -58,6 +60,9 @@ import {
   type HiringManagerInvitation,
   type JobRecruiter,
   type CoRecruiterInvitation,
+  type AiFitJob,
+  type InsertAiFitJob,
+  type BatchFitResult,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, ilike, sql, or, inArray, count } from "drizzle-orm";
@@ -101,6 +106,11 @@ export interface IStorage {
   getUserByPasswordResetToken(token: string): Promise<User | undefined>;
   clearPasswordResetToken(userId: number): Promise<void>;
 
+  // Profile completion operations
+  updateUserProfileSnooze(userId: number, snoozeUntil: Date): Promise<void>;
+  markProfileCompleted(userId: number): Promise<void>;
+  clearProfileCompletedAt(userId: number): Promise<void>;
+
   // Contact form operations
   createContactSubmission(submission: InsertContact): Promise<ContactSubmission>;
   getAllContactSubmissions(): Promise<ContactSubmission[]>;
@@ -108,7 +118,8 @@ export interface IStorage {
   // Job operations
   createJob(job: InsertJob & { postedBy: number }): Promise<Job>;
   getJob(id: number): Promise<Job | undefined>;
-  getJobWithRecruiter(id: number): Promise<(Job & { recruiter?: { firstName: string | null; lastName: string | null } }) | undefined>;
+  getJobWithRecruiter(id: number): Promise<(Job & { recruiter?: { firstName: string | null; lastName: string | null; isProfilePublic: boolean; publicId: string | null }; client?: { name: string; domain: string | null } | null }) | undefined>;
+  getJobBySlug(slug: string): Promise<(Job & { recruiter?: { firstName: string | null; lastName: string | null; isProfilePublic: boolean; publicId: string | null }; client?: { name: string; domain: string | null } | null }) | undefined>;
   getJobs(filters: {
     page?: number;
     limit?: number;
@@ -117,14 +128,24 @@ export interface IStorage {
     skills?: string[];
     search?: string;
     status?: string;
-  }): Promise<{ jobs: Job[]; total: number }>;
+  }): Promise<{ jobs: (Job & { postedByName?: string; postedById?: number | string; isRecruiterProfilePublic?: boolean })[]; total: number }>;
   updateJobStatus(id: number, isActive: boolean, reason?: string, performedBy?: number): Promise<Job | undefined>;
-  updateJob(id: number, updates: Partial<Pick<Job, 'title' | 'description' | 'location' | 'type' | 'skills'>>): Promise<Job | undefined>;
+  updateJob(id: number, updates: Partial<Pick<Job, 'title' | 'description' | 'location' | 'type' | 'skills' | 'hiringManagerId' | 'clientId'>>): Promise<Job | undefined>;
   logJobAction(data: { jobId: number; action: string; performedBy: number; reason?: string; metadata?: any }): Promise<JobAuditLog>;
   getJobsByUser(userId: number): Promise<(Job & { applicationCount: number; hiringManager?: { id: number; firstName: string | null; lastName: string | null; username: string } })[]>;
   reviewJob(id: number, status: string, reviewComments?: string, reviewedBy?: number): Promise<Job | undefined>;
   getJobsByStatus(status: string, page?: number, limit?: number): Promise<{ jobs: Job[]; total: number }>;
   getPublicJobsByRecruiter(recruiterId: number): Promise<Job[]>;
+  getPublicRecruiters(): Promise<Array<{
+    id: number | string;
+    publicId: string | null;
+    displayName: string;
+    company: string | null;
+    photoUrl: string | null;
+    bio: string | null;
+    location: string | null;
+    jobCount: number;
+  }>>;
 
   // Application operations
   createApplication(application: InsertApplication & {
@@ -143,6 +164,7 @@ export interface IStorage {
   getApplicationsByJob(jobId: number): Promise<Application[]>;
   getApplicationsByUser(email: string): Promise<Application[]>;
   getApplication(id: number): Promise<Application | undefined>;
+  getClientFeedbackCountsByApplicationIds(applicationIds: number[]): Promise<Record<number, number>>;
   updateApplicationStatus(id: number, status: string, notes?: string): Promise<Application | undefined>;
   updateApplicationsStatus(ids: number[], status: string, notes?: string): Promise<number>;
   markApplicationViewed(id: number): Promise<Application | undefined>;
@@ -380,6 +402,28 @@ export class DatabaseStorage implements IStorage {
         passwordResetToken: null,
         passwordResetExpires: null,
       })
+      .where(eq(users.id, userId));
+  }
+
+  // Profile completion methods
+  async updateUserProfileSnooze(userId: number, snoozeUntil: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ profilePromptSnoozeUntil: snoozeUntil })
+      .where(eq(users.id, userId));
+  }
+
+  async markProfileCompleted(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ profileCompletedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async clearProfileCompletedAt(userId: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ profileCompletedAt: null })
       .where(eq(users.id, userId));
   }
 
@@ -635,15 +679,24 @@ export class DatabaseStorage implements IStorage {
     return job || undefined;
   }
 
-  async getJobWithRecruiter(id: number): Promise<(Job & { recruiter?: { firstName: string | null; lastName: string | null } }) | undefined> {
+  async getJobWithRecruiter(id: number): Promise<(Job & {
+    recruiter?: { firstName: string | null; lastName: string | null; isProfilePublic: boolean; publicId: string | null };
+    client?: { name: string; domain: string | null } | null;
+  }) | undefined> {
     const [result] = await db
       .select({
         job: jobs,
         recruiterFirstName: users.firstName,
         recruiterLastName: users.lastName,
+        isProfilePublic: userProfiles.isPublic,
+        recruiterPublicId: userProfiles.publicId,
+        clientName: clients.name,
+        clientDomain: clients.domain,
       })
       .from(jobs)
       .leftJoin(users, eq(jobs.postedBy, users.id))
+      .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
       .where(eq(jobs.id, id));
 
     if (!result) return undefined;
@@ -653,7 +706,44 @@ export class DatabaseStorage implements IStorage {
       recruiter: {
         firstName: result.recruiterFirstName,
         lastName: result.recruiterLastName,
+        isProfilePublic: result.isProfilePublic ?? false,
+        publicId: result.recruiterPublicId,
       },
+      client: result.clientName ? { name: result.clientName, domain: result.clientDomain } : null,
+    };
+  }
+
+  async getJobBySlug(slug: string): Promise<(Job & {
+    recruiter?: { firstName: string | null; lastName: string | null; isProfilePublic: boolean; publicId: string | null };
+    client?: { name: string; domain: string | null } | null;
+  }) | undefined> {
+    const [result] = await db
+      .select({
+        job: jobs,
+        recruiterFirstName: users.firstName,
+        recruiterLastName: users.lastName,
+        isProfilePublic: userProfiles.isPublic,
+        recruiterPublicId: userProfiles.publicId,
+        clientName: clients.name,
+        clientDomain: clients.domain,
+      })
+      .from(jobs)
+      .leftJoin(users, eq(jobs.postedBy, users.id))
+      .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
+      .leftJoin(clients, eq(jobs.clientId, clients.id))
+      .where(eq(jobs.slug, slug));
+
+    if (!result) return undefined;
+
+    return {
+      ...result.job,
+      recruiter: {
+        firstName: result.recruiterFirstName,
+        lastName: result.recruiterLastName,
+        isProfilePublic: result.isProfilePublic ?? false,
+        publicId: result.recruiterPublicId,
+      },
+      client: result.clientName ? { name: result.clientName, domain: result.clientDomain } : null,
     };
   }
 
@@ -664,21 +754,21 @@ export class DatabaseStorage implements IStorage {
     type?: string;
     skills?: string[];
     search?: string;
-  }): Promise<{ jobs: Job[]; total: number }> {
+  }): Promise<{ jobs: (Job & { postedByName?: string; postedById?: number | string; isRecruiterProfilePublic?: boolean })[]; total: number }> {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
     const offset = (page - 1) * limit;
-    
+
     let whereConditions = [eq(jobs.isActive, true)];
-    
+
     if (filters.location) {
       whereConditions.push(ilike(jobs.location, `%${filters.location}%`));
     }
-    
+
     if (filters.type) {
       whereConditions.push(eq(jobs.type, filters.type));
     }
-    
+
     if (filters.search) {
       const searchCondition = or(
         ilike(jobs.title, `%${filters.search}%`),
@@ -688,7 +778,7 @@ export class DatabaseStorage implements IStorage {
         whereConditions.push(searchCondition);
       }
     }
-    
+
     if (filters.skills && filters.skills.length > 0) {
       // Check if job skills array contains any of the filter skills
       // Using OR conditions to check each skill individually
@@ -701,20 +791,36 @@ export class DatabaseStorage implements IStorage {
         whereConditions.push(skillsOr);
       }
     }
-    
+
     const whereClause = whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0];
-    
+
     const [jobResults, totalResults] = await Promise.all([
-      db.select().from(jobs)
+      db.select({
+        job: jobs,
+        recruiterFirstName: users.firstName,
+        recruiterLastName: users.lastName,
+        isProfilePublic: userProfiles.isPublic,
+        recruiterPublicId: userProfiles.publicId,
+      })
+        .from(jobs)
+        .leftJoin(users, eq(jobs.postedBy, users.id))
+        .leftJoin(userProfiles, eq(users.id, userProfiles.userId))
         .where(whereClause)
         .orderBy(desc(jobs.createdAt))
         .limit(limit)
         .offset(offset),
       db.select({ count: sql<number>`count(*)` }).from(jobs).where(whereClause)
     ]);
-    
+
+    type JobRow = typeof jobResults[number];
     return {
-      jobs: jobResults,
+      jobs: jobResults.map((row: JobRow) => ({
+        ...row.job,
+        // Use publicId if available and profile is public, otherwise fall back to numeric ID
+        postedById: (row.isProfilePublic && row.recruiterPublicId) ? row.recruiterPublicId : row.job.postedBy,
+        postedByName: [row.recruiterFirstName, row.recruiterLastName].filter(Boolean).join(' ') || undefined,
+        isRecruiterProfilePublic: row.isProfilePublic ?? false,
+      })),
       total: totalResults[0].count
     };
   }
@@ -777,7 +883,10 @@ export class DatabaseStorage implements IStorage {
     return job || undefined;
   }
 
-  async updateJob(id: number, updates: Partial<Pick<Job, 'title' | 'description' | 'location' | 'type' | 'skills'>>): Promise<Job | undefined> {
+  async updateJob(
+    id: number,
+    updates: Partial<Pick<Job, 'title' | 'description' | 'location' | 'type' | 'skills' | 'hiringManagerId' | 'clientId'>>
+  ): Promise<Job | undefined> {
     const currentJob = await this.getJob(id);
     if (!currentJob) return undefined;
 
@@ -1006,6 +1115,75 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getPublicRecruiters(): Promise<Array<{
+    id: string | number; // publicId preferred, falls back to numeric id
+    publicId: string | null;
+    displayName: string;
+    company: string | null;
+    photoUrl: string | null;
+    bio: string | null;
+    location: string | null;
+    jobCount: number;
+  }>> {
+    // Get all recruiters with public profiles, along with their active job count
+    const result = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        company: userProfiles.company,
+        photoUrl: userProfiles.photoUrl,
+        bio: userProfiles.bio,
+        location: userProfiles.location,
+        displayName: userProfiles.displayName,
+        publicId: userProfiles.publicId,
+      })
+      .from(users)
+      .innerJoin(userProfiles, eq(users.id, userProfiles.userId))
+      .where(
+        and(
+          or(eq(users.role, 'recruiter'), eq(users.role, 'super_admin')),
+          eq(userProfiles.isPublic, true)
+        )
+      )
+      .orderBy(users.firstName, users.lastName);
+
+    // Get job counts for each recruiter
+    type RecruiterRow = typeof result[number];
+    const recruiterIds = result.map((r: RecruiterRow) => r.id);
+    const jobCounts = recruiterIds.length > 0
+      ? await db
+          .select({
+            recruiterId: jobs.postedBy,
+            count: count(jobs.id),
+          })
+          .from(jobs)
+          .where(
+            and(
+              inArray(jobs.postedBy, recruiterIds),
+              eq(jobs.isActive, true),
+              eq(jobs.status, 'approved')
+            )
+          )
+          .groupBy(jobs.postedBy)
+      : [];
+
+    type JobCountRow = typeof jobCounts[number];
+    const jobCountMap = new Map(jobCounts.map((jc: JobCountRow) => [jc.recruiterId, jc.count]));
+
+    return result.map((r: RecruiterRow) => ({
+      id: r.publicId || r.id, // Prefer publicId for URL use
+      publicId: r.publicId,
+      displayName: r.displayName || [r.firstName, r.lastName].filter(Boolean).join(' ') || r.username,
+      company: r.company,
+      photoUrl: r.photoUrl,
+      bio: r.bio,
+      location: r.location,
+      jobCount: jobCountMap.get(r.id) || 0,
+    }));
+  }
+
   // Application methods
   async createApplication(application: InsertApplication & {
     jobId: number;
@@ -1046,6 +1224,25 @@ export class DatabaseStorage implements IStorage {
     return application || undefined;
   }
 
+  async getClientFeedbackCountsByApplicationIds(applicationIds: number[]): Promise<Record<number, number>> {
+    if (applicationIds.length === 0) return {};
+
+    const results = await db
+      .select({
+        applicationId: clientFeedback.applicationId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(clientFeedback)
+      .where(inArray(clientFeedback.applicationId, applicationIds))
+      .groupBy(clientFeedback.applicationId);
+
+    const counts: Record<number, number> = {};
+    for (const row of results) {
+      counts[row.applicationId] = row.count;
+    }
+    return counts;
+  }
+
   // Get email history for an application
   async getApplicationEmailHistory(applicationId: number): Promise<(EmailAuditLog & { sentByUser: { id: number; username: string; firstName: string | null; lastName: string | null } | null; template: { id: number; name: string } | null })[]> {
     const results = await db
@@ -1080,6 +1277,29 @@ export class DatabaseStorage implements IStorage {
   async getUserProfile(userId: number): Promise<UserProfile | undefined> {
     const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId));
     return profile || undefined;
+  }
+
+  async getUserProfileByPublicId(publicId: string): Promise<(UserProfile & { user: Pick<User, 'id' | 'firstName' | 'lastName' | 'role'> }) | undefined> {
+    const result = await db
+      .select({
+        profile: userProfiles,
+        user: {
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          role: users.role,
+        },
+      })
+      .from(userProfiles)
+      .innerJoin(users, eq(userProfiles.userId, users.id))
+      .where(eq(userProfiles.publicId, publicId));
+
+    if (result.length === 0) return undefined;
+
+    return {
+      ...result[0].profile,
+      user: result[0].user,
+    };
   }
 
   async createUserProfile(profile: InsertUserProfile & { userId: number }): Promise<UserProfile> {
@@ -1424,9 +1644,12 @@ export class DatabaseStorage implements IStorage {
         title: jobs.title,
         location: jobs.location,
         type: jobs.type,
+        description: jobs.description,
         status: jobs.status,
         isActive: jobs.isActive,
         createdAt: jobs.createdAt,
+        expiresAt: jobs.expiresAt,
+        reviewComments: jobs.reviewComments,
         postedBy: {
           id: users.id,
           firstName: users.firstName,
@@ -1503,11 +1726,15 @@ export class DatabaseStorage implements IStorage {
         firstName: users.firstName,
         lastName: users.lastName,
         role: users.role,
+        emailVerified: users.emailVerified,
         profile: {
           bio: userProfiles.bio,
           skills: userProfiles.skills,
           linkedin: userProfiles.linkedin,
           location: userProfiles.location,
+          company: userProfiles.company,
+          phone: userProfiles.phone,
+          createdAt: userProfiles.createdAt,
         },
       })
       .from(users)
@@ -1528,6 +1755,21 @@ export class DatabaseStorage implements IStorage {
       return acc;
     }, {} as Record<number, number>);
 
+    // Get total candidates/applications per recruiter (across all their jobs)
+    const recruiterCandidateCounts = await db
+      .select({
+        recruiterId: jobs.postedBy,
+        candidateCount: count(applications.id),
+      })
+      .from(jobs)
+      .leftJoin(applications, eq(applications.jobId, jobs.id))
+      .groupBy(jobs.postedBy);
+
+    const recruiterCandidateMap = recruiterCandidateCounts.reduce((acc: Record<number, number>, item: any) => {
+      acc[item.recruiterId] = Number(item.candidateCount) || 0;
+      return acc;
+    }, {} as Record<number, number>);
+
     // Get application counts for candidates
     const applicationCounts = await db
       .select({
@@ -1542,21 +1784,38 @@ export class DatabaseStorage implements IStorage {
       return acc;
     }, {} as Record<string, number>);
 
+    // Get resume counts for candidates
+    const resumeCounts = await db
+      .select({
+        userId: candidateResumes.userId,
+        count: count(),
+      })
+      .from(candidateResumes)
+      .groupBy(candidateResumes.userId);
+
+    const resumeCountMap = resumeCounts.reduce((acc: Record<number, number>, item: any) => {
+      acc[item.userId] = Number(item.count);
+      return acc;
+    }, {} as Record<number, number>);
+
     return usersWithDetails.map((user: any) => {
       const result: any = {
         ...user,
-        createdAt: new Date().toISOString(), // Mock createdAt since field doesn't exist
-        profile: user.profile && (user.profile.bio || user.profile.skills || user.profile.linkedin || user.profile.location) 
-          ? user.profile 
+        email: user.username, // username is the email
+        createdAt: user.profile?.createdAt?.toISOString() || new Date().toISOString(),
+        profile: user.profile && (user.profile.bio || user.profile.skills || user.profile.linkedin || user.profile.location || user.profile.company)
+          ? user.profile
           : undefined,
       };
 
       if (user.role === 'recruiter' || user.role === 'super_admin') {
         result.jobCount = jobCountMap[user.id] || 0;
+        result.candidateCount = recruiterCandidateMap[user.id] || 0;
       }
 
       if (user.role === 'candidate') {
         result.applicationCount = applicationCountMap[user.username] || 0;
+        result.resumeCount = resumeCountMap[user.id] || 0;
       }
 
       return result;
@@ -2773,6 +3032,224 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(coRecruiterInvitations)
       .where(eq(coRecruiterInvitations.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  // ============================================
+  // AI Fit Jobs (Async Queue Processing)
+  // ============================================
+
+  async createAiFitJob(data: {
+    bullJobId: string;
+    queueName: 'ai:interactive' | 'ai:batch';
+    userId: number;
+    applicationId?: number | null;
+    applicationIds?: number[] | null;
+    totalCount: number;
+    result?: any;
+  }): Promise<AiFitJob> {
+    const [job] = await db.insert(aiFitJobs).values({
+      bullJobId: data.bullJobId,
+      queueName: data.queueName,
+      userId: data.userId,
+      applicationId: data.applicationId || null,
+      applicationIds: data.applicationIds || null,
+      totalCount: data.totalCount,
+      status: 'pending',
+      progress: 0,
+      processedCount: 0,
+      result: data.result || null,
+    }).returning();
+    return job;
+  }
+
+  async getAiFitJob(id: number): Promise<AiFitJob | undefined> {
+    const [job] = await db.select()
+      .from(aiFitJobs)
+      .where(eq(aiFitJobs.id, id));
+    return job || undefined;
+  }
+
+  async getAiFitJobForUser(id: number, userId: number): Promise<AiFitJob | undefined> {
+    const [job] = await db.select()
+      .from(aiFitJobs)
+      .where(and(
+        eq(aiFitJobs.id, id),
+        eq(aiFitJobs.userId, userId)
+      ));
+    return job || undefined;
+  }
+
+  async getAiFitJobByBullId(bullJobId: string): Promise<AiFitJob | undefined> {
+    const [job] = await db.select()
+      .from(aiFitJobs)
+      .where(eq(aiFitJobs.bullJobId, bullJobId));
+    return job || undefined;
+  }
+
+  async updateAiFitJobStatus(
+    id: number,
+    status: 'pending' | 'active' | 'completed' | 'failed' | 'cancelled',
+    updates?: {
+      error?: string;
+      errorCode?: string;
+      result?: any;
+      startedAt?: Date;
+      completedAt?: Date;
+    }
+  ): Promise<AiFitJob | undefined> {
+    const setData: any = { status };
+    if (updates?.error !== undefined) setData.error = updates.error;
+    if (updates?.errorCode !== undefined) setData.errorCode = updates.errorCode;
+    if (updates?.result !== undefined) setData.result = updates.result;
+    if (updates?.startedAt !== undefined) setData.startedAt = updates.startedAt;
+    if (updates?.completedAt !== undefined) setData.completedAt = updates.completedAt;
+
+    const [updated] = await db.update(aiFitJobs)
+      .set(setData)
+      .where(eq(aiFitJobs.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async updateAiFitJobProgress(
+    id: number,
+    updates: {
+      processedCount?: number;
+      progress?: number;
+      result?: any;
+    }
+  ): Promise<AiFitJob | undefined> {
+    const [updated] = await db.update(aiFitJobs)
+      .set({
+        processedCount: updates.processedCount,
+        progress: updates.progress,
+        result: updates.result,
+      })
+      .where(eq(aiFitJobs.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async updateAiFitJobBullId(id: number, bullJobId: string): Promise<AiFitJob | undefined> {
+    const [updated] = await db.update(aiFitJobs)
+      .set({ bullJobId })
+      .where(eq(aiFitJobs.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getUserAiFitJobs(userId: number, status?: string | string[]): Promise<AiFitJob[]> {
+    if (status) {
+      const statusList = Array.isArray(status) ? status : [status];
+      return await db.select()
+        .from(aiFitJobs)
+        .where(and(
+          eq(aiFitJobs.userId, userId),
+          inArray(aiFitJobs.status, statusList)
+        ))
+        .orderBy(desc(aiFitJobs.createdAt));
+    }
+    return await db.select()
+      .from(aiFitJobs)
+      .where(eq(aiFitJobs.userId, userId))
+      .orderBy(desc(aiFitJobs.createdAt));
+  }
+
+  async getUserPendingJobCount(userId: number, queueName?: string): Promise<number> {
+    const conditions = [
+      eq(aiFitJobs.userId, userId),
+      inArray(aiFitJobs.status, ['pending', 'active']),
+    ];
+    if (queueName) {
+      conditions.push(eq(aiFitJobs.queueName, queueName));
+    }
+
+    const result = await db.select({ count: count() })
+      .from(aiFitJobs)
+      .where(and(...conditions));
+
+    return result[0]?.count || 0;
+  }
+
+  /**
+   * Find existing pending/active job for the same work (deduplication)
+   * For single jobs: match by applicationId
+   * For batch jobs: match by applicationIds array (exact match)
+   */
+  async findPendingAiFitJob(
+    userId: number,
+    applicationId?: number,
+    applicationIds?: number[]
+  ): Promise<AiFitJob | undefined> {
+    const baseConditions = [
+      eq(aiFitJobs.userId, userId),
+      inArray(aiFitJobs.status, ['pending', 'active']),
+    ];
+
+    if (applicationId && !applicationIds) {
+      // Single job: match by applicationId
+      const [job] = await db.select()
+        .from(aiFitJobs)
+        .where(and(
+          ...baseConditions,
+          eq(aiFitJobs.applicationId, applicationId)
+        ))
+        .orderBy(desc(aiFitJobs.createdAt))
+        .limit(1);
+      return job || undefined;
+    }
+
+    if (applicationIds && applicationIds.length > 0) {
+      // Batch job: find jobs with overlapping applicationIds
+      // For simplicity, we look for exact match or subset
+      const pendingJobs = await db.select()
+        .from(aiFitJobs)
+        .where(and(
+          ...baseConditions,
+          eq(aiFitJobs.queueName, 'ai:batch')
+        ))
+        .orderBy(desc(aiFitJobs.createdAt));
+
+      // Check for exact match (all requested IDs are already being processed)
+      for (const job of pendingJobs) {
+        const jobIds = job.applicationIds || [];
+        const allIncluded = applicationIds.every(id => jobIds.includes(id));
+        if (allIncluded) {
+          return job;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  async cleanupOldAiFitJobs(olderThanDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+
+    const result = await db.delete(aiFitJobs)
+      .where(and(
+        inArray(aiFitJobs.status, ['completed', 'failed', 'cancelled']),
+        sql`${aiFitJobs.createdAt} < ${cutoffDate}`
+      ));
+
+    return result.rowCount ?? 0;
+  }
+
+  async cancelAiFitJob(id: number, userId: number): Promise<AiFitJob | undefined> {
+    // Only allow cancelling jobs owned by user that are pending/active
+    const [updated] = await db.update(aiFitJobs)
+      .set({
+        status: 'cancelled',
+        completedAt: new Date(),
+      })
+      .where(and(
+        eq(aiFitJobs.id, id),
+        eq(aiFitJobs.userId, userId),
+        inArray(aiFitJobs.status, ['pending', 'active'])
+      ))
+      .returning();
+    return updated || undefined;
   }
 }
 

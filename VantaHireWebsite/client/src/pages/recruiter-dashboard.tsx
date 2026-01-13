@@ -16,6 +16,7 @@ import { Mail, Send, Loader2 } from "lucide-react";
 import { RecruiterKpiRibbon } from "@/components/recruiter/RecruiterKpiRibbon";
 import { PipelineActionChecklist } from "@/components/recruiter/PipelineActionChecklist";
 import { AiPipelineSummary } from "@/components/recruiter/AiPipelineSummary";
+import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import type { PipelineData } from "@/lib/pipeline-types";
 // Extended types for API responses with relations
 type ApplicationWithJob = Application & {
@@ -755,6 +756,10 @@ type HmFeedbackResponse = {
                 Invite Hiring Manager
               </Button>
             </div>
+
+            {/* Profile Completion Banner */}
+            <ProfileCompletionBanner />
+
             <Card className="shadow-sm border-border" data-tour="dashboard-metrics">
               <CardContent className="pt-4">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">

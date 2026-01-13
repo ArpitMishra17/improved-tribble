@@ -3,13 +3,13 @@
  *
  * All client and shortlist-related endpoints:
  * - Client CRUD (/api/clients)
- * - Client shortlists (/api/client-shortlists, /client-shortlist/:token)
+ * - Client shortlists (/api/client-shortlists, /api/client-shortlist/:token)
  * - Client feedback on candidates
  * - Job-specific shortlist listing
  */
 
 import type { Express, Request, Response, NextFunction } from 'express';
-import { sql, inArray } from 'drizzle-orm';
+import { sql, inArray, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from './db';
 import { storage } from './storage';
@@ -19,6 +19,8 @@ import {
   insertClientShortlistSchema,
   insertClientFeedbackSchema,
   clientShortlistItems,
+  clientFeedback,
+  applications,
   type InsertClient,
 } from '@shared/schema';
 import type { CsrfMiddleware } from './types/routes';
@@ -184,10 +186,10 @@ export function registerClientsRoutes(
   });
 
   /**
-   * GET /client-shortlist/:token
+   * GET /api/client-shortlist/:token
    * View a client shortlist (public, no auth required)
    */
-  app.get("/client-shortlist/:token", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.get("/api/client-shortlist/:token", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { token } = req.params;
 
@@ -203,6 +205,10 @@ export function registerClientsRoutes(
         return;
       }
 
+      // Environment controls for what clients can see
+      const showResume = process.env.CLIENT_SHORTLIST_SHOW_RESUME !== 'false'; // default: true
+      const showAiSummary = process.env.CLIENT_SHORTLIST_SHOW_AI_SUMMARY !== 'false'; // default: true
+
       // Return sanitized data (no internal IDs, emails, etc.)
       const candidates = shortlistData.items.map((item, index) => ({
         id: item.application.id,
@@ -211,9 +217,13 @@ export function registerClientsRoutes(
         phone: item.application.phone || null,
         position: item.position,
         notes: item.notes,
-        resumeUrl: item.application.resumeUrl || null,
+        // Conditionally include resume URL for download
+        resumeUrl: showResume ? (item.application.resumeUrl || null) : null,
         coverLetter: item.application.coverLetter || null,
         appliedAt: item.application.appliedAt,
+        // Conditionally include AI summary
+        aiSummary: showAiSummary ? (item.application.aiSummary || null) : null,
+        aiFitLabel: showAiSummary ? (item.application.aiFitLabel || null) : null,
       }));
 
       res.json({
@@ -238,10 +248,10 @@ export function registerClientsRoutes(
   });
 
   /**
-   * POST /client-shortlist/:token/feedback
+   * POST /api/client-shortlist/:token/feedback
    * Submit client feedback on candidates (public, no auth required)
    */
-  app.post("/client-shortlist/:token/feedback", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  app.post("/api/client-shortlist/:token/feedback", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { token } = req.params;
 
@@ -303,6 +313,86 @@ export function registerClientsRoutes(
         });
         return;
       }
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/client-shortlist/:token/resume/:applicationId
+   * Download resume for a candidate in a shortlist (public, no auth required)
+   * Only allows download if the application is in the shortlist
+   */
+  app.get("/api/client-shortlist/:token/resume/:applicationId", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { token, applicationId } = req.params;
+
+      if (!token || !applicationId) {
+        res.status(400).json({ error: 'Missing parameters' });
+        return;
+      }
+
+      // Check if resume download is enabled
+      if (process.env.CLIENT_SHORTLIST_SHOW_RESUME === 'false') {
+        res.status(403).json({ error: 'Resume download is disabled' });
+        return;
+      }
+
+      const appId = Number(applicationId);
+      if (!Number.isFinite(appId) || appId <= 0) {
+        res.status(400).json({ error: 'Invalid application ID' });
+        return;
+      }
+
+      // Verify shortlist exists and application is in it
+      const shortlistData = await storage.getClientShortlistByToken(token);
+      if (!shortlistData.shortlist || !shortlistData.items) {
+        res.status(404).json({ error: 'Shortlist not found' });
+        return;
+      }
+
+      const item = shortlistData.items.find(i => i.application.id === appId);
+      if (!item) {
+        res.status(403).json({ error: 'Application not in this shortlist' });
+        return;
+      }
+
+      const application = item.application;
+      if (!application.resumeUrl) {
+        res.status(404).json({ error: 'No resume available' });
+        return;
+      }
+
+      const url = application.resumeUrl;
+
+      // Stream PDF through server
+      if (url.startsWith('gs://')) {
+        try {
+          const { downloadFromGCS } = await import('./gcs-storage');
+          const buffer = await downloadFromGCS(url);
+          const filename = application.resumeFilename ||
+            `${application.name.replace(/[^a-zA-Z0-9]/g, '_')}_resume.pdf`;
+          const ext = filename.split('.').pop()?.toLowerCase() || 'pdf';
+          const contentType = ext === 'pdf' ? 'application/pdf' : 'application/octet-stream';
+
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          res.setHeader('Content-Length', buffer.length);
+          res.send(buffer);
+          return;
+        } catch (gcsError) {
+          console.error('[Client Shortlist Resume] GCS download failed:', gcsError);
+          res.status(500).json({ error: 'Failed to retrieve resume' });
+          return;
+        }
+      } else if (/^https?:\/\//i.test(url)) {
+        // External URL - redirect
+        res.redirect(302, url);
+        return;
+      } else {
+        res.status(404).json({ error: 'Resume not available' });
+        return;
+      }
+    } catch (error) {
       next(error);
     }
   });
@@ -388,6 +478,108 @@ export function registerClientsRoutes(
       }));
 
       res.json(responsePayload);
+      return;
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * GET /api/jobs/:id/client-feedback-analytics
+   * Get client feedback analytics for a job (recruiters only)
+   */
+  app.get("/api/jobs/:id/client-feedback-analytics", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const idParam = req.params.id;
+      if (!idParam) {
+        res.status(400).json({ error: 'Missing job ID' });
+        return;
+      }
+      const jobId = Number(idParam);
+      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
+        res.status(400).json({ error: 'Invalid job ID' });
+        return;
+      }
+
+      // Verify job access
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
+      }
+
+      // Get all shortlists for this job
+      const shortlists = await storage.getClientShortlistsByJob(jobId);
+      const shortlistIds = shortlists.map((s) => s.id);
+
+      // Count candidates sent to clients
+      let totalCandidatesSent = 0;
+      if (shortlistIds.length > 0) {
+        const countResult = await db
+          .select({ count: sql<number>`COUNT(DISTINCT ${clientShortlistItems.applicationId})::int` })
+          .from(clientShortlistItems)
+          .where(inArray(clientShortlistItems.shortlistId, shortlistIds));
+        totalCandidatesSent = countResult[0]?.count ?? 0;
+      }
+
+      // Get client feedback breakdown by recommendation
+      const feedbackBreakdown = await db
+        .select({
+          recommendation: clientFeedback.recommendation,
+          count: sql<number>`COUNT(*)::int`,
+        })
+        .from(clientFeedback)
+        .innerJoin(applications, eq(clientFeedback.applicationId, applications.id))
+        .where(eq(applications.jobId, jobId))
+        .groupBy(clientFeedback.recommendation);
+
+      const feedbackCounts = {
+        advance: 0,
+        hold: 0,
+        reject: 0,
+      };
+      for (const row of feedbackBreakdown) {
+        if (row.recommendation === 'advance') feedbackCounts.advance = row.count;
+        else if (row.recommendation === 'hold') feedbackCounts.hold = row.count;
+        else if (row.recommendation === 'reject') feedbackCounts.reject = row.count;
+      }
+
+      const totalFeedback = feedbackCounts.advance + feedbackCounts.hold + feedbackCounts.reject;
+
+      // Get shortlist details with feedback counts
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const shortlistDetails = await Promise.all(shortlists.map(async (s) => {
+        // Count items in this shortlist
+        const itemCount = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(clientShortlistItems)
+          .where(eq(clientShortlistItems.shortlistId, s.id));
+
+        // Count feedback for this shortlist
+        const feedbackCount = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(clientFeedback)
+          .where(eq(clientFeedback.shortlistId, s.id));
+
+        return {
+          id: s.id,
+          title: s.title,
+          status: s.status,
+          createdAt: s.createdAt,
+          expiresAt: s.expiresAt,
+          candidateCount: itemCount[0]?.count ?? 0,
+          feedbackCount: feedbackCount[0]?.count ?? 0,
+          fullUrl: `${baseUrl}/client-shortlist/${s.token}`,
+        };
+      }));
+
+      res.json({
+        totalShortlists: shortlists.length,
+        totalCandidatesSent,
+        totalFeedback,
+        feedbackBreakdown: feedbackCounts,
+        shortlists: shortlistDetails,
+      });
       return;
     } catch (error) {
       next(error);

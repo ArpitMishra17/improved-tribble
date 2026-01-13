@@ -10,6 +10,7 @@ import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { getEmailService } from "./simpleEmailService";
 import rateLimit from "express-rate-limit";
+import { computeProfileCompletion } from "./lib/profileCompletion";
 
 declare global {
   namespace Express {
@@ -452,6 +453,86 @@ export function setupAuth(app: Express) {
       role: user.role,
       emailVerified: user.emailVerified,
     });
+  });
+
+  // Profile completion status endpoint
+  app.get("/api/profile-status", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.isAuthenticated()) {
+        res.sendStatus(401);
+        return;
+      }
+
+      const user = req.user!;
+      const {
+        complete,
+        missingRequired,
+        missingNiceToHave,
+        completionPercent,
+      } = await computeProfileCompletion(user);
+      const snoozeUntil = user.profilePromptSnoozeUntil;
+      const now = new Date();
+      const shouldShowPrompt = !complete && (!snoozeUntil || new Date(snoozeUntil) < now);
+
+      res.json({
+        complete,
+        role: user.role,
+        missingRequired,
+        missingNiceToHave,
+        completionPercent,
+        snoozeUntil: snoozeUntil || null,
+        shouldShowPrompt,
+        profileCompletedAt: user.profileCompletedAt || null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Snooze profile prompt endpoint
+  app.post("/api/profile-status/snooze", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.isAuthenticated()) {
+        res.sendStatus(401);
+        return;
+      }
+
+      const user = req.user!;
+      const { days = 7 } = req.body;
+
+      // Calculate snooze until date
+      const snoozeUntil = new Date();
+      snoozeUntil.setDate(snoozeUntil.getDate() + Math.min(days, 30)); // Max 30 days
+
+      await storage.updateUserProfileSnooze(user.id, snoozeUntil);
+
+      res.json({
+        success: true,
+        snoozeUntil: snoozeUntil.toISOString()
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Mark profile as completed endpoint
+  app.post("/api/profile-status/complete", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.isAuthenticated()) {
+        res.sendStatus(401);
+        return;
+      }
+
+      const user = req.user!;
+      await storage.markProfileCompleted(user.id);
+
+      res.json({
+        success: true,
+        profileCompletedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   // Email verification endpoint

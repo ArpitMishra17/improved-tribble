@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Job } from "@shared/schema";
+import { Client, Job } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 import { JobSubNav } from "@/components/JobSubNav";
@@ -31,6 +31,8 @@ export default function JobEditPage() {
     type: "full-time",
     skills: [] as string[],
   });
+  const [hiringManagerId, setHiringManagerId] = useState<string>("");
+  const [clientId, setClientId] = useState<string>("");
 
   const jobId = params?.id ? parseInt(params.id) : null;
 
@@ -54,6 +56,26 @@ export default function JobEditPage() {
     enabled: !!jobId,
   });
 
+  const { data: hiringManagers = [] } = useQuery<
+    Array<{ id: number; username: string; firstName: string | null; lastName: string | null }>
+  >({
+    queryKey: ["/api/users", { role: "hiring_manager" }],
+    queryFn: async () => {
+      const response = await fetch("/api/users?role=hiring_manager", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch hiring managers");
+      return response.json();
+    },
+  });
+
+  const { data: clients = [] } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+    queryFn: async () => {
+      const response = await fetch("/api/clients", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch clients");
+      return response.json();
+    },
+  });
+
   // Populate form when job loads
   useEffect(() => {
     if (job) {
@@ -64,6 +86,8 @@ export default function JobEditPage() {
         type: job.type,
         skills: job.skills || [],
       });
+      setHiringManagerId(job.hiringManagerId ? String(job.hiringManagerId) : "");
+      setClientId(job.clientId ? String(job.clientId) : "");
     }
   }, [job]);
 
@@ -91,7 +115,11 @@ export default function JobEditPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateJobMutation.mutate(formData);
+    updateJobMutation.mutate({
+      ...formData,
+      hiringManagerId: hiringManagerId ? Number(hiringManagerId) : null,
+      clientId: clientId ? Number(clientId) : null,
+    });
   };
 
   if (isLoading) {
@@ -196,6 +224,19 @@ export default function JobEditPage() {
                     rows={8}
                     required
                   />
+                  <p className="text-sm text-muted-foreground">
+                    {formData.description.length} characters
+                  </p>
+                  {/* SEO warning for short descriptions */}
+                  {formData.description.length > 0 && formData.description.length < 200 && (
+                    <div className="flex items-start gap-2 p-2 bg-amber-50 border border-amber-200 rounded text-sm">
+                      <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <p className="text-amber-800">
+                        <strong>SEO tip:</strong> Descriptions under 200 characters may not appear in Google Jobs.
+                        {formData.description.length < 200 && ` Add ${200 - formData.description.length} more characters for better visibility.`}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -209,6 +250,51 @@ export default function JobEditPage() {
                     })}
                     placeholder="React, TypeScript, Node.js"
                   />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="hiringManager">Hiring Manager (Optional)</Label>
+                    <Select
+                      value={hiringManagerId || "__none__"}
+                      onValueChange={(val) => setHiringManagerId(val === "__none__" ? "" : val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a hiring manager..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">None</SelectItem>
+                        {hiringManagers.map((hm) => (
+                          <SelectItem key={hm.id} value={hm.id.toString()}>
+                            {hm.firstName && hm.lastName
+                              ? `${hm.firstName} ${hm.lastName} (${hm.username})`
+                              : hm.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="client">Client (Optional)</Label>
+                    <Select
+                      value={clientId || "__none__"}
+                      onValueChange={(val) => setClientId(val === "__none__" ? "" : val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Internal role / no client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Internal / No client</SelectItem>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id.toString()}>
+                            {client.name}
+                            {client.domain ? ` (${client.domain})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="flex justify-end">

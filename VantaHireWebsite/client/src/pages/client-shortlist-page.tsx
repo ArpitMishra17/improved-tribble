@@ -23,6 +23,9 @@ import {
   XCircle,
   AlertCircle,
   Loader2,
+  Download,
+  FileText,
+  Sparkles,
 } from "lucide-react";
 
 type ShortlistState = "loading" | "ready" | "submitting" | "success" | "expired" | "error";
@@ -39,6 +42,8 @@ interface ShortlistCandidate {
   resumeUrl: string | null;
   coverLetter: string | null;
   appliedAt: string;
+  aiSummary: string | null;
+  aiFitLabel: string | null;
 }
 
 interface ShortlistResponse {
@@ -81,7 +86,7 @@ export default function ClientShortlistPage() {
     }
 
     setState("loading");
-    fetch(`/client-shortlist/${token}`)
+    fetch(`/api/client-shortlist/${token}`)
       .then(async (res) => {
         if (res.status === 410) {
           setState("expired");
@@ -165,7 +170,7 @@ export default function ClientShortlistPage() {
 
     setState("submitting");
     try {
-      const res = await fetch(`/client-shortlist/${token}/feedback`, {
+      const res = await fetch(`/api/client-shortlist/${token}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -329,6 +334,52 @@ export default function ClientShortlistPage() {
                     <p className="text-sm text-foreground mt-1 whitespace-pre-wrap">
                       {candidate.coverLetter}
                     </p>
+                  </div>
+                )}
+
+                {/* AI Summary */}
+                {candidate.aiSummary && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <Label className="text-xs font-medium text-primary">
+                        AI Summary
+                      </Label>
+                      {candidate.aiFitLabel && (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${
+                            candidate.aiFitLabel === 'Strong'
+                              ? 'border-success/30 bg-success/10 text-success-foreground'
+                              : candidate.aiFitLabel === 'Good'
+                              ? 'border-info/30 bg-info/10 text-info-foreground'
+                              : candidate.aiFitLabel === 'Fair'
+                              ? 'border-warning/30 bg-warning/10 text-warning-foreground'
+                              : 'border-destructive/30 bg-destructive/10 text-destructive'
+                          }`}
+                        >
+                          {candidate.aiFitLabel} Fit
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground whitespace-pre-wrap">
+                      {candidate.aiSummary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Resume Download */}
+                {candidate.resumeUrl && token && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`/api/client-shortlist/${token}/resume/${candidate.id}`, "_blank")}
+                      className="text-sm"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Resume
+                    </Button>
                   </div>
                 )}
 

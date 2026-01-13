@@ -14,21 +14,31 @@ import { requireAuth, requireRole } from './auth';
 import { doubleCsrfProtection } from './csrf';
 import rateLimit from 'express-rate-limit';
 import { db } from './db';
-import { candidateResumes, applications, jobs, users } from '../shared/schema';
-import { eq, and, inArray, sql, desc } from 'drizzle-orm';
+import { candidateResumes, applications, jobs, users, BatchFitResult } from '../shared/schema';
+import { eq, and, inArray, sql, desc, count } from 'drizzle-orm';
 import { upload, uploadToGCS, downloadFromGCS } from './gcs-storage';
 import { extractResumeText, validateResumeText } from './lib/resumeExtractor';
 import { generateJDDigest, JDDigest } from './lib/jdDigest';
 import { computeFitScore, isFitStale, getStalenessReason } from './lib/aiMatchingEngine';
 import { getUserLimits, canUseFitComputation } from './lib/aiLimits';
 import { getRedisHealth } from './lib/redis';
+import { isQueueAvailable, enqueueInteractive, enqueueBatch, getQueueHealth, removeJob, QUEUES } from './lib/aiQueue';
+import { syncProfileCompletionStatus } from './lib/profileCompletion';
+import { storage } from './storage';
 import { z } from 'zod';
 import { getGroqClient } from './lib/groqClient';
 import { getDashboardAiInsights, DashboardAiPayload } from "./lib/aiDashboard";
+import { randomUUID } from 'crypto';
 
 const AI_MATCH_ENABLED = process.env.AI_MATCH_ENABLED === 'true';
 const AI_RESUME_ENABLED = process.env.AI_RESUME_ENABLED === 'true';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const AI_QUEUE_ENABLED = process.env.AI_QUEUE_ENABLED === 'true';
+
+// Async queue configuration
+const AI_BATCH_MAX = parseInt(process.env.AI_BATCH_MAX || '50', 10);
+const AI_MAX_PENDING_PER_USER_INTERACTIVE = parseInt(process.env.AI_MAX_PENDING_INTERACTIVE || '3', 10);
+const AI_MAX_PENDING_PER_USER_BATCH = parseInt(process.env.AI_MAX_PENDING_BATCH || '1', 10);
 
 // Validation schemas
 const saveResumeSchema = z.object({
@@ -43,6 +53,15 @@ const computeFitSchema = z.object({
 
 const batchComputeFitSchema = z.object({
   applicationIds: z.array(z.number().int().positive()).min(1).max(20),
+});
+
+// Async queue validation schemas
+const asyncQueueSingleSchema = z.object({
+  applicationId: z.number().int().positive(),
+});
+
+const asyncQueueBatchSchema = z.object({
+  applicationIds: z.array(z.number().int().positive()).min(1).max(AI_BATCH_MAX),
 });
 
 // Configurable rate limits via environment variables
@@ -311,6 +330,8 @@ export function registerAIRoutes(app: Express): void {
           })
           .returning();
 
+        await syncProfileCompletionStatus(req.user!, { resumeCount: existingResumes.length + 1 });
+
         // Note: On new resume upload, we don't mark anything stale
         // Applications will only become stale if:
         // 1. The user updates an existing resume (would be a PUT endpoint)
@@ -409,6 +430,13 @@ export function registerAIRoutes(app: Express): void {
 
         // Delete resume
         await db.delete(candidateResumes).where(eq(candidateResumes.id, resumeId));
+
+        const remaining = await db
+          .select({ count: count() })
+          .from(candidateResumes)
+          .where(eq(candidateResumes.userId, userId));
+        const remainingCount = Number(remaining[0]?.count ?? 0);
+        await syncProfileCompletionStatus(req.user!, { resumeCount: remainingCount });
 
         res.json({ message: 'Resume deleted successfully' });
       } catch (error) {
@@ -873,6 +901,7 @@ export function registerAIRoutes(app: Express): void {
     res.json({
       resumeAdvisor: AI_RESUME_ENABLED && !!GROQ_API_KEY,
       fitScoring: AI_MATCH_ENABLED && !!GROQ_API_KEY,
+      queueEnabled: AI_QUEUE_ENABLED && isQueueAvailable(),
     });
   });
 
@@ -890,6 +919,545 @@ export function registerAIRoutes(app: Express): void {
         redis: health,
         status: health.connected ? 'healthy' : health.usingFallback ? 'fallback' : 'disconnected',
       });
+    }
+  );
+
+  // ========================================
+  // Async Queue Endpoints
+  // ========================================
+
+  /**
+   * Middleware to gate async endpoints
+   * Returns 503 when AI_QUEUE_ENABLED=false or queue unavailable
+   */
+  function requireAsyncQueue(req: any, res: any, next: any): void {
+    if (!AI_QUEUE_ENABLED) {
+      res.status(503).json({ error: 'Async analysis not available' });
+      return;
+    }
+    if (!isQueueAvailable()) {
+      res.status(503).json({ error: 'Queue service unavailable' });
+      return;
+    }
+    next();
+  }
+
+  // Async queue rate limiter
+  const asyncQueueLimiter = rateLimit({
+    windowMs: RATE_LIMIT_WINDOW_MS,
+    max: 10, // 10 queue requests per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req: any, res: any) => {
+      console.warn('[RATE_LIMIT] Async queue limit exceeded', {
+        userId: req.user?.id,
+        endpoint: req.path,
+        ip: req.ip,
+      });
+      res.status(429).json({
+        error: 'Please wait a moment before starting more analyses.',
+        errorCode: 'RATE_LIMIT',
+      });
+    },
+  });
+
+  /**
+   * POST /api/ai/match/queue
+   * Enqueue a single fit computation (async)
+   */
+  app.post(
+    '/api/ai/match/queue',
+    requireAuth,
+    requireRole(['candidate']),
+    requireFeatureFlag('match'),
+    requireAsyncQueue,
+    doubleCsrfProtection,
+    asyncQueueLimiter,
+    async (req, res): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+
+        const body = asyncQueueSingleSchema.safeParse(req.body);
+        if (!body.success) {
+          res.status(400).json({ error: 'Invalid request body', details: body.error });
+          return;
+        }
+
+        const { applicationId } = body.data;
+
+        // Check for existing pending/active job (deduplication)
+        const existingJob = await storage.findPendingAiFitJob(userId, applicationId);
+        if (existingJob) {
+          res.status(200).json({
+            jobId: existingJob.id,
+            statusUrl: `/api/ai/match/jobs/${existingJob.id}`,
+            totalCount: existingJob.totalCount,
+            existing: true,
+          });
+          return;
+        }
+
+        // Check pending job limit
+        const pendingCount = await storage.getUserPendingJobCount(userId, QUEUES.INTERACTIVE);
+        if (pendingCount >= AI_MAX_PENDING_PER_USER_INTERACTIVE) {
+          res.status(429).json({
+            error: 'Too many pending analyses. Please wait for current jobs to complete.',
+            errorCode: 'PENDING_LIMIT',
+            pending: pendingCount,
+            max: AI_MAX_PENDING_PER_USER_INTERACTIVE,
+          });
+          return;
+        }
+
+        // Get application with job to check staleness
+        const application = await db.query.applications.findFirst({
+          where: eq(applications.id, applicationId),
+          with: { job: true },
+        });
+
+        if (!application || application.userId !== userId) {
+          res.status(404).json({ error: 'Application not found' });
+          return;
+        }
+
+        // Get resume for staleness check
+        let resumeData = application.resumeId
+          ? await db.query.candidateResumes.findFirst({
+              where: eq(candidateResumes.id, application.resumeId),
+            })
+          : await db.query.candidateResumes.findFirst({
+              where: and(
+                eq(candidateResumes.userId, userId),
+                eq(candidateResumes.isDefault, true as any)
+              ),
+            });
+
+        if (!resumeData) {
+          resumeData = await db.query.candidateResumes.findFirst({
+            where: eq(candidateResumes.userId, userId),
+            orderBy: (cr: any, { desc }: any) => [desc(cr.updatedAt)],
+          });
+        }
+
+        const stale = isFitStale(
+          application.aiComputedAt,
+          resumeData?.updatedAt || null,
+          application.job.updatedAt,
+          application.job.jdDigestVersion || 1,
+          application.aiDigestVersionUsed || null
+        );
+
+        // If fresh, return cached immediately
+        if (!stale && application.aiFitScore !== null) {
+          res.json({
+            cached: true,
+            fit: {
+              score: application.aiFitScore,
+              label: application.aiFitLabel,
+              reasons: application.aiFitReasons,
+              computedAt: application.aiComputedAt,
+            },
+          });
+          return;
+        }
+
+        // Check quota
+        const limits = await getUserLimits(userId);
+        if (limits.fitRemainingThisMonth < 1) {
+          res.status(403).json({
+            error: 'You have no analyses left this month.',
+            errorCode: 'QUOTA_EXCEEDED',
+            remaining: 0,
+          });
+          return;
+        }
+
+        // Create DB job first with unique placeholder bullJobId
+        const dbJob = await storage.createAiFitJob({
+          bullJobId: `pending-${randomUUID()}`,
+          queueName: QUEUES.INTERACTIVE,
+          userId,
+          applicationId,
+          totalCount: 1,
+        });
+
+        // Enqueue with real dbJobId, then update bullJobId
+        try {
+          const bullJobId = await enqueueInteractive({ applicationId, userId, dbJobId: dbJob.id });
+          await storage.updateAiFitJobBullId(dbJob.id, bullJobId);
+        } catch (enqueueError) {
+          // Mark job as failed if enqueue fails
+          await storage.updateAiFitJobStatus(dbJob.id, 'failed', {
+            completedAt: new Date(),
+            error: enqueueError instanceof Error ? enqueueError.message : 'Enqueue failed',
+            errorCode: 'ENQUEUE_FAILED',
+          });
+          throw enqueueError;
+        }
+
+        res.status(202).json({
+          jobId: dbJob.id,
+          statusUrl: `/api/ai/match/jobs/${dbJob.id}`,
+          totalCount: 1,
+        });
+      } catch (error) {
+        console.error('Async queue error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * POST /api/ai/match/batch/queue
+   * Enqueue batch fit computation (async, max 50)
+   */
+  app.post(
+    '/api/ai/match/batch/queue',
+    requireAuth,
+    requireRole(['candidate']),
+    requireFeatureFlag('match'),
+    requireAsyncQueue,
+    doubleCsrfProtection,
+    asyncQueueLimiter,
+    async (req, res): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+
+        const body = asyncQueueBatchSchema.safeParse(req.body);
+        if (!body.success) {
+          res.status(400).json({ error: 'Invalid request body', details: body.error });
+          return;
+        }
+
+        let { applicationIds } = body.data;
+        applicationIds = [...new Set(applicationIds)]; // Deduplicate
+
+        // Validate batch size
+        if (applicationIds.length > AI_BATCH_MAX) {
+          res.status(400).json({
+            error: `You can analyze up to ${AI_BATCH_MAX} at a time.`,
+            errorCode: 'MAX_EXCEEDED',
+            max: AI_BATCH_MAX,
+          });
+          return;
+        }
+
+        // Fetch applications and check ownership first (needed for stale check)
+        const apps = await db.query.applications.findMany({
+          where: inArray(applications.id, applicationIds),
+          with: { job: true },
+        });
+
+        const ownedAppIds = apps.filter((app: typeof apps[0]) => app.userId === userId).map((app: typeof apps[0]) => app.id);
+        if (ownedAppIds.length === 0) {
+          res.status(404).json({ error: 'No valid applications found' });
+          return;
+        }
+
+        // Pre-scan for stale applications using same logic as isFitStale
+        const staleIds: number[] = [];
+        const cachedResults: Array<{ applicationId: number; fit: any }> = [];
+
+        for (const app of apps.filter((a: typeof apps[0]) => ownedAppIds.includes(a.id))) {
+          let resumeData = app.resumeId
+            ? await db.query.candidateResumes.findFirst({
+                where: eq(candidateResumes.id, app.resumeId),
+              })
+            : await db.query.candidateResumes.findFirst({
+                where: and(
+                  eq(candidateResumes.userId, userId),
+                  eq(candidateResumes.isDefault, true as any)
+                ),
+              });
+
+          if (!resumeData) {
+            resumeData = await db.query.candidateResumes.findFirst({
+              where: eq(candidateResumes.userId, userId),
+              orderBy: (cr: any, { desc }: any) => [desc(cr.updatedAt)],
+            });
+          }
+
+          const stale = isFitStale(
+            app.aiComputedAt,
+            resumeData?.updatedAt || null,
+            app.job.updatedAt,
+            app.job.jdDigestVersion || 1,
+            app.aiDigestVersionUsed || null
+          );
+
+          if (stale || app.aiFitScore === null) {
+            staleIds.push(app.id);
+          } else {
+            cachedResults.push({
+              applicationId: app.id,
+              fit: {
+                score: app.aiFitScore,
+                label: app.aiFitLabel,
+                reasons: app.aiFitReasons,
+                cached: true,
+              },
+            });
+          }
+        }
+
+        // If all cached, return immediately
+        if (staleIds.length === 0) {
+          res.json({
+            cached: true,
+            results: cachedResults,
+            summary: {
+              total: cachedResults.length,
+              cached: cachedResults.length,
+              stale: 0,
+            },
+          });
+          return;
+        }
+
+        // Check for existing pending/active job with same staleIds (deduplication)
+        const existingJob = await storage.findPendingAiFitJob(userId, undefined, staleIds);
+        if (existingJob) {
+          res.status(200).json({
+            jobId: existingJob.id,
+            statusUrl: `/api/ai/match/jobs/${existingJob.id}`,
+            totalCount: existingJob.totalCount,
+            cachedCount: cachedResults.length,
+            existing: true,
+          });
+          return;
+        }
+
+        // Check pending job limit
+        const pendingCount = await storage.getUserPendingJobCount(userId, QUEUES.BATCH);
+        if (pendingCount >= AI_MAX_PENDING_PER_USER_BATCH) {
+          res.status(429).json({
+            error: 'Too many pending analyses. Please wait for current jobs to complete.',
+            errorCode: 'PENDING_LIMIT',
+            pending: pendingCount,
+            max: AI_MAX_PENDING_PER_USER_BATCH,
+          });
+          return;
+        }
+
+        // Check quota against stale count only
+        const limits = await getUserLimits(userId);
+        if (staleIds.length > limits.fitRemainingThisMonth) {
+          res.status(403).json({
+            error: `You have only ${limits.fitRemainingThisMonth} analyses left. Select fewer applications.`,
+            errorCode: 'QUOTA_EXCEEDED',
+            remaining: limits.fitRemainingThisMonth,
+            staleCount: staleIds.length,
+          });
+          return;
+        }
+
+        // Build initial result with cached items for resume-on-return
+        const initialResult: BatchFitResult = {
+          results: cachedResults.map(cr => ({
+            applicationId: cr.applicationId,
+            status: 'cached' as const,
+            score: cr.fit.score,
+            label: cr.fit.label,
+            reasons: cr.fit.reasons,
+          })),
+          summary: {
+            total: staleIds.length + cachedResults.length,
+            succeeded: 0,
+            cached: cachedResults.length,
+            requiresPaid: 0,
+            errors: 0,
+          },
+        };
+
+        // Create DB job first with unique placeholder bullJobId and initial cached results
+        const dbJob = await storage.createAiFitJob({
+          bullJobId: `pending-${randomUUID()}`,
+          queueName: QUEUES.BATCH,
+          userId,
+          applicationIds: staleIds,
+          totalCount: staleIds.length,
+          result: initialResult,
+        });
+
+        // Enqueue with real dbJobId, then update bullJobId
+        try {
+          const bullJobId = await enqueueBatch({ applicationIds: staleIds, userId, dbJobId: dbJob.id });
+          await storage.updateAiFitJobBullId(dbJob.id, bullJobId);
+        } catch (enqueueError) {
+          // Mark job as failed if enqueue fails
+          await storage.updateAiFitJobStatus(dbJob.id, 'failed', {
+            completedAt: new Date(),
+            error: enqueueError instanceof Error ? enqueueError.message : 'Enqueue failed',
+            errorCode: 'ENQUEUE_FAILED',
+          });
+          throw enqueueError;
+        }
+
+        res.status(202).json({
+          jobId: dbJob.id,
+          statusUrl: `/api/ai/match/jobs/${dbJob.id}`,
+          totalCount: staleIds.length,
+          cachedCount: cachedResults.length,
+        });
+      } catch (error) {
+        console.error('Async batch queue error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * GET /api/ai/match/jobs/:id
+   * Get job status (enforce userId ownership)
+   */
+  app.get(
+    '/api/ai/match/jobs/:id',
+    requireAuth,
+    requireRole(['candidate']),
+    async (req, res): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+        const jobId = parseInt(req.params.id, 10);
+
+        if (isNaN(jobId)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        const job = await storage.getAiFitJobForUser(jobId, userId);
+        if (!job) {
+          res.status(404).json({ error: 'Job not found' });
+          return;
+        }
+
+        res.json({
+          id: job.id,
+          status: job.status,
+          progress: job.progress,
+          processedCount: job.processedCount,
+          totalCount: job.totalCount,
+          result: job.result,
+          error: job.error,
+          errorCode: job.errorCode,
+          createdAt: job.createdAt,
+          startedAt: job.startedAt,
+          completedAt: job.completedAt,
+        });
+      } catch (error) {
+        console.error('Get job status error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * GET /api/ai/match/jobs
+   * List user's pending/active jobs (for resume-on-return)
+   */
+  app.get(
+    '/api/ai/match/jobs',
+    requireAuth,
+    requireRole(['candidate']),
+    async (req, res): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+
+        const jobs = await storage.getUserAiFitJobs(userId, ['pending', 'active']);
+
+        res.json({
+          jobs: jobs.map(j => ({
+            id: j.id,
+            status: j.status,
+            progress: j.progress,
+            processedCount: j.processedCount,
+            totalCount: j.totalCount,
+            createdAt: j.createdAt,
+            queueName: j.queueName,
+          })),
+        });
+      } catch (error) {
+        console.error('List jobs error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * DELETE /api/ai/match/jobs/:id
+   * Cancel pending job (enforce userId ownership + remove from BullMQ)
+   */
+  app.delete(
+    '/api/ai/match/jobs/:id',
+    requireAuth,
+    requireRole(['candidate']),
+    doubleCsrfProtection,
+    async (req, res): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+        const idParam = req.params.id;
+        if (!idParam) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+        const jobId = parseInt(idParam, 10);
+
+        if (isNaN(jobId)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        // Get job first to get bullJobId
+        const job = await storage.getAiFitJobForUser(jobId, userId);
+        if (!job) {
+          res.status(404).json({ error: 'Job not found' });
+          return;
+        }
+
+        if (job.status !== 'pending' && job.status !== 'active') {
+          res.status(400).json({ error: 'Job cannot be cancelled', status: job.status });
+          return;
+        }
+
+        // Remove from BullMQ
+        const queueName = job.queueName as typeof QUEUES[keyof typeof QUEUES];
+        await removeJob(queueName, job.bullJobId);
+
+        // Update DB status
+        const cancelled = await storage.cancelAiFitJob(jobId, userId);
+        if (!cancelled) {
+          res.status(400).json({ error: 'Failed to cancel job' });
+          return;
+        }
+
+        res.json({ cancelled: true });
+      } catch (error) {
+        console.error('Cancel job error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
+   * GET /api/admin/ai/queue-health
+   * Get queue health metrics (admin only)
+   */
+  app.get(
+    '/api/admin/ai/queue-health',
+    requireAuth,
+    requireRole(['super_admin']),
+    async (_req, res): Promise<void> => {
+      try {
+        if (!AI_QUEUE_ENABLED) {
+          res.status(503).json({ error: 'Queue not enabled' });
+          return;
+        }
+
+        const health = await getQueueHealth();
+        res.json(health);
+      } catch (error) {
+        console.error('Queue health error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   );
 }

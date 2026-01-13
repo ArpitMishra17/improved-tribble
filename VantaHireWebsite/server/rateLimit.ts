@@ -26,16 +26,18 @@ export const createRateLimitHandler = (errorMsg: string) => (req: Request, res: 
 
 /**
  * Rate limiter for AI analysis endpoints
- * - 20 requests per day per user
+ * - Configurable requests per day per user (default: 20)
  * - Keyed by user ID (or IP if anonymous)
  */
+const AI_ANALYSIS_RATE_LIMIT = parseInt(process.env.AI_ANALYSIS_RATE_LIMIT || '20', 10);
+
 export const aiAnalysisRateLimit: RateLimitRequestHandler = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 20, // 20 AI requests per day per user
+  max: AI_ANALYSIS_RATE_LIMIT,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.user?.id?.toString() || req.ip || 'anonymous',
-  handler: createRateLimitHandler('AI analysis limit reached (20/day). Try again tomorrow.'),
+  handler: createRateLimitHandler(`AI analysis limit reached (${AI_ANALYSIS_RATE_LIMIT}/day). Try again tomorrow.`),
 });
 
 /**

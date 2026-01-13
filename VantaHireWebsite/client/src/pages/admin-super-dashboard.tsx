@@ -18,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Users,
   Briefcase,
-  FileText,
+  FileText as FileTextIcon,
   Settings,
   Eye,
   Trash2,
@@ -44,6 +44,9 @@ import {
   TrendingUp,
   AlertTriangle,
   Loader2,
+  Linkedin,
+  ExternalLink,
+  Phone,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { PipelineStage } from "@shared/schema";
@@ -120,6 +123,7 @@ interface JobWithDetails {
   company: string;
   location: string;
   type: string;
+  description: string;
   status: string;
   isActive: boolean;
   createdAt: string;
@@ -166,18 +170,24 @@ interface ApplicationWithDetails {
 interface UserDetails {
   id: number;
   username: string;
+  email: string;
   firstName: string;
   lastName: string;
   role: string;
+  emailVerified?: boolean;
   createdAt: string;
   profile?: {
     bio?: string;
     skills?: string[];
     linkedin?: string;
     location?: string;
+    company?: string;
+    phone?: string;
   };
   jobCount?: number;
+  candidateCount?: number;
   applicationCount?: number;
+  resumeCount?: number;
 }
 
 // Operations Command Center types
@@ -262,12 +272,14 @@ export default function AdminSuperDashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [selectedJob, setSelectedJob] = useState<JobWithDetails | null>(null);
+  const [previewJob, setPreviewJob] = useState<JobWithDetails | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<ApplicationWithDetails | null>(null);
   const [jobFilter, setJobFilter] = useState("all");
   const [applicationFilter, setApplicationFilter] = useState("all");
   const [applicationStageFilter, setApplicationStageFilter] = useState("all");
   const [userFilter, setUserFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
 
   // Ops Command Center state
   const [opsRange, setOpsRange] = useState("7d");
@@ -656,7 +668,7 @@ export default function AdminSuperDashboard() {
           <Card className="shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Applications</CardTitle>
-              <FileText className="h-4 w-4 text-success-foreground" />
+              <FileTextIcon className="h-4 w-4 text-success-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{stats?.totalApplications || 0}</div>
@@ -710,7 +722,7 @@ export default function AdminSuperDashboard() {
               Jobs
             </TabsTrigger>
             <TabsTrigger value="applications" className="flex items-center gap-1.5">
-              <FileText className="h-4 w-4" />
+              <FileTextIcon className="h-4 w-4" />
               Applications
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-1.5">
@@ -1017,7 +1029,7 @@ export default function AdminSuperDashboard() {
                   {/* Automation Tab */}
                   <TabsContent value="automation">
                     <div className="grid md:grid-cols-2 gap-4">
-                      <Card>
+                      <Card data-tour="automation-settings">
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
                             <Settings className="w-4 h-4" />
@@ -1056,7 +1068,7 @@ export default function AdminSuperDashboard() {
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card data-tour="automation-events">
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
                             <Zap className="w-4 h-4" />
@@ -1103,7 +1115,7 @@ export default function AdminSuperDashboard() {
                   {/* Health Tab */}
                   <TabsContent value="health">
                     <div className="grid md:grid-cols-2 gap-4">
-                      <Card>
+                      <Card data-tour="email-health">
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
                             <Mail className="w-4 h-4" />
@@ -1149,7 +1161,7 @@ export default function AdminSuperDashboard() {
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card data-tour="system-status">
                         <CardHeader>
                           <CardTitle className="text-base flex items-center gap-2">
                             <Activity className="w-4 h-4" />
@@ -1344,15 +1356,15 @@ export default function AdminSuperDashboard() {
                                 Posted by: {job.postedBy.firstName} {job.postedBy.lastName} ({job.postedBy.username})
                               </p>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2 flex-shrink-0">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setSelectedJob(job)}
-                                className="border-border text-muted-foreground hover:bg-muted"
+                                onClick={() => setPreviewJob(job)}
+                                className="border-primary/50 text-primary hover:bg-primary/10"
                               >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Review
+                                <FileTextIcon className="h-4 w-4 mr-1" />
+                                Preview
                               </Button>
                               <Button
                                 size="sm"
@@ -1451,7 +1463,7 @@ export default function AdminSuperDashboard() {
                                 <span>{format(new Date(job.createdAt), "MMM d, yyyy")}</span>
                               </span>
                               <span className="flex items-center space-x-1">
-                                <FileText className="h-4 w-4" />
+                                <FileTextIcon className="h-4 w-4" />
                                 <span>{job.applicationCount} applications</span>
                               </span>
                             </div>
@@ -1700,6 +1712,40 @@ export default function AdminSuperDashboard() {
                       <Mail className="h-4 w-4 mr-2" />
                       Invite Hiring Manager
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!filteredUsers || filteredUsers.length === 0) return;
+                        const headers = ['ID', 'Full Name', 'Email', 'Role', 'Email Verified', 'Location', 'Company', 'LinkedIn', 'Skills', 'Jobs Posted', 'Total Candidates', 'Joined'];
+                        const rows = filteredUsers.map(u => [
+                          u.id,
+                          `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+                          u.email || u.username,
+                          u.role,
+                          u.emailVerified ? 'Yes' : 'No',
+                          u.profile?.location || '',
+                          u.profile?.company || '',
+                          u.profile?.linkedin || '',
+                          u.profile?.skills?.join('; ') || '',
+                          u.role === 'candidate' ? '' : (u.jobCount || 0),
+                          u.role === 'candidate' ? (u.applicationCount || 0) : (u.candidateCount || 0),
+                          format(new Date(u.createdAt), 'yyyy-MM-dd'),
+                        ]);
+                        const csvContent = [headers.join(','), ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))].join('\n');
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `users-export-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast({ title: 'Export complete', description: `Exported ${filteredUsers.length} users to CSV` });
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
                     <div className="flex items-center space-x-2">
                       <Search className="h-4 w-4 text-foreground/50" />
                       <Input
@@ -1770,6 +1816,14 @@ export default function AdminSuperDashboard() {
                             )}
                           </div>
                           <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedUser(user)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Details
+                            </Button>
                             <Select
                               value={user.role}
                               onValueChange={(role) => updateUserRoleMutation.mutate({ id: user.id, role })}
@@ -1791,6 +1845,163 @@ export default function AdminSuperDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* User Details Modal */}
+            <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    User Details
+                  </DialogTitle>
+                  <DialogDescription>
+                    Detailed information about this user
+                  </DialogDescription>
+                </DialogHeader>
+                {selectedUser && (
+                  <div className="space-y-4">
+                    {/* Basic Info */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">Full Name</h4>
+                        <span className="text-sm font-semibold">
+                          {selectedUser.firstName} {selectedUser.lastName}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{selectedUser.email || selectedUser.username}</span>
+                          {selectedUser.emailVerified && (
+                            <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">Role</h4>
+                        <Badge className={getRoleColor(selectedUser.role)}>
+                          {selectedUser.role.charAt(0).toUpperCase() + selectedUser.role.slice(1).replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-medium text-muted-foreground">Joined</h4>
+                        <span className="text-sm">{format(new Date(selectedUser.createdAt), "MMM d, yyyy")}</span>
+                      </div>
+                    </div>
+
+                    {/* Profile Info */}
+                    {selectedUser.profile && (
+                      <>
+                        <div className="border-t pt-4">
+                          <h4 className="text-sm font-medium mb-3">Profile Information</h4>
+                          <div className="space-y-3">
+                            {selectedUser.profile.company && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <Building2 className="h-4 w-4" /> Company
+                                </span>
+                                <span className="text-sm">{selectedUser.profile.company}</span>
+                              </div>
+                            )}
+                            {selectedUser.profile.phone && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <Phone className="h-4 w-4" /> Phone
+                                </span>
+                                <span className="text-sm">{selectedUser.profile.phone}</span>
+                              </div>
+                            )}
+                            {selectedUser.profile.location && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" /> Location
+                                </span>
+                                <span className="text-sm">{selectedUser.profile.location}</span>
+                              </div>
+                            )}
+                            {selectedUser.profile.linkedin && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                                  <Linkedin className="h-4 w-4" /> LinkedIn
+                                </span>
+                                <a
+                                  href={selectedUser.profile.linkedin.startsWith('http') ? selectedUser.profile.linkedin : `https://${selectedUser.profile.linkedin}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-primary flex items-center gap-1 hover:underline"
+                                >
+                                  View Profile <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                            )}
+                            {selectedUser.profile.skills && selectedUser.profile.skills.length > 0 && (
+                              <div>
+                                <span className="text-sm text-muted-foreground block mb-2">Skills</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedUser.profile.skills.map((skill, i) => (
+                                    <Badge key={i} variant="secondary" className="text-xs">
+                                      {skill}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {selectedUser.profile.bio && (
+                              <div>
+                                <span className="text-sm text-muted-foreground block mb-2">Bio</span>
+                                <p className="text-sm bg-muted p-2 rounded">{selectedUser.profile.bio}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Activity Stats */}
+                    <div className="border-t pt-4">
+                      <h4 className="text-sm font-medium mb-3">Activity</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedUser.role === 'candidate' && (
+                          <>
+                            <div className="bg-muted/50 rounded p-3 text-center">
+                              <div className="text-lg font-bold">{selectedUser.applicationCount || 0}</div>
+                              <div className="text-xs text-muted-foreground">Applications</div>
+                            </div>
+                            <div className="bg-muted/50 rounded p-3 text-center">
+                              <div className="text-lg font-bold flex items-center justify-center gap-1">
+                                <FileTextIcon className="h-4 w-4" />
+                                {selectedUser.resumeCount || 0}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Resumes</div>
+                            </div>
+                          </>
+                        )}
+                        {(selectedUser.role === 'recruiter' || selectedUser.role === 'super_admin') && (
+                          <>
+                            <div className="bg-muted/50 rounded p-3 text-center">
+                              <div className="text-lg font-bold">{selectedUser.jobCount || 0}</div>
+                              <div className="text-xs text-muted-foreground">Jobs Posted</div>
+                            </div>
+                            <div className="bg-muted/50 rounded p-3 text-center">
+                              <div className="text-lg font-bold">{selectedUser.candidateCount || 0}</div>
+                              <div className="text-xs text-muted-foreground">Total Candidates</div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                    Close
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -2147,6 +2358,63 @@ export default function AdminSuperDashboard() {
                 className="border-border text-foreground hover:bg-muted"
               >
                 Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Job Description Preview Dialog */}
+      {previewJob && (
+        <Dialog open={!!previewJob} onOpenChange={() => setPreviewJob(null)}>
+          <DialogContent className="bg-card border-border max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-foreground flex items-center gap-2">
+                <FileTextIcon className="h-5 w-5" />
+                {previewJob.title}
+              </DialogTitle>
+              <DialogDescription className="text-foreground/70">
+                {previewJob.location} • {previewJob.type} • Posted by {previewJob.postedBy.firstName} {previewJob.postedBy.lastName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="p-4 rounded-lg bg-muted/50 border border-border">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Job Description</p>
+                <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap">
+                  {previewJob.description}
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setPreviewJob(null)}
+                className="border-border text-foreground hover:bg-muted"
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  reviewJobMutation.mutate({ id: previewJob.id, status: 'approved' });
+                  setPreviewJob(null);
+                }}
+                disabled={reviewJobMutation.isPending}
+                className="bg-success hover:bg-success/80 text-foreground"
+              >
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Approve
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  reviewJobMutation.mutate({ id: previewJob.id, status: 'declined' });
+                  setPreviewJob(null);
+                }}
+                disabled={reviewJobMutation.isPending}
+                className="border-red-300 text-destructive hover:bg-destructive/10"
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Decline
               </Button>
             </DialogFooter>
           </DialogContent>

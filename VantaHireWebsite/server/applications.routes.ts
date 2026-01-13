@@ -19,6 +19,8 @@ import { db } from './db';
 import { storage } from './storage';
 import { requireAuth, requireRole } from './auth';
 import { calculateAiCost } from './lib/aiMatchingEngine';
+import { syncProfileCompletionStatus } from './lib/profileCompletion';
+import { generatePublicId } from './lib/publicId';
 import {
   insertApplicationSchema,
   recruiterAddApplicationSchema,
@@ -44,7 +46,10 @@ import {
 import { generateInterviewICS, getICSFilename } from './lib/icsGenerator';
 import { extractResumeText, validateResumeText } from './lib/resumeExtractor';
 import { isAIEnabled, generateCandidateSummary } from './aiJobAnalyzer';
-import { applicationRateLimit, recruiterAddRateLimit, aiAnalysisRateLimit } from './rateLimit';
+import { checkCircuitBreaker } from './lib/aiMatchingEngine';
+import { applicationRateLimit, recruiterAddRateLimit, aiAnalysisRateLimit, type RateLimitInfo } from './rateLimit';
+import { isQueueAvailable, enqueueSummaryBatch, removeJob, QUEUES } from './lib/aiQueue';
+import { randomUUID } from 'crypto';
 import type { CsrfMiddleware } from './types/routes';
 
 // Base URL for email links
@@ -125,6 +130,7 @@ export function registerApplicationsRoutes(
       // Upload resume to Google Cloud Storage or use placeholder if not configured
       let resumeUrl = 'placeholder-resume.pdf';
       let resumeRecordId: number | null = null;
+      let resumeCountForCompletion: number | null = null;
       if (req.file) {
         try {
           resumeUrl = await uploadToGCS(req.file.buffer, req.file.originalname);
@@ -142,6 +148,7 @@ export function registerApplicationsRoutes(
             where: eq(candidateResumes.userId, req.user.id),
             columns: { id: true, isDefault: true },
           });
+          resumeCountForCompletion = existingResumes.length;
 
           if (existingResumes.length < 3) {
             const extraction = await extractResumeText(req.file.buffer);
@@ -158,6 +165,7 @@ export function registerApplicationsRoutes(
                 })
                 .returning();
               resumeRecordId = resume.id;
+              resumeCountForCompletion = existingResumes.length + 1;
             }
           }
         } catch (resumeErr) {
@@ -194,6 +202,10 @@ export function registerApplicationsRoutes(
           stageChangedBy: job.postedBy,
         }),
       });
+
+      if (req.user?.id && resumeCountForCompletion !== null) {
+        await syncProfileCompletionStatus(req.user, { resumeCount: resumeCountForCompletion });
+      }
 
       // Log initial stage assignment to history table (if a default stage was applied)
       if (initialStageId !== null) {
@@ -578,7 +590,18 @@ export function registerApplicationsRoutes(
       }
 
       const applicationsList = await storage.getApplicationsByJob(jobId);
-      res.json(applicationsList);
+
+      // Get client feedback counts for all applications
+      const appIds = applicationsList.map(app => app.id);
+      const feedbackCounts = await storage.getClientFeedbackCountsByApplicationIds(appIds);
+
+      // Merge feedback counts into applications
+      const applicationsWithFeedback = applicationsList.map(app => ({
+        ...app,
+        clientFeedbackCount: feedbackCounts[app.id] || 0,
+      }));
+
+      res.json(applicationsWithFeedback);
       return;
     } catch (error) {
       next(error);
@@ -1235,6 +1258,379 @@ export function registerApplicationsRoutes(
     }
   });
 
+  // ============= BULK AI SUMMARY GENERATION =============
+
+  // Environment configuration for AI summary limits
+  const AI_SUMMARY_DAILY_LIMIT = parseInt(process.env.AI_ANALYSIS_RATE_LIMIT || '20', 10);
+  const AI_SUMMARY_BATCH_MAX = parseInt(process.env.AI_SUMMARY_BATCH_MAX || '50', 10);
+  const AI_QUEUE_ENABLED = process.env.AI_QUEUE_ENABLED === 'true';
+
+  /**
+   * GET /api/ai/summary/limit-status
+   * Returns the recruiter's daily AI summary usage limits
+   */
+  app.get(
+    "/api/ai/summary/limit-status",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+
+        // Get start of current day (local time)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
+
+        // Count AI summary usage today
+        const dailyUsage = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(userAiUsage)
+          .where(
+            and(
+              eq(userAiUsage.userId, userId),
+              eq(userAiUsage.kind, 'summary'),
+              sql`${userAiUsage.computedAt} >= ${startOfDay}`,
+              sql`${userAiUsage.computedAt} < ${endOfDay}`
+            )
+          );
+
+        const dailyUsed = dailyUsage[0]?.count || 0;
+        const dailyRemaining = Math.max(0, AI_SUMMARY_DAILY_LIMIT - dailyUsed);
+
+        // Check circuit breaker status (includes AI enabled + budget check)
+        const circuitBreaker = await checkCircuitBreaker();
+        const budgetAllowed = isAIEnabled() && circuitBreaker.allowed;
+
+        // Effective remaining is the minimum of daily remaining and budget
+        const effectiveRemaining = budgetAllowed ? dailyRemaining : 0;
+
+        res.json({
+          dailyLimit: AI_SUMMARY_DAILY_LIMIT,
+          dailyUsed,
+          dailyRemaining,
+          dailyResetAt: endOfDay.toISOString(),
+          budgetAllowed,
+          budgetSpent: circuitBreaker.dailySpent,
+          budgetLimit: circuitBreaker.dailyBudget,
+          effectiveRemaining,
+          maxBatchSize: AI_SUMMARY_BATCH_MAX,
+        });
+      } catch (error) {
+        console.error('[AI Summary Limit Status] Error:', error);
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * POST /api/applications/bulk/ai-summary/queue
+   * Queue bulk AI summary generation for selected applications
+   */
+  app.post(
+    "/api/applications/bulk/ai-summary/queue",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    csrfProtection,
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+
+        // Validate request body
+        const bodySchema = z.object({
+          applicationIds: z.array(z.number().int().positive()).min(1),
+          regenerate: z.boolean().optional().default(false),
+        });
+
+        const validation = bodySchema.safeParse(req.body);
+        if (!validation.success) {
+          res.status(400).json({
+            error: 'Validation error',
+            details: validation.error.errors,
+          });
+          return;
+        }
+
+        let { applicationIds, regenerate } = validation.data;
+        applicationIds = [...new Set(applicationIds)]; // Deduplicate
+
+        // Check max batch size
+        if (applicationIds.length > AI_SUMMARY_BATCH_MAX) {
+          res.status(400).json({
+            error: `Please select ${AI_SUMMARY_BATCH_MAX} or fewer candidates.`,
+            errorCode: 'MAX_EXCEEDED',
+            max: AI_SUMMARY_BATCH_MAX,
+            selected: applicationIds.length,
+          });
+          return;
+        }
+
+        // Check if queue is available
+        if (!AI_QUEUE_ENABLED || !isQueueAvailable()) {
+          res.status(503).json({
+            error: 'Queue service unavailable. Please try again later.',
+            errorCode: 'QUEUE_UNAVAILABLE',
+          });
+          return;
+        }
+
+        // Check AI service availability and circuit breaker
+        if (!isAIEnabled()) {
+          res.status(503).json({
+            error: 'AI service is temporarily unavailable.',
+            errorCode: 'AI_UNAVAILABLE',
+          });
+          return;
+        }
+
+        // Check circuit breaker (budget check)
+        const circuitBreaker = await checkCircuitBreaker();
+        if (!circuitBreaker.allowed) {
+          res.status(503).json({
+            error: 'AI service budget exhausted. Please try again tomorrow.',
+            errorCode: 'BUDGET_EXHAUSTED',
+            budgetSpent: circuitBreaker.dailySpent,
+            budgetLimit: circuitBreaker.dailyBudget,
+          });
+          return;
+        }
+
+        // Get daily usage to check rate limit (local day)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
+
+        const dailyUsage = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(userAiUsage)
+          .where(
+            and(
+              eq(userAiUsage.userId, userId),
+              eq(userAiUsage.kind, 'summary'),
+              sql`${userAiUsage.computedAt} >= ${startOfDay}`,
+              sql`${userAiUsage.computedAt} < ${endOfDay}`
+            )
+          );
+
+        const dailyUsed = dailyUsage[0]?.count || 0;
+        const dailyRemaining = Math.max(0, AI_SUMMARY_DAILY_LIMIT - dailyUsed);
+
+        // Fetch applications and check ownership (recruiter must own the job)
+        const apps = await db.query.applications.findMany({
+          where: inArray(applications.id, applicationIds),
+          with: { job: true },
+        });
+
+        // Filter to applications the recruiter has access to
+        type AppWithJob = typeof apps[number];
+        const accessibleApps: AppWithJob[] = [];
+        for (const app of apps) {
+          const hasAccess = await storage.isRecruiterOnJob(app.jobId, userId);
+          if (hasAccess) {
+            accessibleApps.push(app);
+          }
+        }
+
+        if (accessibleApps.length === 0) {
+          res.status(404).json({ error: 'No accessible applications found' });
+          return;
+        }
+
+        // Filter to applications that need summaries (unless regenerate is true)
+        const appsNeedingSummary = regenerate
+          ? accessibleApps
+          : accessibleApps.filter((app: AppWithJob) => !app.aiSummary);
+
+        // If all already have summaries and regenerate is false
+        if (appsNeedingSummary.length === 0) {
+          res.status(200).json({
+            cached: true,
+            message: 'All selected candidates already have AI summaries.',
+            totalCount: 0,
+          });
+          return;
+        }
+
+        // Check rate limit against applications needing summaries
+        if (appsNeedingSummary.length > dailyRemaining) {
+          res.status(403).json({
+            error: `You have only ${dailyRemaining} analyses left today. Select fewer candidates.`,
+            errorCode: 'RATE_LIMIT_EXCEEDED',
+            remaining: dailyRemaining,
+            requested: appsNeedingSummary.length,
+          });
+          return;
+        }
+
+        // Check for existing pending job
+        const pendingJobs = await storage.getUserAiFitJobs(userId, ['pending', 'active']);
+        const pendingSummaryJob = pendingJobs.find(j => j.queueName === QUEUES.BATCH && j.bullJobId.startsWith('summary-'));
+        if (pendingSummaryJob) {
+          res.status(429).json({
+            error: 'You have a summary job in progress. Please wait for it to complete.',
+            errorCode: 'PENDING_LIMIT',
+            existingJobId: pendingSummaryJob.id,
+          });
+          return;
+        }
+
+        // Create DB job
+        const appIdsToProcess = appsNeedingSummary.map(app => app.id);
+        const dbJob = await storage.createAiFitJob({
+          bullJobId: `pending-${randomUUID()}`,
+          queueName: QUEUES.BATCH,
+          userId,
+          applicationIds: appIdsToProcess,
+          totalCount: appIdsToProcess.length,
+          result: {
+            results: [],
+            summary: {
+              total: appIdsToProcess.length,
+              succeeded: 0,
+              skipped: accessibleApps.length - appsNeedingSummary.length,
+              errors: 0,
+            },
+          },
+        });
+
+        // Enqueue the job
+        try {
+          const bullJobId = await enqueueSummaryBatch({
+            applicationIds: appIdsToProcess,
+            recruiterId: userId,
+            dbJobId: dbJob.id,
+            regenerate,
+            jobType: 'summary',
+          });
+          await storage.updateAiFitJobBullId(dbJob.id, bullJobId);
+        } catch (enqueueError) {
+          // Mark job as failed if enqueue fails
+          await storage.updateAiFitJobStatus(dbJob.id, 'failed', {
+            completedAt: new Date(),
+            error: enqueueError instanceof Error ? enqueueError.message : 'Enqueue failed',
+            errorCode: 'ENQUEUE_FAILED',
+          });
+          throw enqueueError;
+        }
+
+        res.status(202).json({
+          jobId: dbJob.id,
+          statusUrl: `/api/ai/summary/jobs/${dbJob.id}`,
+          totalCount: appIdsToProcess.length,
+          skippedCount: accessibleApps.length - appsNeedingSummary.length,
+        });
+      } catch (error) {
+        console.error('[AI Summary Queue] Error:', error);
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * GET /api/ai/summary/jobs/:id
+   * Get status of a summary batch job
+   */
+  app.get(
+    "/api/ai/summary/jobs/:id",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+        const idParam = req.params.id;
+        if (!idParam) {
+          res.status(400).json({ error: 'Missing job ID' });
+          return;
+        }
+        const jobId = parseInt(idParam, 10);
+
+        if (isNaN(jobId)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        const job = await storage.getAiFitJobForUser(jobId, userId);
+        if (!job) {
+          res.status(404).json({ error: 'Job not found' });
+          return;
+        }
+
+        res.json({
+          id: job.id,
+          status: job.status,
+          progress: job.progress,
+          processedCount: job.processedCount,
+          totalCount: job.totalCount,
+          result: job.result,
+          error: job.error,
+          errorCode: job.errorCode,
+          createdAt: job.createdAt,
+          startedAt: job.startedAt,
+          completedAt: job.completedAt,
+        });
+      } catch (error) {
+        console.error('[AI Summary Job Status] Error:', error);
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * DELETE /api/ai/summary/jobs/:id
+   * Cancel a pending/active summary batch job
+   */
+  app.delete(
+    "/api/ai/summary/jobs/:id",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    csrfProtection,
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+        const idParam = req.params.id;
+        if (!idParam) {
+          res.status(400).json({ error: 'Missing job ID' });
+          return;
+        }
+        const jobId = parseInt(idParam, 10);
+
+        if (isNaN(jobId)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        const job = await storage.getAiFitJobForUser(jobId, userId);
+        if (!job) {
+          res.status(404).json({ error: 'Job not found' });
+          return;
+        }
+
+        if (job.status !== 'pending' && job.status !== 'active') {
+          res.status(400).json({ error: 'Job cannot be cancelled', status: job.status });
+          return;
+        }
+
+        // Remove from BullMQ
+        const queueName = job.queueName as typeof QUEUES[keyof typeof QUEUES];
+        await removeJob(queueName, job.bullJobId);
+
+        // Update DB status
+        const cancelled = await storage.cancelAiFitJob(jobId, userId);
+        if (!cancelled) {
+          res.status(400).json({ error: 'Failed to cancel job' });
+          return;
+        }
+
+        res.json({ cancelled: true });
+      } catch (error) {
+        console.error('[AI Summary Job Cancel] Error:', error);
+        next(error);
+      }
+    }
+  );
+
   // ============= APPLICATION FEEDBACK =============
 
   // Get feedback for an application
@@ -1562,8 +1958,13 @@ export function registerApplicationsRoutes(
   // Create or update user profile
   app.post("/api/profile", csrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const profileData = req.body;
+      const profileData = { ...req.body };
       const existingProfile = await storage.getUserProfile(req.user!.id);
+
+      // Generate publicId when making profile public for the first time
+      if (profileData.isPublic === true && (!existingProfile || !existingProfile.publicId)) {
+        profileData.publicId = generatePublicId();
+      }
 
       let profile;
       if (existingProfile) {
@@ -1573,6 +1974,10 @@ export function registerApplicationsRoutes(
           ...profileData,
           userId: req.user!.id
         });
+      }
+
+      if (profile) {
+        await syncProfileCompletionStatus(req.user!, { profile });
       }
 
       res.json(profile);
@@ -1585,13 +1990,24 @@ export function registerApplicationsRoutes(
   // Update user profile
   app.patch("/api/profile", csrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const profileData = req.body;
+      const profileData = { ...req.body };
+
+      // Generate publicId when making profile public for the first time
+      if (profileData.isPublic === true) {
+        const existingProfile = await storage.getUserProfile(req.user!.id);
+        if (existingProfile && !existingProfile.publicId) {
+          profileData.publicId = generatePublicId();
+        }
+      }
+
       const profile = await storage.updateUserProfile(req.user!.id, profileData);
 
       if (!profile) {
         res.status(404).json({ error: "Profile not found" });
         return;
       }
+
+      await syncProfileCompletionStatus(req.user!, { profile });
 
       res.json(profile);
       return;

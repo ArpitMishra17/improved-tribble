@@ -27,6 +27,10 @@ import type { CsrfMiddleware } from './types/routes';
 
 // Validation schemas
 const updateEmailTemplateSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  subject: z.string().min(1).max(500).optional(),
+  body: z.string().min(1).optional(),
+  templateType: z.string().optional(),
   isDefault: z.boolean().optional(),
 });
 
@@ -91,6 +95,12 @@ export function registerCommunicationsRoutes(
       }
 
       const updates: Partial<InsertEmailTemplate> & { isDefault?: boolean } = {};
+
+      // Copy editable fields
+      if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+      if (parsed.data.subject !== undefined) updates.subject = parsed.data.subject;
+      if (parsed.data.body !== undefined) updates.body = parsed.data.body;
+      if (parsed.data.templateType !== undefined) updates.templateType = parsed.data.templateType;
 
       // Only super_admins can approve/mark templates as default
       if (parsed.data.isDefault !== undefined) {

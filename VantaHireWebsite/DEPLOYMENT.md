@@ -5,6 +5,7 @@
 ### Prerequisites
 - Railway account
 - PostgreSQL database provisioned on Railway
+- Redis service (optional, for async AI fit scoring queue)
 
 ### Steps
 
@@ -31,6 +32,11 @@
    CLOUDINARY_API_KEY=<your-value>
    CLOUDINARY_API_SECRET=<your-value>
    GROQ_API_KEY=<your-value>
+   AI_QUEUE_ENABLED=true
+   REDIS_URL=<your-redis-url>
+   AI_WORKER_INTERACTIVE_CONCURRENCY=2
+   AI_WORKER_BATCH_CONCURRENCY=1
+   GOOGLE_APPLICATION_CREDENTIALS=<path-to-service-account-json>
    SPOTAXIS_BASE_URL=<your-value>
    ```
 
@@ -42,6 +48,13 @@
 5. **Run Database Migrations**
    - After first deployment, run: `npm run db:push`
    - This creates the database tables
+
+6. **Enable AI Queue Worker (Optional)**
+   - Add a Redis service and set `REDIS_URL`
+   - Create a separate Railway service for the worker
+   - Start command: `npm run start:ai-worker`
+   - Set `AI_QUEUE_ENABLED=true` on both web and worker services
+   - Set `GROQ_API_KEY` and `GOOGLE_APPLICATION_CREDENTIALS` on the worker
 
 ### SpotAxis Integration (Optional)
 
@@ -63,6 +76,11 @@ If deploying SpotAxis alongside VantaHire:
 | `CLOUDINARY_API_KEY` | No | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | No | Cloudinary API secret |
 | `GROQ_API_KEY` | No | Groq API key for AI job analysis (get free at https://console.groq.com) |
+| `AI_QUEUE_ENABLED` | No | Enables async AI fit scoring queue |
+| `REDIS_URL` | No | Redis connection string for AI queue |
+| `AI_WORKER_INTERACTIVE_CONCURRENCY` | No | Worker concurrency for single-item jobs (default 2) |
+| `AI_WORKER_BATCH_CONCURRENCY` | No | Worker concurrency for batch jobs (default 1) |
+| `GOOGLE_APPLICATION_CREDENTIALS` | No | Service account JSON path for resume downloads in the worker |
 | `SPOTAXIS_BASE_URL` | No | Base URL for SpotAxis integration |
 | `SPOTAXIS_CAREERS_URL` | No | Careers page URL for SpotAxis |
 | `NOTIFICATION_EMAIL` | No | Email for system notifications |
@@ -74,6 +92,16 @@ Once deployed:
 2. Check that the homepage loads
 3. Try registering a new account
 4. Verify database connection is working
+
+## Local Async Queue Test (Optional)
+
+Prereqs: Redis running locally.
+
+```bash
+REDIS_URL=redis://localhost:6379 \
+AI_QUEUE_ENABLED=true \
+npm --prefix VantaHireWebsite test -- test/integration/asyncQueue.test.ts
+```
 
 ## Troubleshooting
 

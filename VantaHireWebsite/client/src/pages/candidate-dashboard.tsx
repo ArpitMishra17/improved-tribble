@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useAIFeatures } from "@/hooks/use-ai-features";
+import { useAsyncFitScoring } from "@/hooks/use-async-fit-scoring";
 import { Redirect } from "wouter";
 import { 
   User, 
@@ -45,6 +46,7 @@ import { getCsrfToken } from "@/lib/csrf";
 import Layout from "@/components/Layout";
 import { KpiCard } from "@/components/dashboards/KpiCard";
 import { CandidateTimeline } from "@/components/dashboards/CandidateTimeline";
+import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 
 type ApplicationWithJob = Application & {
   job: Job;
@@ -55,7 +57,8 @@ type ApplicationWithJob = Application & {
 export default function CandidateDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { fitScoring, resumeAdvisor } = useAIFeatures();
+  const { fitScoring, resumeAdvisor, queueEnabled } = useAIFeatures();
+  const asyncFit = useAsyncFitScoring({ queueEnabled });
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
     bio: "",
@@ -361,7 +364,12 @@ export default function CandidateDashboard() {
   };
 
   const handleComputeFit = (applicationId: number) => {
-    computeFitMutation.mutate(applicationId);
+    // Use async queue if available, fallback to sync
+    if (asyncFit.isQueueAvailable) {
+      asyncFit.enqueueInteractive(applicationId);
+    } else {
+      computeFitMutation.mutate(applicationId);
+    }
   };
 
   const handleBatchComputeFit = () => {
@@ -379,7 +387,12 @@ export default function CandidateDashboard() {
       return;
     }
 
-    batchComputeFitMutation.mutate(needsCompute);
+    // Use async queue if available, fallback to sync
+    if (asyncFit.isQueueAvailable) {
+      asyncFit.enqueueBatch(needsCompute);
+    } else {
+      batchComputeFitMutation.mutate(needsCompute);
+    }
   };
 
   const handleResumeUpload = async (e: React.FormEvent) => {
@@ -567,12 +580,12 @@ export default function CandidateDashboard() {
             {fitScoring && (!application.aiFitScore || application.aiStaleReason) && (
               <Button
                 onClick={() => handleComputeFit(application.id)}
-                disabled={computeFitMutation.isPending}
+                disabled={computeFitMutation.isPending || asyncFit.isEnqueueingInteractive || asyncFit.isProcessing}
                 variant="outline"
                 size="sm"
                 className="border-primary/30 text-primary hover:bg-primary/10"
               >
-                {computeFitMutation.isPending ? (
+                {(computeFitMutation.isPending || asyncFit.isEnqueueingInteractive) ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -635,6 +648,9 @@ export default function CandidateDashboard() {
               </p>
             </div>
 
+            {/* Profile Completion Banner */}
+            <ProfileCompletionBanner />
+
             {/* Feature Status Banners */}
             {!fitScoring && (
               <Alert className="mb-6 bg-warning/10 border-warning/30 text-warning">
@@ -690,7 +706,7 @@ export default function CandidateDashboard() {
             )}
 
             {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-tour="my-applications">
             <KpiCard
               label="Total Applications"
               value={stats.total}
@@ -735,7 +751,7 @@ export default function CandidateDashboard() {
               <TabsTrigger value="resumes">Resume Library</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="profile" className="mt-6">
+            <TabsContent value="profile" className="mt-6" data-tour="profile-settings">
               <Card className="bg-muted/50 backdrop-blur-sm border-border">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -909,27 +925,66 @@ export default function CandidateDashboard() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="applications" className="mt-6">
+            <TabsContent value="applications" className="mt-6" data-tour="application-status">
               {fitScoring && applications && applications.length > 0 && (
-                <div className="mb-4 flex items-center justify-between bg-muted/30 backdrop-blur-sm border border-border rounded-lg p-4">
-                  <div>
-                    <h3 className="text-foreground font-medium">AI Fit Scoring</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Compute fit scores for all applications
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleBatchComputeFit}
-                    disabled={batchComputeFitMutation.isPending}
-                    className="bg-primary hover:bg-primary/80"
-                  >
-                    {batchComputeFitMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Compute All Fits
-                  </Button>
+                <div className="mb-4 bg-muted/30 backdrop-blur-sm border border-border rounded-lg p-4">
+                  {asyncFit.isProcessing ? (
+                    // Show progress when async job is active
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-foreground font-medium flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            Analyzing Applications
+                          </h3>
+                          <p className="text-muted-foreground text-sm">
+                            {asyncFit.processedCount} of {asyncFit.totalCount} processed
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => asyncFit.activeJobId && asyncFit.cancelJob(asyncFit.activeJobId)}
+                          disabled={asyncFit.isCancelling}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {asyncFit.isCancelling ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <X className="w-4 h-4" />
+                          )}
+                          Cancel
+                        </Button>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${asyncFit.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    // Show compute button when idle
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-foreground font-medium">AI Fit Scoring</h3>
+                        <p className="text-muted-foreground text-sm">
+                          Compute fit scores for all applications
+                        </p>
+                      </div>
+                      <Button
+                        onClick={handleBatchComputeFit}
+                        disabled={batchComputeFitMutation.isPending || asyncFit.isEnqueueingBatch}
+                        className="bg-primary hover:bg-primary/80"
+                      >
+                        {(batchComputeFitMutation.isPending || asyncFit.isEnqueueingBatch) ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2" />
+                        )}
+                        Compute All Fits
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
               {applications && applications.length > 0 ? (

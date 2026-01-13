@@ -602,6 +602,16 @@ export function JobPostingStepper({ onSuccess }: JobPostingStepperProps) {
                       : ""}
                   </p>
                 </div>
+                {/* SEO warning for short descriptions */}
+                {formData.description.length >= 50 && formData.description.length < 200 && (
+                  <div className="flex items-start gap-2 mt-2 p-2 bg-warning/10 border border-warning/30 rounded text-sm">
+                    <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                    <p className="text-warning-foreground">
+                      <strong>SEO tip:</strong> Descriptions under 200 characters may not appear in Google Jobs search results.
+                      Add {200 - formData.description.length} more characters for better visibility.
+                    </p>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">Clear, inclusive descriptions improve apply rates.</p>
               </div>
             </div>

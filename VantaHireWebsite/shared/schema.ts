@@ -20,6 +20,9 @@ export const users = pgTable("users", {
   // AI features
   aiContentFreeUsed: boolean("ai_content_free_used").default(false),
   aiOnboardedAt: timestamp("ai_onboarded_at"),
+  // Profile completion
+  profilePromptSnoozeUntil: timestamp("profile_prompt_snooze_until"),
+  profileCompletedAt: timestamp("profile_completed_at"),
 });
 
 export const contactSubmissions = pgTable("contact_submissions", {
@@ -90,8 +93,10 @@ export const jobs = pgTable("jobs", {
 export const userProfiles = pgTable("user_profiles", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  publicId: text("public_id"), // URL-safe public identifier (generated when profile is made public)
   displayName: text("display_name"),
   company: text("company"),
+  phone: text("phone"), // User's phone number
   photoUrl: text("photo_url"),
   bio: text("bio"),
   skills: text("skills").array(),
@@ -100,7 +105,10 @@ export const userProfiles = pgTable("user_profiles", {
   isPublic: boolean("is_public").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  publicIdIdx: uniqueIndex("user_profiles_public_id_idx").on(table.publicId),
+  userIdIdx: uniqueIndex("user_profiles_user_id_idx").on(table.userId),
+}));
 
 export const applications = pgTable("applications", {
   id: serial("id").primaryKey(),
@@ -517,6 +525,43 @@ export const coRecruiterInvitations = pgTable("co_recruiter_invitations", {
   statusIdx: index("co_recruiter_invite_status_idx").on(table.status),
 }));
 
+// AI Fit Jobs: Async job processing for AI fit scoring
+export const aiFitJobs = pgTable("ai_fit_jobs", {
+  id: serial("id").primaryKey(),
+
+  // Queue reference (internal - not exposed to clients)
+  bullJobId: text("bull_job_id").notNull(),
+  queueName: text("queue_name").notNull(), // 'ai:interactive' | 'ai:batch'
+
+  // Request context
+  userId: integer("user_id").notNull().references(() => users.id),
+  applicationId: integer("application_id").references(() => applications.id), // For single jobs
+  applicationIds: integer("application_ids").array(), // For batch jobs
+
+  // Status tracking
+  status: text("status").notNull().default('pending'), // 'pending' | 'active' | 'completed' | 'failed' | 'cancelled'
+
+  // Progress (for batch jobs)
+  progress: integer("progress").default(0), // 0-100
+  processedCount: integer("processed_count").default(0),
+  totalCount: integer("total_count"),
+
+  // Results
+  result: jsonb("result"), // FitResult or BatchFitResult
+  error: text("error"),
+  errorCode: text("error_code"), // 'QUOTA_EXHAUSTED' | 'CIRCUIT_OPEN' | 'VALIDATION' | 'TRANSIENT' | 'ENQUEUE_FAILED'
+
+  // Timing
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  bullJobIdIdx: uniqueIndex("ai_fit_jobs_bull_job_id_idx").on(table.bullJobId),
+  userIdStatusIdx: index("ai_fit_jobs_user_status_idx").on(table.userId, table.status),
+  applicationIdIdx: index("ai_fit_jobs_application_id_idx").on(table.applicationId),
+  createdAtIdx: index("ai_fit_jobs_created_at_idx").on(table.createdAt),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   jobs: many(jobs),
@@ -831,6 +876,17 @@ export const coRecruiterInvitationsRelations = relations(coRecruiterInvitations,
   }),
 }));
 
+export const aiFitJobsRelations = relations(aiFitJobs, ({ one }) => ({
+  user: one(users, {
+    fields: [aiFitJobs.userId],
+    references: [users.id],
+  }),
+  application: one(applications, {
+    fields: [aiFitJobs.applicationId],
+    references: [applications.id],
+  }),
+}));
+
 // Types and insert schemas for new tables
 export const insertPipelineStageSchema = createInsertSchema(pipelineStages).pick({
   name: true,
@@ -919,6 +975,7 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   skills: true,
   deadline: true,
   clientId: true,
+  hiringManagerId: true,
 }).extend({
   title: z.string().min(1).max(100),
   location: z.string().min(1).max(100),
@@ -927,6 +984,7 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   skills: z.array(z.string().min(1).max(50)).max(20).optional(),
   deadline: z.string().transform(str => new Date(str)).optional(),
   clientId: z.number().int().positive().optional(),
+  hiringManagerId: z.number().int().positive().optional(),
 });
 
 export const insertApplicationSchema = createInsertSchema(applications).pick({
@@ -1218,3 +1276,43 @@ export const insertCoRecruiterInvitationSchema = z.object({
 
 export type CoRecruiterInvitation = typeof coRecruiterInvitations.$inferSelect;
 export type InsertCoRecruiterInvitation = z.infer<typeof insertCoRecruiterInvitationSchema>;
+
+// AI Fit Jobs: Insert schemas and types
+export const insertAiFitJobSchema = z.object({
+  bullJobId: z.string().min(1),
+  queueName: z.enum(['ai:interactive', 'ai:batch']),
+  userId: z.number().int().positive(),
+  applicationId: z.number().int().positive().optional(),
+  applicationIds: z.array(z.number().int().positive()).optional(),
+  status: z.enum(['pending', 'active', 'completed', 'failed', 'cancelled']).default('pending'),
+  progress: z.number().int().min(0).max(100).default(0),
+  processedCount: z.number().int().min(0).default(0),
+  totalCount: z.number().int().min(0).optional(),
+  result: z.record(z.any()).optional(),
+  error: z.string().optional(),
+  errorCode: z.enum(['QUOTA_EXHAUSTED', 'CIRCUIT_OPEN', 'VALIDATION', 'TRANSIENT', 'ENQUEUE_FAILED']).optional(),
+});
+
+export type AiFitJob = typeof aiFitJobs.$inferSelect;
+export type InsertAiFitJob = z.infer<typeof insertAiFitJobSchema>;
+
+// Batch fit result types (for clarity)
+export interface BatchFitResultItem {
+  applicationId: number;
+  status: 'success' | 'cached' | 'requiresPaid' | 'error';
+  score?: number;
+  label?: string;
+  reasons?: string[];
+  error?: string;
+}
+
+export interface BatchFitResult {
+  results: BatchFitResultItem[];
+  summary: {
+    total: number;
+    succeeded: number;
+    cached: number;
+    requiresPaid: number;
+    errors: number;
+  };
+}
