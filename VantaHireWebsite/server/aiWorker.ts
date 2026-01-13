@@ -631,19 +631,24 @@ async function shutdown(signal: string): Promise<void> {
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
 process.on('SIGINT', () => void shutdown('SIGINT'));
 
+// Redis namespace must match the queue prefix used in aiQueue.ts
+const REDIS_NAMESPACE = process.env.NODE_ENV || 'development';
+
 // Main entry
 async function main(): Promise<void> {
   console.log('[AI Worker] Starting AI worker...');
   console.log(`[AI Worker] Interactive concurrency: ${INTERACTIVE_CONCURRENCY}`);
   console.log(`[AI Worker] Batch concurrency: ${BATCH_CONCURRENCY}`);
+  console.log(`[AI Worker] Redis prefix: {${REDIS_NAMESPACE}}`);
 
   // Cast connection to any - BullMQ bundles its own ioredis with slightly different types
   const connection = getIoRedisConnection() as any;
 
-  // Interactive worker
+  // Interactive worker - must use same prefix as queue
   const interactiveWorker = new Worker(QUEUES.INTERACTIVE, processFitJob, {
     connection,
     concurrency: INTERACTIVE_CONCURRENCY,
+    prefix: `{${REDIS_NAMESPACE}}`,
   });
 
   interactiveWorker.on('completed', (job: Job) => {
@@ -668,6 +673,7 @@ async function main(): Promise<void> {
     {
       connection,
       concurrency: BATCH_CONCURRENCY,
+      prefix: `{${REDIS_NAMESPACE}}`,
     }
   );
 
