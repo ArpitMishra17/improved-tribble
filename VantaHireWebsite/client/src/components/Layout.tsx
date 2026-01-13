@@ -240,12 +240,9 @@ const Layout = ({ children }: LayoutProps) => {
                         {getRoleLabel(user?.role)}
                       </Badge>
                     )}
-                    {aiEnabled && (
-                      <Badge variant="secondary" className="text-xs bg-primary/20 text-primary hover:bg-primary/20">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        AI Beta
-                      </Badge>
-                    )}
+                    <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
+                      v1.2
+                    </Badge>
                   </div>
                   <DropdownMenuSeparator />
 
