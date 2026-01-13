@@ -656,6 +656,13 @@ export default function AdminSuperDashboard() {
               <BarChart3 className="h-4 w-4 mr-2" />
               AI Usage
             </Button>
+            <Button
+              onClick={() => window.location.href = '/analytics'}
+              variant="outline"
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              Job Analytics
+            </Button>
           </div>
         </div>
 
