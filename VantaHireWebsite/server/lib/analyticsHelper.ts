@@ -42,14 +42,26 @@ export interface HiringMetrics {
 }
 
 /**
- * Get the ID of the "Hired" stage (or final stage)
- * Assumes the highest order stage is the "Hired" stage
+ * Get the ID of the "Hired" stage
+ * Looks for a stage named "Hired" (case-insensitive)
  */
 async function getHiredStageId(): Promise<number | null> {
+  // First try to find a stage explicitly named "Hired"
+  const hiredStage = await db
+    .select()
+    .from(pipelineStages)
+    .where(sql`LOWER(${pipelineStages.name}) = 'hired'`)
+    .limit(1);
+
+  if (hiredStage.length > 0) {
+    return hiredStage[0].id;
+  }
+
+  // Fallback: look for stage containing "hired" in name
   const stages = await db
     .select()
     .from(pipelineStages)
-    .orderBy(desc(pipelineStages.order))
+    .where(sql`LOWER(${pipelineStages.name}) LIKE '%hired%'`)
     .limit(1);
 
   return stages.length > 0 ? stages[0].id : null;
