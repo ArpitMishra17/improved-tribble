@@ -36,6 +36,7 @@ import {
   Activity,
   Crown,
   BarChart3,
+  Cpu,
   RefreshCw,
   Mail,
   Send,
@@ -639,13 +640,27 @@ export default function AdminSuperDashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex gap-4 mt-6">
+          <div className="flex flex-wrap gap-4 mt-6">
             <Button
               onClick={() => window.location.href = '/analytics'}
               variant="outline"
             >
               <Activity className="h-4 w-4 mr-2" />
               Analytics
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/admin/ai-jobs'}
+              variant="outline"
+            >
+              <Cpu className="h-4 w-4 mr-2" />
+              AI Queue
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/admin/ai-usage'}
+              variant="outline"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              AI Usage
             </Button>
           </div>
         </div>

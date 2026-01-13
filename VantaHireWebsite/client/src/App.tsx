@@ -23,6 +23,7 @@ const FormEditorPage = lazy(() => import("@/pages/form-editor-page"));
 const AdminFormResponsesPage = lazy(() => import("@/pages/admin-form-responses-page"));
 const AdminConsultantsPage = lazy(() => import("@/pages/admin-consultants-page"));
 const AdminAIUsagePage = lazy(() => import("@/pages/admin-ai-usage-page"));
+const AdminAIJobsPage = lazy(() => import("@/pages/admin-ai-jobs-page"));
 const AdminFeedbackPage = lazy(() => import("@/pages/admin-feedback-page"));
 const ApplicationManagementPage = lazy(() => import("@/pages/application-management-page"));
 const JobEditPage = lazy(() => import("@/pages/job-edit-page"));
@@ -119,6 +120,7 @@ function Router() {
       <ProtectedRoute path="/admin/email-templates" component={AdminEmailTemplatesPage} requiredRole={['super_admin', 'recruiter']} />
       <ProtectedRoute path="/admin/consultants" component={AdminConsultantsPage} requiredRole={['super_admin']} />
       <ProtectedRoute path="/admin/ai-usage" component={AdminAIUsagePage} requiredRole={['super_admin']} />
+      <ProtectedRoute path="/admin/ai-jobs" component={AdminAIJobsPage} requiredRole={['super_admin']} />
       <ProtectedRoute path="/admin/feedback" component={AdminFeedbackPage} requiredRole={['super_admin']} />
       <ProtectedRoute path="/analytics" component={JobAnalyticsDashboard} requiredRole={['recruiter', 'super_admin']} />
       {/* Dev-only UI gallery route */}
