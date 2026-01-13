@@ -7,48 +7,58 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
-import AuthPage from "@/pages/auth-page";
-import RecruiterAuth from "@/pages/recruiter-auth";
-import CandidateAuth from "@/pages/candidate-auth";
-import JobsPage from "@/pages/jobs-page";
-import JobDetailsPage from "@/pages/job-details-page";
-import JobPostPage from "@/pages/job-post-page";
-import AdminSuperDashboard from "@/pages/admin-super-dashboard";
-import AdminFormsPage from "@/pages/admin-forms-page";
-import AdminEmailTemplatesPage from "@/pages/admin-email-templates-page";
-import FormEditorPage from "@/pages/form-editor-page";
-import AdminFormResponsesPage from "@/pages/admin-form-responses-page";
-import AdminConsultantsPage from "@/pages/admin-consultants-page";
-import AdminAIUsagePage from "@/pages/admin-ai-usage-page";
-import AdminFeedbackPage from "@/pages/admin-feedback-page";
-import ApplicationManagementPage from "@/pages/application-management-page";
-import JobEditPage from "@/pages/job-edit-page";
-import JobPipelinePage from "@/pages/job-pipeline-page";
-import JobAnalyticsPage from "@/pages/job-analytics-page";
-import CandidateDashboard from "@/pages/candidate-dashboard";
-import JobAnalyticsDashboard from "@/pages/job-analytics-dashboard";
-import RecruiterDashboard from "@/pages/recruiter-dashboard";
-import HiringManagerDashboard from "@/pages/hiring-manager-dashboard";
-import ApplicationsPage from "@/pages/applications-page";
-import MyJobsPage from "@/pages/my-jobs-page";
-import CandidatesPage from "@/pages/candidates-page";
-import ConsultantsPage from "@/pages/consultants-page";
-import ClientsPage from "@/pages/clients-page";
-import ClientShortlistPage from "@/pages/client-shortlist-page";
-import PublicFormPage from "@/pages/public-form-page";
-import PrivacyPolicyPage from "@/pages/privacy-policy-page";
-import TermsOfServicePage from "@/pages/terms-of-service-page";
-import CookiePolicyPage from "@/pages/cookie-policy-page";
-import BrandAssetsPage from "@/pages/brand-assets-page";
-import VerifyEmailPage from "@/pages/verify-email-page";
-import ResetPasswordPage from "@/pages/reset-password-page";
-import ProfileSettingsPage from "@/pages/profile-settings-page";
-import RecruiterProfilePage from "@/pages/recruiter-profile-page";
-import RegisterHiringManager from "@/pages/register-hiring-manager";
-import AcceptCoRecruiter from "@/pages/accept-co-recruiter";
-import RegisterCoRecruiter from "@/pages/register-co-recruiter";
 import { CookieConsent, AnalyticsOnConsent } from "@/components/CookieConsent";
 import { lazy, Suspense } from "react";
+
+const AuthPage = lazy(() => import("@/pages/auth-page"));
+const RecruiterAuth = lazy(() => import("@/pages/recruiter-auth"));
+const CandidateAuth = lazy(() => import("@/pages/candidate-auth"));
+const JobsPage = lazy(() => import("@/pages/jobs-page"));
+const JobDetailsPage = lazy(() => import("@/pages/job-details-page"));
+const JobPostPage = lazy(() => import("@/pages/job-post-page"));
+const AdminSuperDashboard = lazy(() => import("@/pages/admin-super-dashboard"));
+const AdminFormsPage = lazy(() => import("@/pages/admin-forms-page"));
+const AdminEmailTemplatesPage = lazy(() => import("@/pages/admin-email-templates-page"));
+const FormEditorPage = lazy(() => import("@/pages/form-editor-page"));
+const AdminFormResponsesPage = lazy(() => import("@/pages/admin-form-responses-page"));
+const AdminConsultantsPage = lazy(() => import("@/pages/admin-consultants-page"));
+const AdminAIUsagePage = lazy(() => import("@/pages/admin-ai-usage-page"));
+const AdminFeedbackPage = lazy(() => import("@/pages/admin-feedback-page"));
+const ApplicationManagementPage = lazy(() => import("@/pages/application-management-page"));
+const JobEditPage = lazy(() => import("@/pages/job-edit-page"));
+const JobPipelinePage = lazy(() => import("@/pages/job-pipeline-page"));
+const JobAnalyticsPage = lazy(() => import("@/pages/job-analytics-page"));
+const CandidateDashboard = lazy(() => import("@/pages/candidate-dashboard"));
+const JobAnalyticsDashboard = lazy(() => import("@/pages/job-analytics-dashboard"));
+const RecruiterDashboard = lazy(() => import("@/pages/recruiter-dashboard"));
+const HiringManagerDashboard = lazy(() => import("@/pages/hiring-manager-dashboard"));
+const ApplicationsPage = lazy(() => import("@/pages/applications-page"));
+const MyJobsPage = lazy(() => import("@/pages/my-jobs-page"));
+const CandidatesPage = lazy(() => import("@/pages/candidates-page"));
+const ClientsPage = lazy(() => import("@/pages/clients-page"));
+const ClientShortlistPage = lazy(() => import("@/pages/client-shortlist-page"));
+const PublicFormPage = lazy(() => import("@/pages/public-form-page"));
+const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy-page"));
+const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service-page"));
+const CookiePolicyPage = lazy(() => import("@/pages/cookie-policy-page"));
+const BrandAssetsPage = lazy(() => import("@/pages/brand-assets-page"));
+const VerifyEmailPage = lazy(() => import("@/pages/verify-email-page"));
+const ResetPasswordPage = lazy(() => import("@/pages/reset-password-page"));
+const ProfileSettingsPage = lazy(() => import("@/pages/profile-settings-page"));
+const RecruiterProfilePage = lazy(() => import("@/pages/recruiter-profile-page"));
+const RecruitersDirectoryPage = lazy(() => import("@/pages/recruiters-directory-page"));
+const RegisterHiringManager = lazy(() => import("@/pages/register-hiring-manager"));
+const AcceptCoRecruiter = lazy(() => import("@/pages/accept-co-recruiter"));
+const RegisterCoRecruiter = lazy(() => import("@/pages/register-co-recruiter"));
+
+// Marketing pages
+const ProductPage = lazy(() => import("@/pages/product-page"));
+const FeaturesPage = lazy(() => import("@/pages/features-page"));
+const PricingPage = lazy(() => import("@/pages/pricing-page"));
+const ComparePage = lazy(() => import("@/pages/compare-page"));
+const UseCasesPage = lazy(() => import("@/pages/use-cases-page"));
+const DemoPage = lazy(() => import("@/pages/demo-page"));
+const AboutPage = lazy(() => import("@/pages/about-page"));
 
 // Dev-only UI gallery (lazy loaded, tree-shaken in production)
 const DevUIGallery = import.meta.env.DEV
@@ -61,10 +71,16 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/product" component={ProductPage} />
+      <Route path="/features" component={FeaturesPage} />
+      <Route path="/pricing" component={PricingPage} />
+      <Route path="/compare" component={ComparePage} />
+      <Route path="/use-cases" component={UseCasesPage} />
+      <Route path="/demo" component={DemoPage} />
+      <Route path="/about" component={AboutPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/recruiter-auth" component={RecruiterAuth} />
       <Route path="/candidate-auth" component={CandidateAuth} />
-      <Route path="/consultants" component={ConsultantsPage} />
       <Route path="/form/:token" component={PublicFormPage} />
       <Route path="/client-shortlist/:token" component={ClientShortlistPage} />
       <Route path="/privacy-policy" component={PrivacyPolicyPage} />
@@ -76,6 +92,7 @@ function Router() {
       <Route path="/register-hiring-manager/:token" component={RegisterHiringManager} />
       <Route path="/accept-co-recruiter/:token" component={AcceptCoRecruiter} />
       <Route path="/register-co-recruiter/:token" component={RegisterCoRecruiter} />
+      <Route path="/recruiters" component={RecruitersDirectoryPage} />
       <Route path="/recruiters/:id" component={RecruiterProfilePage} />
       <Route path="/jobs" component={JobsPage} />
       <ProtectedRoute path="/jobs/post" component={JobPostPage} requiredRole={['recruiter', 'super_admin']} />
@@ -91,7 +108,7 @@ function Router() {
       <ProtectedRoute path="/candidates" component={CandidatesPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/my-jobs" component={MyJobsPage} requiredRole={['recruiter', 'super_admin']} />
       <ProtectedRoute path="/clients" component={ClientsPage} requiredRole={['recruiter', 'super_admin']} />
-      <ProtectedRoute path="/profile/settings" component={ProfileSettingsPage} requiredRole={['recruiter', 'super_admin']} />
+      <ProtectedRoute path="/profile/settings" component={ProfileSettingsPage} requiredRole={['recruiter', 'super_admin', 'hiring_manager']} />
       <ProtectedRoute path="/admin" component={AdminSuperDashboard} requiredRole={['super_admin']} />
       <Route path="/admin/legacy">{() => <Redirect to="/admin" />}</Route>
       <Route path="/admin/super">{() => <Redirect to="/admin" />}</Route>
@@ -130,7 +147,9 @@ function App() {
             {/* Inject analytics only after consent */}
             <AnalyticsOnConsent />
             <CookieConsent />
-            <Router />
+            <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+              <Router />
+            </Suspense>
             <TourLauncher />
           </TourProvider>
         </TooltipProvider>

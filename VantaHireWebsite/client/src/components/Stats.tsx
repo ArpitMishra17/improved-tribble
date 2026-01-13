@@ -2,7 +2,7 @@ const stats = [
   { number: "60%", label: "Faster Shortlisting" },
   { number: "48hr", label: "First Shortlist" },
   { number: "3-5", label: "Days to Deploy" },
-  { number: "∞", label: "Job Posts" }
+  { number: "Unlimited", label: "Job Posts" }
 ];
 
 const Stats = () => {

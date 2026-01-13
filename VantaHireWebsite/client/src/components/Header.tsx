@@ -87,40 +87,24 @@ const Header = () => {
         {/* Enhanced desktop menu */}
         <div className="hidden md:flex items-center space-x-8">
           {/* Navigation links with premium hover effects */}
-          <a
-            href="/#about"
-            className={`relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group ${activeSection === 'about' ? 'text-white' : 'text-white/70'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              if (window.location.pathname === '/') {
-                scrollToSection("about");
-              } else {
-                window.location.href = '/#about';
-              }
-            }}
-          >
+          <Link href="/about" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
             <span className="relative z-10">About</span>
-            <span className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 ${activeSection === 'about' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></span>
+            <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
             <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
-          </a>
-          
-          <a
-            href="/#services"
-            className={`relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group ${activeSection === 'services' ? 'text-white' : 'text-white/70'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              if (window.location.pathname === '/') {
-                scrollToSection("services");
-              } else {
-                window.location.href = '/#services';
-              }
-            }}
-          >
-            <span className="relative z-10">Services</span>
-            <span className={`absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 ${activeSection === 'services' ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}></span>
+          </Link>
+
+          <Link href="/features" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
+            <span className="relative z-10">Features</span>
+            <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
             <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
-          </a>
-          
+          </Link>
+
+          <Link href="/pricing" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
+            <span className="relative z-10">Pricing</span>
+            <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
+            <span className="absolute inset-0 -z-10 bg-white/0 group-hover:bg-white/5 transition-colors duration-300 rounded-md"></span>
+          </Link>
+
           {/* Jobs link */}
           <Link href="/jobs" className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70 hover:text-white">
             <span className="relative z-10">Jobs</span>
@@ -279,38 +263,29 @@ const Header = () => {
           </button>
         </div>
         <div className="flex flex-col space-y-6">
-          <a
-            href="/#about"
-            className={`text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 ${activeSection === 'about' ? 'border-[#7B38FB]' : 'border-transparent hover:border-[#7B38FB]'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              if (window.location.pathname === '/') {
-                scrollToSection("about");
-              } else {
-                window.location.href = '/#about';
-              }
-            }}
+          <Link
+            href="/about"
+            className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
+            onClick={() => setIsMenuOpen(false)}
           >
             About
-          </a>
-          <a
-            href="/#services"
-            className={`text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 ${activeSection === 'services' ? 'border-[#7B38FB]' : 'border-transparent hover:border-[#7B38FB]'}`}
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              if (window.location.pathname === '/') {
-                scrollToSection("services");
-              } else {
-                window.location.href = '/#services';
-              }
-            }}
+          </Link>
+          <Link
+            href="/features"
+            className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
+            onClick={() => setIsMenuOpen(false)}
           >
-            Services
-          </a>
+            Features
+          </Link>
+          <Link
+            href="/pricing"
+            className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Pricing
+          </Link>
           {/* Mobile Jobs link */}
-          <Link 
+          <Link
             href="/jobs"
             className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
             onClick={() => setIsMenuOpen(false)}
