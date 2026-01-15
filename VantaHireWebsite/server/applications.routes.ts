@@ -369,6 +369,7 @@ export function registerApplicationsRoutes(
           name: applicationData.name,
           email: applicationData.email,
           phone: applicationData.phone,
+          whatsappConsent: applicationData.whatsappConsent,
           ...(applicationData.coverLetter && { coverLetter: applicationData.coverLetter }),
           jobId,
           resumeUrl,
