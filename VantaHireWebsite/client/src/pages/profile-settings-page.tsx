@@ -9,13 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { User, Building, MapPin, Linkedin, Globe, Save, X } from "lucide-react";
+import { User, Building, MapPin, Linkedin, Globe, Save, X, Phone } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import Layout from "@/components/Layout";
 
 interface UserProfile {
   displayName: string | null;
   company: string | null;
+  phone: string | null;
   photoUrl: string | null;
   bio: string | null;
   skills: string[] | null;
@@ -43,6 +44,7 @@ export default function ProfileSettingsPage() {
   const [formData, setFormData] = useState<UserProfile>({
     displayName: "",
     company: "",
+    phone: "",
     photoUrl: "",
     bio: "",
     skills: [],
@@ -70,6 +72,7 @@ export default function ProfileSettingsPage() {
       setFormData({
         displayName: profileData.profile.displayName || "",
         company: profileData.profile.company || "",
+        phone: profileData.profile.phone || "",
         photoUrl: profileData.profile.photoUrl || "",
         bio: profileData.profile.bio || "",
         skills: profileData.profile.skills || [],
@@ -188,6 +191,20 @@ export default function ProfileSettingsPage() {
                     value={formData.company || ""}
                     onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                     placeholder="Your company name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone || ""}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1 (555) 123-4567"
                   />
                 </div>
 

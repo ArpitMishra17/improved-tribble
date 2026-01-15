@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,19 @@ import Footer from "@/components/Footer";
 export default function RecruiterAuth() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const { toast } = useToast();
+
+  // Parse redirect URL from query params
+  const redirectUrl = useMemo(() => {
+    const params = new URLSearchParams(searchString);
+    const redirect = params.get('redirect');
+    // Only allow internal redirects (starting with /)
+    if (redirect && redirect.startsWith('/')) {
+      return redirect;
+    }
+    return null;
+  }, [searchString]);
 
   const [loginData, setLoginData] = useState({
     username: "",
@@ -35,21 +47,31 @@ export default function RecruiterAuth() {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
 
-  // Redirect if already logged in as recruiter or admin (shared portal)
+  // Redirect if already logged in as recruiter, admin, or hiring manager (shared portal)
   useEffect(() => {
     if (!user) return;
+
+    // If there's a redirect URL and user is recruiter/admin, use it
+    if (redirectUrl && (user.role === "recruiter" || user.role === "super_admin")) {
+      setLocation(redirectUrl);
+      return;
+    }
+
+    // Otherwise use default redirects
     if (user.role === "recruiter") {
       setLocation("/recruiter-dashboard");
     } else if (user.role === "super_admin") {
       setLocation("/admin");
+    } else if (user.role === "hiring_manager") {
+      setLocation("/hiring-manager");
     }
-  }, [user, setLocation]);
+  }, [user, setLocation, redirectUrl]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Allow recruiters and admins to use the recruiter portal
-      await loginMutation.mutateAsync({ ...loginData, expectedRole: ['recruiter', 'super_admin'] });
+      // Allow recruiters, admins, and hiring managers to use this portal
+      await loginMutation.mutateAsync({ ...loginData, expectedRole: ['recruiter', 'super_admin', 'hiring_manager'] });
     } catch (error: any) {
       // Check if this is an email verification error
       const errorData = error?.response?.data || error;

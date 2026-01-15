@@ -22,8 +22,9 @@ function generateSecurePassword(length: number = 24): string {
 
 export async function createAdminUser() {
   try {
-    // Check if admin user already exists
-    const existingAdmin = await storage.getUserByUsername('admin');
+    // Check if admin user already exists (check both old and new format)
+    const existingAdmin = await storage.getUserByUsername('admin@vantahire.local')
+                       || await storage.getUserByUsername('admin');
     if (existingAdmin) {
       console.log('✓ Admin user already exists');
       return existingAdmin;
@@ -36,7 +37,7 @@ export async function createAdminUser() {
     // Create admin user
     const hashedPassword = await hashPassword(adminPassword);
     const adminUser = await storage.createUser({
-      username: 'admin',
+      username: 'admin@vantahire.local',
       password: hashedPassword,
       firstName: 'System',
       lastName: 'Administrator',
@@ -93,7 +94,9 @@ export async function syncAdminPasswordIfEnv() {
     const newPassword = process.env.ADMIN_PASSWORD;
     if (!newPassword) return;
 
-    const existingAdmin = await storage.getUserByUsername('admin');
+    // Check both old and new format
+    const existingAdmin = await storage.getUserByUsername('admin@vantahire.local')
+                       || await storage.getUserByUsername('admin');
     const hashedPassword = await hashPassword(newPassword);
 
     if (existingAdmin) {
@@ -105,7 +108,7 @@ export async function syncAdminPasswordIfEnv() {
 
     // Create super admin if missing
     await storage.createUser({
-      username: 'admin',
+      username: 'admin@vantahire.local',
       password: hashedPassword,
       firstName: 'System',
       lastName: 'Administrator',

@@ -1,8 +1,8 @@
 import cron from 'node-cron';
 import { storage } from './storage';
 import { db } from './db';
-import { jobs, applications, users } from '@shared/schema';
-import { lt, eq, and, sql } from 'drizzle-orm';
+import { jobs, applications, users, hiringManagerInvitations, coRecruiterInvitations } from '@shared/schema';
+import { lt, eq, and, sql, or } from 'drizzle-orm';
 import { getEmailService } from './simpleEmailService';
 
 // Job lifecycle scheduler with activity-based deactivation
@@ -38,9 +38,9 @@ export function startJobScheduler() {
     }
   });
 
-  // Run weekly on Sunday at 4 AM: Clean up declined jobs
+  // Run weekly on Sunday at 4 AM: Clean up declined jobs and expired invitations
   cron.schedule('0 4 * * 0', async () => {
-    console.log('Running declined job cleanup...');
+    console.log('Running weekly cleanup...');
 
     try {
       const thirtyDaysAgo = new Date();
@@ -67,15 +67,22 @@ export function startJobScheduler() {
       } else {
         console.log('No declined jobs to archive');
       }
+
+      // Clean up expired hiring manager invitations
+      await cleanupExpiredInvitations();
+
+      // Clean up old AI fit jobs
+      await cleanupOldAiFitJobs();
+
     } catch (error) {
-      console.error('Error during declined job cleanup:', error);
+      console.error('Error during weekly cleanup:', error);
     }
   });
 
   console.log('📅 Job scheduler started successfully:');
   console.log('   - Warning emails: Daily at 2 AM (7 days before deactivation)');
   console.log('   - Job deactivation: Daily at 3 AM (activity-based)');
-  console.log('   - Declined job cleanup: Weekly on Sunday at 4 AM');
+  console.log('   - Weekly cleanup: Sunday at 4 AM (declined jobs + expired invitations + old AI fit jobs)');
 }
 
 /**
@@ -277,5 +284,111 @@ export async function getJobsNearExpiry(): Promise<any[]> {
   } catch (error) {
     console.error('Error getting jobs near expiry:', error);
     return [];
+  }
+}
+
+/**
+ * Clean up expired hiring manager invitations
+ * - Mark expired pending invitations as 'expired'
+ * - Delete old expired/accepted invitations (older than 30 days)
+ */
+async function cleanupExpiredInvitations(): Promise<void> {
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // ===== Hiring Manager Invitations =====
+    // Mark pending invitations past expiry as 'expired'
+    const hmMarkedExpired = await db
+      .update(hiringManagerInvitations)
+      .set({ status: 'expired' })
+      .where(
+        and(
+          eq(hiringManagerInvitations.status, 'pending'),
+          lt(hiringManagerInvitations.expiresAt, now)
+        )
+      )
+      .returning();
+
+    if (hmMarkedExpired.length > 0) {
+      console.log(`Marked ${hmMarkedExpired.length} pending hiring manager invitations as expired`);
+    }
+
+    // Delete old expired or accepted invitations (older than 30 days)
+    const hmDeleted = await db
+      .delete(hiringManagerInvitations)
+      .where(
+        and(
+          or(
+            eq(hiringManagerInvitations.status, 'expired'),
+            eq(hiringManagerInvitations.status, 'accepted')
+          ),
+          lt(hiringManagerInvitations.createdAt, thirtyDaysAgo)
+        )
+      )
+      .returning();
+
+    if (hmDeleted.length > 0) {
+      console.log(`Deleted ${hmDeleted.length} old hiring manager invitations (expired/accepted > 30 days)`);
+    }
+
+    // ===== Co-Recruiter Invitations =====
+    // Mark pending invitations past expiry as 'expired'
+    const crMarkedExpired = await db
+      .update(coRecruiterInvitations)
+      .set({ status: 'expired' })
+      .where(
+        and(
+          eq(coRecruiterInvitations.status, 'pending'),
+          lt(coRecruiterInvitations.expiresAt, now)
+        )
+      )
+      .returning();
+
+    if (crMarkedExpired.length > 0) {
+      console.log(`Marked ${crMarkedExpired.length} pending co-recruiter invitations as expired`);
+    }
+
+    // Delete old expired or accepted invitations (older than 30 days)
+    const crDeleted = await db
+      .delete(coRecruiterInvitations)
+      .where(
+        and(
+          or(
+            eq(coRecruiterInvitations.status, 'expired'),
+            eq(coRecruiterInvitations.status, 'accepted')
+          ),
+          lt(coRecruiterInvitations.createdAt, thirtyDaysAgo)
+        )
+      )
+      .returning();
+
+    if (crDeleted.length > 0) {
+      console.log(`Deleted ${crDeleted.length} old co-recruiter invitations (expired/accepted > 30 days)`);
+    }
+
+    if (hmDeleted.length === 0 && crDeleted.length === 0) {
+      console.log('No old invitations to delete');
+    }
+  } catch (error) {
+    console.error('Error cleaning up expired invitations:', error);
+  }
+}
+
+/**
+ * Clean up old AI fit jobs
+ * - Delete completed/failed/cancelled jobs older than 30 days
+ */
+async function cleanupOldAiFitJobs(): Promise<void> {
+  try {
+    const deleted = await storage.cleanupOldAiFitJobs(30);
+    if (deleted > 0) {
+      console.log(`Cleaned up ${deleted} old AI fit jobs`);
+    } else {
+      console.log('No old AI fit jobs to clean up');
+    }
+  } catch (error) {
+    console.error('Error cleaning up old AI fit jobs:', error);
   }
 }

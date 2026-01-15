@@ -1,58 +1,59 @@
-import { Zap, CheckCircle, Sparkles } from "lucide-react";
+import { Brain, ListChecks, Layers, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const services = [
   {
-    icon: <Zap className="w-7 h-7" />,
+    icon: <Brain className="w-7 h-7" />,
     iconBg: "bg-primary/20",
     iconColor: "text-primary",
-    title: "Contract Staffing",
-    description: "On-demand tech & non-tech specialists for short-term, long-term, and project-based needs.",
+    title: "Smart Matching",
+    description: "Our AI learns what great looks like—for your company.",
     features: [
-      "IT | Telecom | Cloud | DevOps",
-      "Sales | Ops | HR | Finance",
-      "Deploy in 3-5 days",
-      "Flexible monthly billing"
+      "AI-powered candidate scoring",
+      "Culture fit analysis",
+      "Skills-based matching",
+      "Bias detection built-in"
     ]
   },
   {
-    icon: <CheckCircle className="w-7 h-7" />,
+    icon: <ListChecks className="w-7 h-7" />,
     iconBg: "bg-warning/20",
     iconColor: "text-warning",
-    title: "Permanent Hiring",
-    description: "AI-assisted resume screening with expert recruiter validation for high-quality, long-term hires.",
+    title: "Automated Shortlists",
+    description: "Top candidates ranked instantly, so you only talk to the best.",
     features: [
-      "48-72 hour shortlist",
+      "48-72 hour shortlists",
       "Pre-vetted candidates only",
-      "AI JD matching + scoring",
-      "3-month replacement guarantee"
+      "Resume parsing & analysis",
+      "One-click screening"
     ]
   },
   {
-    icon: <Sparkles className="w-7 h-7" />,
+    icon: <Layers className="w-7 h-7" />,
     iconBg: "bg-gradient-to-br from-purple-500/15 to-amber-500/15",
     iconColor: "text-primary",
-    title: "VantaHire ATS",
-    description: "Easy job posting, AI resume analysis, candidate scoring, and pipeline automation.",
+    title: "One Platform",
+    description: "From sourcing to interviews to offers—all in one place.",
     features: [
-      "Unlimited job posts",
-      "AI resume screening & scoring",
-      "Automated follow-ups",
-      "Starting ₹999/month"
+      "Kanban pipeline management",
+      "Email templates & scheduling",
+      "Team collaboration",
+      "Analytics & reporting"
     ]
   }
 ];
 
 const Services = () => {
   return (
-    <section id="services" className="py-24 relative z-10">
+    <section id="features" className="py-24 relative z-10">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            One Platform for All Your Hiring Needs
+            Why Teams Love VantaHire
           </h2>
           <p className="text-[var(--text-secondary)] text-lg max-w-2xl mx-auto">
-            Whether you need contract talent, permanent hires, or an ATS to manage it all — we've got you covered.
+            Powerful AI features that make hiring feel effortless.
           </p>
         </div>
 
@@ -69,7 +70,7 @@ const Services = () => {
               <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
 
               {/* Description */}
-              <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed">
+              <p className="text-[var(--text-secondary)] text-sm mb-6 leading-relaxed min-h-[40px]">
                 {service.description}
               </p>
 
@@ -84,6 +85,26 @@ const Services = () => {
               </ul>
             </div>
           ))}
+        </div>
+
+        {/* CTA Links */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
+          <Button
+            variant="outlinePurple"
+            onClick={() => window.location.href = '/features'}
+            className="rounded-full px-6 py-5"
+          >
+            See All Features
+            <ArrowRight className="ml-2 w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => window.location.href = '/product'}
+            className="text-white/70 hover:text-white"
+          >
+            Learn More About the Product
+            <ArrowRight className="ml-2 w-4 h-4" />
+          </Button>
         </div>
       </div>
     </section>

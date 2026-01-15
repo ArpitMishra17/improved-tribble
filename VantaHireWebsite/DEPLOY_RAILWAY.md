@@ -52,6 +52,12 @@ Set these in Railway → Variables:
   - `SPOTAXIS_CAREERS_URL` (e.g. `https://org-subdomain.your-spotaxis.com/jobs/`)
 - Email automation (ATS):
   - `EMAIL_AUTOMATION_ENABLED` = `true` to auto-send emails on stage changes, scheduling, and application received
+- Async AI fit scoring queue (optional):
+  - `AI_QUEUE_ENABLED=true`
+  - `REDIS_URL` (Redis connection string)
+  - `AI_WORKER_INTERACTIVE_CONCURRENCY` (default: 2)
+  - `AI_WORKER_BATCH_CONCURRENCY` (default: 1)
+  - `GOOGLE_APPLICATION_CREDENTIALS` (service account JSON path for resume downloads in the worker)
 - Forms Feature (recruiter-sent candidate forms):
   - `FORM_INVITE_EXPIRY_DAYS` = Number of days until form invitations expire (default: 14)
   - `FORM_PUBLIC_RATE_LIMIT` = Rate limit for public form endpoints (requests per minute per IP, default: 10)
@@ -92,6 +98,9 @@ Configure Railway’s health check path to `/api/health` (200 OK when healthy).
 - Optional: set `MIGRATE_ON_START=true` in your Web service to auto-apply schema (drizzle-kit push) on boot.
 - Deploy. Railway builds the client to `dist/public` and the server to `dist/index.js`.
 - On successful start, logs include the bound port and optional SpotAxis config.
+- If using the async AI queue, create a separate worker service:
+  - Start command: `npm run start:ai-worker`
+  - Set `AI_QUEUE_ENABLED=true`, `REDIS_URL`, `GROQ_API_KEY`, and `GOOGLE_APPLICATION_CREDENTIALS`
 
 ## 6) SpotAxis Integration (optional)
 When `SPOTAXIS_BASE_URL` is set:

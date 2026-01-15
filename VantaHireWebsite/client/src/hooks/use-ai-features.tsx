@@ -4,6 +4,7 @@ import { getQueryFn } from "../lib/queryClient";
 export interface AIFeatureStatus {
   resumeAdvisor: boolean;
   fitScoring: boolean;
+  queueEnabled: boolean;
 }
 
 /**
@@ -25,6 +26,7 @@ export function useAIFeatures() {
   return {
     resumeAdvisor: data?.resumeAdvisor ?? false,
     fitScoring: data?.fitScoring ?? false,
+    queueEnabled: data?.queueEnabled ?? false,
     isLoading,
     error,
   };

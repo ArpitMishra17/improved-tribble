@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star, Share2, Bookmark, Sparkles, DollarSign, AlertTriangle, RotateCcw, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -41,11 +42,13 @@ export default function JobDetailsPage() {
     email: "",
     phone: "",
     coverLetter: "",
+    whatsappConsent: true,
   });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  const jobId = params?.id ? parseInt(params.id) : null;
+  // Support both numeric ID and slug in URL
+  const jobIdOrSlug = params?.id || null;
 
   // Fade-in animation on mount
   useEffect(() => {
@@ -53,14 +56,37 @@ export default function JobDetailsPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  const { data: job, isLoading, error } = useQuery<Job & { postedByName?: string }>({
-    queryKey: ["/api/jobs", jobId],
+  // Extended type for job with client data for JSON-LD
+  interface JobWithExtras extends Job {
+    postedByName?: string;
+    postedById?: number | string;
+    isRecruiterProfilePublic?: boolean;
+    clientName?: string | null;
+    clientDomain?: string | null;
+  }
+
+  const { data: job, isLoading, error } = useQuery<JobWithExtras, Error & { status?: number; code?: string; jobInfo?: { title: string; slug: string } }>({
+    queryKey: ["/api/jobs", jobIdOrSlug],
     queryFn: async () => {
-      const response = await fetch(`/api/jobs/${jobId}`);
-      if (!response.ok) throw new Error("Failed to fetch job");
+      const response = await fetch(`/api/jobs/${jobIdOrSlug}`);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const err = new Error(data.error || "Failed to fetch job") as Error & { status?: number; code?: string; jobInfo?: { title: string; slug: string } };
+        err.status = response.status;
+        err.code = data.code;
+        if (data.job) {
+          err.jobInfo = { title: data.job.title, slug: data.job.slug };
+        }
+        throw err;
+      }
       return response.json();
     },
-    enabled: !!jobId,
+    enabled: !!jobIdOrSlug,
+    retry: (failureCount, error) => {
+      // Don't retry on 410 Gone (expired/inactive jobs)
+      if ((error as any)?.status === 410) return false;
+      return failureCount < 3;
+    },
   });
 
   // Check if AI features are enabled (standardized endpoint)
@@ -81,24 +107,24 @@ export default function JobDetailsPage() {
 
   // Fetch audit log for job (recruiters/admins only)
   const { data: auditLog = [] } = useQuery<AuditLogEntry[]>({
-    queryKey: ["/api/jobs", jobId, "audit-log"],
+    queryKey: ["/api/jobs", job?.id, "audit-log"],
     queryFn: async () => {
-      const response = await fetch(`/api/jobs/${jobId}/audit-log`, { credentials: 'include' });
+      const response = await fetch(`/api/jobs/${job?.id}/audit-log`, { credentials: 'include' });
       if (!response.ok) return [];
       return response.json();
     },
-    enabled: !!jobId && isRecruiterOrAdmin,
+    enabled: !!job?.id && isRecruiterOrAdmin,
   });
 
   // Job reactivation mutation (for expired jobs)
   const reactivateMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("PATCH", `/api/jobs/${jobId}/status`, { isActive: true, reason: "Reactivated from job details page" });
+      const res = await apiRequest("PATCH", `/api/jobs/${job?.id}/status`, { isActive: true, reason: "Reactivated from job details page" });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/jobs", jobId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/jobs", jobId, "audit-log"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", jobIdOrSlug] });
+      queryClient.invalidateQueries({ queryKey: ["/api/jobs", job?.id, "audit-log"] });
       toast({ title: "Job reactivated", description: "The job posting is now active again." });
     },
     onError: (error: Error) => {
@@ -116,7 +142,7 @@ export default function JobDetailsPage() {
       // Add CSRF token to FormData
       const csrfToken = await getCsrfToken();
 
-      const response = await fetch(`/api/jobs/${jobId}/apply`, {
+      const response = await fetch(`/api/jobs/${job?.id}/apply`, {
         method: "POST",
         headers: {
           'x-csrf-token': csrfToken,
@@ -135,7 +161,7 @@ export default function JobDetailsPage() {
         description: "We'll review your application and get back to you soon.",
       });
       setShowApplicationForm(false);
-      setFormData({ name: "", email: "", phone: "", coverLetter: "" });
+      setFormData({ name: "", email: "", phone: "", coverLetter: "", whatsappConsent: true });
       setResumeFile(null);
     },
     onError: (error: Error) => {
@@ -162,7 +188,7 @@ export default function JobDetailsPage() {
     try {
       const validatedData = insertApplicationSchema.parse({
         ...formData,
-        jobId: jobId!,
+        jobId: job?.id!,
       });
 
       const formDataToSend = new FormData();
@@ -199,7 +225,7 @@ export default function JobDetailsPage() {
     });
   };
 
-  if (!match || !jobId) {
+  if (!match || !jobIdOrSlug) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -226,12 +252,40 @@ export default function JobDetailsPage() {
   }
 
   if (error || !job) {
+    // Handle expired/inactive jobs with specific messaging
+    const typedError = error as (Error & { status?: number; code?: string; jobInfo?: { title: string; slug: string } }) | null;
+    const isExpiredOrInactive = typedError?.status === 410;
+
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center text-foreground">
-            <h1 className="text-2xl font-bold mb-2">Error</h1>
-            <p>Failed to load job details. Please try again.</p>
+          <div className="text-center text-foreground max-w-md mx-auto">
+            {isExpiredOrInactive ? (
+              <>
+                <AlertTriangle className="h-16 w-16 text-warning mx-auto mb-4" />
+                <h1 className="text-2xl font-bold mb-2">
+                  {typedError?.code === 'EXPIRED' ? 'Job Has Expired' : 'Job No Longer Available'}
+                </h1>
+                {typedError?.jobInfo?.title && (
+                  <p className="text-muted-foreground mb-2">"{typedError.jobInfo.title}"</p>
+                )}
+                <p className="text-muted-foreground mb-6">
+                  {typedError?.code === 'EXPIRED'
+                    ? 'This job posting has expired and is no longer accepting applications.'
+                    : 'This job is no longer active. It may have been filled or removed.'}
+                </p>
+                <Link href="/jobs">
+                  <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
+                    Browse Active Jobs
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold mb-2">Error</h1>
+                <p>Failed to load job details. Please try again.</p>
+              </>
+            )}
           </div>
         </div>
       </Layout>
@@ -316,7 +370,17 @@ export default function JobDetailsPage() {
                     {job.postedByName && (
                       <span className="flex items-center gap-2">
                         <User className="h-5 w-5" />
-                        by {job.postedByName}
+                        by{" "}
+                        {job.postedById && job.isRecruiterProfilePublic ? (
+                          <Link
+                            href={`/recruiters/${job.postedById}`}
+                            className="text-primary hover:underline"
+                          >
+                            {job.postedByName}
+                          </Link>
+                        ) : (
+                          job.postedByName
+                        )}
                       </span>
                     )}
                     <Badge
@@ -596,17 +660,34 @@ export default function JobDetailsPage() {
                             />
                           </div>
 
+                          <div className="flex items-start space-x-2 pt-2">
+                            <Checkbox
+                              id="whatsappConsent"
+                              checked={formData.whatsappConsent}
+                              onCheckedChange={(checked) =>
+                                setFormData({ ...formData, whatsappConsent: checked === true })
+                              }
+                              className="mt-0.5"
+                            />
+                            <Label
+                              htmlFor="whatsappConsent"
+                              className="text-sm text-muted-foreground leading-tight cursor-pointer"
+                            >
+                              I agree to receive job updates via WhatsApp
+                            </Label>
+                          </div>
+
                           <div className="flex gap-2">
-                            <Button 
-                              type="submit" 
+                            <Button
+                              type="submit"
                               disabled={applicationMutation.isPending}
                               className="flex-1 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300"
                             >
                               {applicationMutation.isPending ? "Submitting..." : "Submit Application"}
                             </Button>
-                            <Button 
-                              type="button" 
-                              variant="outline" 
+                            <Button
+                              type="button"
+                              variant="outline"
                               onClick={() => setShowApplicationForm(false)}
                               className="bg-muted/50 border-border text-foreground hover:bg-muted/60"
                             >

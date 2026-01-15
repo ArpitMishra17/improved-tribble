@@ -71,31 +71,45 @@ const Footer = ({ minimal = false }: FooterProps) => {
             </p>
           </div>
 
-          {/* Services Column */}
+          {/* Product Column */}
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-5">
-              Services
+              Product
             </h4>
             <ul className="space-y-3">
               <li>
-                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  Contract Staffing
-                </a>
+                <Link href="/product" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
+                  Product
+                </Link>
               </li>
               <li>
-                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  Permanent Hiring
-                </a>
+                <Link href="/features" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
+                  Features
+                </Link>
               </li>
               <li>
-                <a href="/#services" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  VantaHire ATS
-                </a>
-              </li>
-              <li>
-                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
+                <Link href="/pricing" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Pricing
-                </a>
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Solutions Column */}
+          <div>
+            <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-5">
+              Solutions
+            </h4>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/use-cases" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
+                  Use Cases
+                </Link>
+              </li>
+              <li>
+                <Link href="/compare" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
+                  Compare
+                </Link>
               </li>
             </ul>
           </div>
@@ -107,48 +121,14 @@ const Footer = ({ minimal = false }: FooterProps) => {
             </h4>
             <ul className="space-y-3">
               <li>
-                <a href="/#about" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  Why VantaHire
-                </a>
+                <Link href="/about" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
+                  About
+                </Link>
               </li>
               <li>
                 <Link href="/jobs" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
                   Jobs
                 </Link>
-              </li>
-              <li>
-                <a href="/#contact" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Industries Column */}
-          <div>
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-5">
-              Industries
-            </h4>
-            <ul className="space-y-3">
-              <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  Technology & SaaS
-                </a>
-              </li>
-              <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  Telecom
-                </a>
-              </li>
-              <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  FinTech
-                </a>
-              </li>
-              <li>
-                <a href="/#industries" className="text-[var(--text-muted)] text-sm hover:text-primary transition-colors">
-                  Healthcare
-                </a>
               </li>
             </ul>
           </div>

@@ -48,6 +48,13 @@ export interface TemplateVariables {
   recruiter_name?: string;
   company_name?: string;
   new_status?: string;
+  // Co-recruiter invitation variables
+  inviter_name?: string;
+  invitee_name?: string;
+  greeting?: string;
+  accept_url?: string;
+  dashboard_url?: string;
+  expiry_days?: string;
   [key: string]: string | undefined;
 }
 
@@ -341,6 +348,267 @@ export async function sendRejectionEmail(
       errorMessage: error?.message || 'Unknown error',
     });
   }
+}
+
+/**
+ * Send co-recruiter invitation email using database template
+ */
+export async function sendCoRecruiterInvitationEmail(
+  email: string,
+  opts: {
+    inviterName: string;
+    inviteeName?: string;
+    jobTitle: string;
+    acceptUrl: string;
+    expiryDays: number;
+  }
+): Promise<boolean> {
+  const svc = await getEmailService();
+  if (!svc) {
+    console.warn('[CoRecruiterEmail] Email service unavailable');
+    return false;
+  }
+
+  // Try to find the template
+  const template = await db.query.emailTemplates.findFirst({
+    where: eq(emailTemplates.templateType, 'co_recruiter_invitation'),
+  });
+
+  const greeting = opts.inviteeName ? `Hi ${opts.inviteeName},` : 'Hi,';
+
+  let subject: string;
+  let body: string;
+
+  if (template) {
+    const templateVars: TemplateVariables = {
+      inviter_name: opts.inviterName,
+      greeting,
+      job_title: opts.jobTitle,
+      accept_url: opts.acceptUrl,
+      expiry_days: String(opts.expiryDays),
+    };
+    if (opts.inviteeName) {
+      templateVars.invitee_name = opts.inviteeName;
+    }
+    const rendered = renderEmailTemplate(template, templateVars);
+    subject = rendered.subject;
+    body = rendered.body;
+  } else {
+    // Fallback to hardcoded template if not in database
+    subject = `You're invited to collaborate on "${opts.jobTitle}"`;
+    body = `${greeting}
+
+${opts.inviterName} has invited you to collaborate as a co-recruiter on the job posting:
+
+${opts.jobTitle}
+
+As a co-recruiter, you'll have full access to:
+- View and manage all applications for this job
+- Update candidate stages and statuses
+- Send forms and emails to candidates
+- Access job analytics and reports
+
+Accept your invitation: ${opts.acceptUrl}
+
+This invitation expires in ${opts.expiryDays} days.
+
+If you didn't expect this invitation, you can safely ignore this email.`;
+  }
+
+  try {
+    await svc.sendEmail({
+      to: email,
+      subject,
+      text: body,
+      html: body.replace(/\n/g, '<br>'),
+    });
+    console.log(`[CoRecruiterEmail] Invitation sent to ${email}`);
+    return true;
+  } catch (err) {
+    console.error(`[CoRecruiterEmail] Failed to send invitation to ${email}:`, err);
+    return false;
+  }
+}
+
+/**
+ * Send co-recruiter added notification email using database template
+ */
+export async function sendCoRecruiterAddedEmail(
+  email: string,
+  opts: {
+    inviterName: string;
+    recruiterFirstName?: string | null;
+    jobTitle: string;
+    dashboardUrl: string;
+  }
+): Promise<boolean> {
+  const svc = await getEmailService();
+  if (!svc) {
+    console.warn('[CoRecruiterEmail] Email service unavailable');
+    return false;
+  }
+
+  // Try to find the template
+  const template = await db.query.emailTemplates.findFirst({
+    where: eq(emailTemplates.templateType, 'co_recruiter_added'),
+  });
+
+  const greeting = opts.recruiterFirstName ? `Hi ${opts.recruiterFirstName},` : 'Hi,';
+
+  let subject: string;
+  let body: string;
+
+  if (template) {
+    const rendered = renderEmailTemplate(template, {
+      inviter_name: opts.inviterName,
+      greeting,
+      job_title: opts.jobTitle,
+      dashboard_url: opts.dashboardUrl,
+    });
+    subject = rendered.subject;
+    body = rendered.body;
+  } else {
+    // Fallback to hardcoded template
+    subject = `You've been added as a co-recruiter on "${opts.jobTitle}"`;
+    body = `${greeting}
+
+${opts.inviterName} has added you as a co-recruiter on the job posting:
+
+${opts.jobTitle}
+
+You now have full access to manage applications and collaborate on this hiring process.
+
+View your dashboard: ${opts.dashboardUrl}`;
+  }
+
+  try {
+    await svc.sendEmail({
+      to: email,
+      subject,
+      text: body,
+      html: body.replace(/\n/g, '<br>'),
+    });
+    console.log(`[CoRecruiterEmail] Added notification sent to ${email}`);
+    return true;
+  } catch (err) {
+    console.error(`[CoRecruiterEmail] Failed to send added notification to ${email}:`, err);
+    return false;
+  }
+}
+
+/**
+ * Notify all recruiters on a job about a new application
+ */
+export async function notifyRecruitersNewApplication(
+  applicationId: number,
+  jobId: number,
+  application: {
+    name: string;
+    email: string;
+    phone?: string | null;
+    coverLetter?: string | null;
+  },
+  job: {
+    title: string;
+    location: string;
+  }
+): Promise<void> {
+  const svc = await getEmailService();
+  if (!svc) {
+    console.warn('[RecruiterNotify] Email service unavailable, skipping notification');
+    return;
+  }
+
+  // Import storage dynamically to avoid circular dependency
+  const { storage } = await import('./storage');
+
+  // Get all recruiters on this job
+  const recruiters = await storage.getJobRecruiters(jobId);
+
+  if (recruiters.length === 0) {
+    console.warn(`[RecruiterNotify] No recruiters found for job ${jobId}`);
+    return;
+  }
+
+  const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
+  const applicationUrl = `${BASE_URL}/jobs/${jobId}/applications`;
+  const resumeUrl = `${BASE_URL}/api/applications/${applicationId}/resume`;
+
+  const subject = `New Application: ${application.name} applied for ${job.title}`;
+  const html = `
+    <h2>New Application Received</h2>
+    <p>A new candidate has applied for your job posting.</p>
+
+    <h3>Candidate Details</h3>
+    <ul>
+      <li><strong>Name:</strong> ${application.name}</li>
+      <li><strong>Email:</strong> ${application.email}</li>
+      <li><strong>Phone:</strong> ${application.phone || 'Not provided'}</li>
+    </ul>
+
+    <h3>Job Details</h3>
+    <ul>
+      <li><strong>Position:</strong> ${job.title}</li>
+      <li><strong>Location:</strong> ${job.location}</li>
+    </ul>
+
+    ${application.coverLetter ? `<h3>Cover Letter</h3><p>${application.coverLetter}</p>` : ''}
+
+    <p style="margin-top: 20px;">
+      <a href="${applicationUrl}" style="background-color: #7B38FB; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+        View Application
+      </a>
+      &nbsp;&nbsp;
+      <a href="${resumeUrl}" style="background-color: #6b7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+        Download Resume
+      </a>
+    </p>
+
+    <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
+      This is an automated notification from VantaHire ATS.
+    </p>
+  `;
+
+  // Send to all recruiters and track results
+  let successCount = 0;
+  let failedCount = 0;
+  const failedEmails: string[] = [];
+
+  const sendPromises = recruiters.map(async (recruiter) => {
+    try {
+      await svc.sendEmail({
+        to: recruiter.username,
+        subject,
+        html,
+      });
+      successCount++;
+      console.log(`[RecruiterNotify] Notified ${recruiter.username} about application ${applicationId}`);
+    } catch (err) {
+      failedCount++;
+      failedEmails.push(recruiter.username);
+      console.error(`[RecruiterNotify] Failed to notify ${recruiter.username}:`, err);
+    }
+  });
+
+  await Promise.all(sendPromises);
+
+  // Log automation event with detailed results
+  const outcome = failedCount === 0 ? 'success' : (successCount === 0 ? 'failed' : 'success');
+  const logOpts: Parameters<typeof logAutomationEvent>[4] = {
+    metadata: {
+      jobId,
+      totalRecruiters: recruiters.length,
+      successCount,
+      failedCount,
+    },
+  };
+  if (failedEmails.length > 0) {
+    logOpts.metadata!.failedEmails = failedEmails;
+  }
+  if (failedCount > 0) {
+    logOpts.errorMessage = `Failed to notify ${failedCount} recruiter(s)`;
+  }
+  await logAutomationEvent('email.notify_recruiters_new_application', 'application', applicationId, outcome, logOpts);
 }
 
 /**

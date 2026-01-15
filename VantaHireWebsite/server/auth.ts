@@ -10,6 +10,7 @@ import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { getEmailService } from "./simpleEmailService";
 import rateLimit from "express-rate-limit";
+import { computeProfileCompletion } from "./lib/profileCompletion";
 
 declare global {
   namespace Express {
@@ -194,19 +195,98 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { username, password, firstName, lastName, role = 'recruiter' } = req.body;
+      const { username, password, firstName, lastName, role = 'recruiter', invitationToken, coRecruiterInvitationToken } = req.body;
 
       if (!username || !password) {
         res.status(400).json({ error: "Email and password are required" });
         return;
       }
 
-      // Security: Only allow candidate or recruiter roles via public registration
-      // super_admin accounts must be created manually by existing super admins
-      const allowedRoles = ['candidate', 'recruiter'];
-      if (!allowedRoles.includes(role)) {
-        res.status(403).json({ error: "Invalid role. Public registration only allows 'candidate' or 'recruiter' roles." });
-        return;
+      // Handle invitation flows (hiring manager or co-recruiter)
+      let finalRole = role;
+      let hiringManagerInvitation = null;
+      let coRecruiterInvitation = null;
+
+      if (invitationToken) {
+        // Hiring manager invitation flow
+        if (typeof invitationToken !== 'string' || invitationToken.length !== 64) {
+          res.status(400).json({ error: "Invalid invitation token format" });
+          return;
+        }
+
+        const tokenHash = hashToken(invitationToken);
+        hiringManagerInvitation = await storage.getHiringManagerInvitationByToken(tokenHash);
+
+        if (!hiringManagerInvitation) {
+          res.status(400).json({ error: "Invalid invitation token" });
+          return;
+        }
+
+        // Check if invitation is expired
+        if (new Date() > new Date(hiringManagerInvitation.expiresAt)) {
+          await storage.invalidateHiringManagerInvitation(hiringManagerInvitation.id);
+          res.status(400).json({ error: "Invitation has expired. Please request a new invitation." });
+          return;
+        }
+
+        // Check if already used
+        if (hiringManagerInvitation.status !== 'pending') {
+          res.status(400).json({ error: "Invitation has already been used or is no longer valid." });
+          return;
+        }
+
+        // Verify email matches
+        if (username.toLowerCase() !== hiringManagerInvitation.email.toLowerCase()) {
+          res.status(400).json({ error: "Email must match the invitation email" });
+          return;
+        }
+
+        // Force hiring_manager role for invitation flow
+        finalRole = 'hiring_manager';
+      } else if (coRecruiterInvitationToken) {
+        // Co-recruiter invitation flow
+        if (typeof coRecruiterInvitationToken !== 'string' || coRecruiterInvitationToken.length !== 64) {
+          res.status(400).json({ error: "Invalid invitation token format" });
+          return;
+        }
+
+        const tokenHash = hashToken(coRecruiterInvitationToken);
+        coRecruiterInvitation = await storage.getCoRecruiterInvitationByToken(tokenHash);
+
+        if (!coRecruiterInvitation) {
+          res.status(400).json({ error: "Invalid invitation token" });
+          return;
+        }
+
+        // Check if invitation is expired
+        if (new Date() > new Date(coRecruiterInvitation.expiresAt)) {
+          await storage.updateCoRecruiterInvitationStatus(coRecruiterInvitation.id, 'expired');
+          res.status(400).json({ error: "Invitation has expired. Please request a new invitation." });
+          return;
+        }
+
+        // Check if already used
+        if (coRecruiterInvitation.status !== 'pending') {
+          res.status(400).json({ error: "Invitation has already been used or is no longer valid." });
+          return;
+        }
+
+        // Verify email matches
+        if (username.toLowerCase() !== coRecruiterInvitation.email.toLowerCase()) {
+          res.status(400).json({ error: "Email must match the invitation email" });
+          return;
+        }
+
+        // Force recruiter role for co-recruiter invitation flow
+        finalRole = 'recruiter';
+      } else {
+        // Security: Only allow candidate or recruiter roles via public registration
+        // super_admin and hiring_manager accounts require invitations or admin creation
+        const allowedRoles = ['candidate', 'recruiter'];
+        if (!allowedRoles.includes(role)) {
+          res.status(403).json({ error: "Invalid role. Public registration only allows 'candidate' or 'recruiter' roles." });
+          return;
+        }
       }
 
       // Email format validation (username is used as email for verification)
@@ -252,8 +332,19 @@ export function setupAuth(app: Express) {
         password: await hashPassword(password),
         firstName,
         lastName,
-        role
+        role: finalRole
       });
+
+      // Mark invitation as accepted if this was an invitation flow
+      if (hiringManagerInvitation) {
+        await storage.markHiringManagerInvitationAccepted(hiringManagerInvitation.id);
+        console.log(`Hiring manager invitation accepted: ${hiringManagerInvitation.email} registered as user ${user.id}`);
+      } else if (coRecruiterInvitation) {
+        // Add user to the job's recruiters and mark invitation as accepted
+        await storage.addJobRecruiter(coRecruiterInvitation.jobId, user.id, coRecruiterInvitation.invitedBy);
+        await storage.updateCoRecruiterInvitationStatus(coRecruiterInvitation.id, 'accepted');
+        console.log(`Co-recruiter invitation accepted: ${coRecruiterInvitation.email} registered as user ${user.id}, added to job ${coRecruiterInvitation.jobId}`);
+      }
 
       // Generate verification token and save hash
       const { token, hash } = generateVerificationToken();
@@ -362,6 +453,86 @@ export function setupAuth(app: Express) {
       role: user.role,
       emailVerified: user.emailVerified,
     });
+  });
+
+  // Profile completion status endpoint
+  app.get("/api/profile-status", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.isAuthenticated()) {
+        res.sendStatus(401);
+        return;
+      }
+
+      const user = req.user!;
+      const {
+        complete,
+        missingRequired,
+        missingNiceToHave,
+        completionPercent,
+      } = await computeProfileCompletion(user);
+      const snoozeUntil = user.profilePromptSnoozeUntil;
+      const now = new Date();
+      const shouldShowPrompt = !complete && (!snoozeUntil || new Date(snoozeUntil) < now);
+
+      res.json({
+        complete,
+        role: user.role,
+        missingRequired,
+        missingNiceToHave,
+        completionPercent,
+        snoozeUntil: snoozeUntil || null,
+        shouldShowPrompt,
+        profileCompletedAt: user.profileCompletedAt || null,
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Snooze profile prompt endpoint
+  app.post("/api/profile-status/snooze", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.isAuthenticated()) {
+        res.sendStatus(401);
+        return;
+      }
+
+      const user = req.user!;
+      const { days = 7 } = req.body;
+
+      // Calculate snooze until date
+      const snoozeUntil = new Date();
+      snoozeUntil.setDate(snoozeUntil.getDate() + Math.min(days, 30)); // Max 30 days
+
+      await storage.updateUserProfileSnooze(user.id, snoozeUntil);
+
+      res.json({
+        success: true,
+        snoozeUntil: snoozeUntil.toISOString()
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Mark profile as completed endpoint
+  app.post("/api/profile-status/complete", async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      if (!req.isAuthenticated()) {
+        res.sendStatus(401);
+        return;
+      }
+
+      const user = req.user!;
+      await storage.markProfileCompleted(user.id);
+
+      res.json({
+        success: true,
+        profileCompletedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      next(error);
+    }
   });
 
   // Email verification endpoint

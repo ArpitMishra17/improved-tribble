@@ -31,11 +31,85 @@ export function generateJobMetaDescription(job: Job): string {
   return truncateText(description, 155); // SEO optimal length
 }
 
+// Extended job type for API response with client data
+interface JobWithClientData extends Job {
+  clientName?: string | null;
+  clientDomain?: string | null;
+  company?: string | null;
+}
+
+/**
+ * Detect country from location string
+ */
+function detectCountry(location: string): string {
+  const lower = location.toLowerCase();
+
+  // India cities/regions
+  if (/\b(india|bangalore|bengaluru|mumbai|delhi|chennai|hyderabad|pune|kolkata|gurgaon|gurugram|noida|ahmedabad)\b/.test(lower)) {
+    return 'IN';
+  }
+  if (/\bsingapore\b/.test(lower)) return 'SG';
+  if (/\b(malaysia|kuala lumpur|kl)\b/.test(lower)) return 'MY';
+  if (/\b(philippines|manila|cebu)\b/.test(lower)) return 'PH';
+  if (/\b(indonesia|jakarta)\b/.test(lower)) return 'ID';
+  if (/\b(vietnam|ho chi minh|hanoi)\b/.test(lower)) return 'VN';
+  if (/\b(thailand|bangkok)\b/.test(lower)) return 'TH';
+  if (/\b(australia|sydney|melbourne|brisbane)\b/.test(lower)) return 'AU';
+  if (/\b(usa|united states|new york|san francisco|california|texas|seattle)\b/.test(lower)) return 'US';
+  if (/\b(uk|united kingdom|london|manchester)\b/.test(lower)) return 'GB';
+  if (/\b(uae|dubai|abu dhabi)\b/.test(lower)) return 'AE';
+
+  return 'IN'; // Default to India for APAC focus
+}
+
+/**
+ * Parse job location for structured data
+ */
+function parseJobLocation(location: string | null) {
+  if (!location) return null;
+
+  const lower = location.toLowerCase();
+  const remoteKeywords = ['remote', 'work from home', 'wfh', 'anywhere', 'virtual', 'distributed'];
+  const isRemote = remoteKeywords.some(keyword => lower.includes(keyword));
+
+  if (isRemote) {
+    const countryCode = detectCountry(location);
+    const isGlobalRemote = lower.includes('anywhere') || lower.includes('global') || lower.includes('worldwide');
+
+    if (isGlobalRemote) {
+      return { jobLocationType: 'TELECOMMUTE' };
+    }
+
+    // Region-specific remote
+    return {
+      jobLocationType: 'TELECOMMUTE',
+      applicantLocationRequirements: {
+        '@type': 'Country',
+        name: countryCode,
+      },
+    };
+  }
+
+  const firstLocation = location.split('/')[0]?.split(',')[0]?.trim() || '';
+  const countryCode = detectCountry(location);
+
+  return {
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: firstLocation,
+        addressCountry: countryCode,
+      },
+    },
+  };
+}
+
 /**
  * Generate JobPosting JSON-LD structured data
  * Returns null if validation fails (mirrors server behavior)
  */
-export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.location.origin) {
+export function generateJobPostingJsonLd(job: JobWithClientData, baseUrl: string = window.location.origin) {
   // Validate minimum requirements for Google Jobs
   if (!job.title || job.title.trim().length === 0) {
     console.warn('JobPosting validation failed: missing title', job.id);
@@ -63,7 +137,7 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
   const plainDescription = stripHtml(job.description);
 
   // Google Jobs requires minimum 200 characters in description
-  if (plainDescription.length < 120) {
+  if (plainDescription.length < 200) {
     console.warn('JobPosting validation failed: description too short', job.id, plainDescription.length);
     return null;
   }
@@ -78,73 +152,55 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
   };
   const employmentType = job.type ? employmentTypeMap[job.type.toLowerCase()] : undefined;
 
-  // Determine location type
-  const isRemote = job.location?.toLowerCase().includes('remote') ||
-                   job.location?.toLowerCase().includes('work from home') ||
-                   job.location?.toLowerCase().includes('wfh');
+  // Parse location
+  const locationData = parseJobLocation(job.location);
 
-  // Try to detect country from location string
-  const detectCountry = (loc: string): string => {
-    const locLower = loc.toLowerCase();
-    if (locLower.includes('india') || locLower.includes('bangalore') || locLower.includes('mumbai') ||
-        locLower.includes('delhi') || locLower.includes('chennai') || locLower.includes('hyderabad') ||
-        locLower.includes('pune') || locLower.includes('kolkata') || locLower.includes('gurgaon') ||
-        locLower.includes('noida')) return 'IN';
-    if (locLower.includes('singapore')) return 'SG';
-    if (locLower.includes('malaysia') || locLower.includes('kuala lumpur')) return 'MY';
-    if (locLower.includes('philippines') || locLower.includes('manila')) return 'PH';
-    if (locLower.includes('indonesia') || locLower.includes('jakarta')) return 'ID';
-    if (locLower.includes('vietnam') || locLower.includes('ho chi minh')) return 'VN';
-    if (locLower.includes('thailand') || locLower.includes('bangkok')) return 'TH';
-    if (locLower.includes('australia') || locLower.includes('sydney') || locLower.includes('melbourne')) return 'AU';
-    if (locLower.includes('usa') || locLower.includes('united states') || locLower.includes('new york') ||
-        locLower.includes('san francisco') || locLower.includes('california')) return 'US';
-    if (locLower.includes('uk') || locLower.includes('united kingdom') || locLower.includes('london')) return 'GB';
-    return 'IN'; // Default to India
-  };
-
-  const location = isRemote
-    ? { jobLocationType: 'TELECOMMUTE' }
-    : {
-        jobLocation: {
-          '@type': 'Place',
-          address: {
-            '@type': 'PostalAddress',
-            addressLocality: job.location?.split('/')[0]?.trim() || job.location,
-            addressCountry: detectCountry(job.location || ''),
-          },
-        },
-      };
-
-  // Generate canonical URL
+  // Generate canonical URL (prefer slug for SEO-friendly URLs)
   const jobUrl = job.slug
-    ? `${baseUrl}/jobs/${job.id}-${job.slug}`
+    ? `${baseUrl}/jobs/${job.slug}`
     : `${baseUrl}/jobs/${job.id}`;
 
-  // Use company name from job if available, otherwise VantaHire
-  // Note: company is added via relations in some queries, not always present
-  const companyName = (job as any).company || 'VantaHire';
+  // Determine hiring organization (prefer client if available, fallback to company)
+  const orgName = job.clientName || job.company || 'VantaHire';
+  const hiringOrganization: any = {
+    '@type': 'Organization',
+    name: orgName,
+    logo: `${baseUrl}/logo.png`,
+  };
+
+  // Add client domain as sameAs if available
+  if (job.clientDomain) {
+    hiringOrganization.sameAs = job.clientDomain.startsWith('http')
+      ? job.clientDomain
+      : `https://${job.clientDomain}`;
+  }
 
   const jobPosting: any = {
     '@context': 'https://schema.org',
     '@type': 'JobPosting',
     title: job.title,
     description: plainDescription,
-    datePosted: new Date(job.createdAt).toISOString(),
-    hiringOrganization: {
-      '@type': 'Organization',
-      name: companyName,
-      logo: `${baseUrl}/logo.png`,
-    },
+    datePosted: datePosted.toISOString(),
+    hiringOrganization,
     identifier: {
       '@type': 'PropertyValue',
-      name: companyName,
+      name: orgName,
       value: job.id.toString(),
     },
     directApply: true,
     url: jobUrl,
-    ...location,
   };
+
+  // Add location data
+  if (locationData?.jobLocation) {
+    jobPosting.jobLocation = locationData.jobLocation;
+  }
+  if (locationData?.jobLocationType) {
+    jobPosting.jobLocationType = locationData.jobLocationType;
+  }
+  if ((locationData as any)?.applicantLocationRequirements) {
+    jobPosting.applicantLocationRequirements = (locationData as any).applicantLocationRequirements;
+  }
 
   // Add optional fields
   if (employmentType) {
@@ -158,6 +214,11 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
     }
   }
 
+  // Add skills if available
+  if (job.skills && job.skills.length > 0) {
+    jobPosting.skills = job.skills.join(', ');
+  }
+
   return jobPosting;
 }
 
@@ -166,6 +227,6 @@ export function generateJobPostingJsonLd(job: Job, baseUrl: string = window.loca
  */
 export function getJobCanonicalUrl(job: Job, baseUrl: string = window.location.origin): string {
   return job.slug
-    ? `${baseUrl}/jobs/${job.id}-${job.slug}`
+    ? `${baseUrl}/jobs/${job.slug}`
     : `${baseUrl}/jobs/${job.id}`;
 }

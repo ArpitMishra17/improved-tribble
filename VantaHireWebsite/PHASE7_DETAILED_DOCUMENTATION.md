@@ -304,7 +304,8 @@ Response: {
   "bias_flags": [],
   "seo_keywords": ["JavaScript", "React", "Node.js"],
   "suggestions": ["Add specific experience requirements", "Include salary range"],
-  "model_version": "gpt-4o",
+  "rewrite": "About the Role:\nWe are looking for a Software Engineer to build reliable, scalable systems.\n\nResponsibilities:\n- Design, build, and maintain backend services.\n- Collaborate with product and design on new features.\n\nRequirements:\n- Experience with JavaScript/TypeScript and Node.js.\n- Familiarity with SQL databases and API design.",
+  "model_version": "llama-3.3-70b-versatile",
   "analysis_timestamp": "2025-06-09T02:00:00.000Z"
 }
 ```

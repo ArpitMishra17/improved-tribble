@@ -60,6 +60,7 @@ const Layout = ({ children }: LayoutProps) => {
       '/admin',
       '/analytics',
       '/clients',
+      '/profile/settings',
     ];
 
     // Check exact matches first
@@ -239,12 +240,9 @@ const Layout = ({ children }: LayoutProps) => {
                         {getRoleLabel(user?.role)}
                       </Badge>
                     )}
-                    {aiEnabled && (
-                      <Badge variant="secondary" className="text-xs bg-primary/20 text-primary hover:bg-primary/20">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        AI Beta
-                      </Badge>
-                    )}
+                    <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
+                      v1.2
+                    </Badge>
                   </div>
                   <DropdownMenuSeparator />
 
@@ -374,22 +372,6 @@ const Layout = ({ children }: LayoutProps) => {
                   <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
                 </a>
                 
-                <a 
-                  href="/#services" 
-                  className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (window.location.pathname === '/') {
-                      document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
-                    } else {
-                      window.location.href = '/#services';
-                    }
-                  }}
-                >
-                  <span className="relative z-10">Services</span>
-                  <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
-                </a>
-
                 <a
                   href="/jobs"
                   className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
@@ -403,13 +385,12 @@ const Layout = ({ children }: LayoutProps) => {
                 </a>
 
                 <a
-                  href="/consultants"
+                  href="/recruiters"
                   className="relative px-3 py-2 hover:text-white transition-all duration-300 overflow-hidden group text-white/70"
-                  onClick={(e) => { e.preventDefault(); setLocation("/consultants"); }}
+                  onClick={(e) => { e.preventDefault(); setLocation("/recruiters"); }}
                 >
                   <span className="relative z-10 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Consultants
+                    Recruiters
                   </span>
                   <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-[#7B38FB] to-[#FF5BA8] w-full transform origin-left transition-transform duration-300 scale-x-0 group-hover:scale-x-100"></span>
                 </a>
@@ -531,27 +512,19 @@ const Layout = ({ children }: LayoutProps) => {
                   >
                     About
                   </a>
-                  <a 
-                    href="/#services" 
-                    className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setIsMenuOpen(false);
-                      if (window.location.pathname === '/') {
-                        document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
-                      } else {
-                        window.location.href = '/#services';
-                      }
-                    }}
-                  >
-                    Services
-                  </a>
-                  <a 
-                    href="/jobs" 
+                  <a
+                    href="/jobs"
                     className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
                     onClick={(e) => { e.preventDefault(); setLocation("/jobs"); setIsMenuOpen(false); }}
                   >
                     Jobs
+                  </a>
+                  <a
+                    href="/recruiters"
+                    className="text-xl relative px-2 py-1 text-white transition-all duration-300 border-l-2 pl-4 border-transparent hover:border-[#7B38FB]"
+                    onClick={(e) => { e.preventDefault(); setLocation("/recruiters"); setIsMenuOpen(false); }}
+                  >
+                    Our Recruiters
                   </a>
                 </>
               )}

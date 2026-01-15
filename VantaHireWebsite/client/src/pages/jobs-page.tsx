@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { Search, MapPin, Clock, Filter, Briefcase, ArrowUpDown, X } from "lucide-react";
+import { Search, MapPin, Clock, Filter, Briefcase, ArrowUpDown, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +12,14 @@ import { Job } from "@shared/schema";
 import Layout from "@/components/Layout";
 import { FilterPanel, MobileFilterSheet } from "@/components/FilterPanel";
 
+interface JobWithRecruiter extends Job {
+  postedByName?: string;
+  postedById?: number | string; // Can be publicId (string) or numeric ID
+  isRecruiterProfilePublic?: boolean;
+}
+
 interface JobsResponse {
-  jobs: Job[];
+  jobs: JobWithRecruiter[];
   pagination: {
     page: number;
     limit: number;
@@ -384,11 +390,11 @@ export default function JobsPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-foreground text-xl mb-2">
-                          <Link href={`/jobs/${job.id}`} className="hover:text-primary transition-colors">
+                          <Link href={`/jobs/${job.slug || job.id}`} className="hover:text-primary transition-colors">
                             {job.title}
                           </Link>
                         </CardTitle>
-                        <CardDescription className="text-muted-foreground/50 flex items-center gap-4">
+                        <CardDescription className="text-muted-foreground/50 flex flex-wrap items-center gap-4">
                           <span className="flex items-center gap-1">
                             <MapPin className="h-4 w-4" />
                             {job.location}
@@ -397,6 +403,23 @@ export default function JobsPage() {
                             <Clock className="h-4 w-4" />
                             Posted {formatDate(job.createdAt)}
                           </span>
+                          {job.postedByName && (
+                            <span className="flex items-center gap-1">
+                              <User className="h-4 w-4" />
+                              by{" "}
+                              {job.postedById && job.isRecruiterProfilePublic ? (
+                                <Link
+                                  href={`/recruiters/${job.postedById}`}
+                                  className="text-primary hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {job.postedByName}
+                                </Link>
+                              ) : (
+                                job.postedByName
+                              )}
+                            </span>
+                          )}
                         </CardDescription>
                       </div>
                       <Badge 
@@ -434,7 +457,7 @@ export default function JobsPage() {
                         </p>
                       )}
                       <div className="flex gap-2">
-                        <Link href={`/jobs/${job.id}`}>
+                        <Link href={`/jobs/${job.slug || job.id}`}>
                           <Button className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600">
                             View Details
                           </Button>

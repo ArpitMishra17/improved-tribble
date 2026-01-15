@@ -269,6 +269,11 @@ All test suites are production-ready and documented:
    BASE_URL=https://vantahire.com
    MIGRATE_ON_START=true
    ENABLE_SCHEDULER=true  # On ONE instance only
+   AI_QUEUE_ENABLED=true
+   REDIS_URL=redis://...
+   AI_WORKER_INTERACTIVE_CONCURRENCY=2
+   AI_WORKER_BATCH_CONCURRENCY=1
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
    ```
 
 2. **Database Migration**
@@ -286,6 +291,11 @@ All test suites are production-ready and documented:
    npm install --production
    npm run build
    npm start
+   ```
+
+   If using the async AI queue, start a separate worker service:
+   ```bash
+   npm run start:ai-worker
    ```
 
 4. **Verify Deployment**

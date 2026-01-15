@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Briefcase, Users, MessageSquare, Calendar, ArrowRight } from "lucide-react";
 import Layout from "@/components/Layout";
+import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 
 interface Job {
   id: number;
@@ -117,7 +118,7 @@ export default function HiringManagerDashboard() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl" data-tour="hm-dashboard">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -127,6 +128,9 @@ export default function HiringManagerDashboard() {
             Welcome back, {user.firstName || user.username}! Review candidates and provide feedback.
           </p>
         </div>
+
+        {/* Profile Completion Banner */}
+        <ProfileCompletionBanner />
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -160,7 +164,7 @@ export default function HiringManagerDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border shadow-sm">
+          <Card className="bg-card border-border shadow-sm" data-tour="pending-feedback">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Awaiting Feedback
@@ -179,7 +183,7 @@ export default function HiringManagerDashboard() {
         </div>
 
         {/* My Jobs Section */}
-        <div className="mb-8">
+        <div className="mb-8" data-tour="my-jobs">
           <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-info" />
             My Jobs

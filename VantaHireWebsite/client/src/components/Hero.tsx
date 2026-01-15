@@ -32,12 +32,6 @@ const Hero = () => {
     window.open('https://cal.com/vantahire/quick-connect', '_blank');
   };
 
-  const scrollToContact = () => {
-    const contactSection = document.getElementById("contact");
-    if (contactSection) {
-      contactSection.scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   return (
     <section id="hero" className="container mx-auto px-4 pt-28 pb-20 md:pt-36 md:pb-28 overflow-hidden">
@@ -57,9 +51,13 @@ const Hero = () => {
             <span className="gradient-text-gold">Hiring.</span>
           </h1>
 
-          <p className="text-lg text-muted-foreground/50 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up-delay-2">
-            VantaHire combines AI-powered candidate matching with specialist recruiters to help startups and enterprises scale faster across{" "}
-            <span className="text-primary font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>.
+          <p className="text-lg text-muted-foreground/50 mb-4 max-w-xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up-delay-2">
+            AI-powered recruiting that actually works—candidates matched in days, not months.
+          </p>
+
+          {/* Trust Signal */}
+          <p className="text-sm text-muted-foreground/70 mb-8 animate-fade-in-up-delay-2">
+            Trusted by growing teams across India
           </p>
 
           {/* Stats Row */}
@@ -89,14 +87,14 @@ const Hero = () => {
               className="rounded-full px-8 py-6 text-lg font-semibold"
             >
               <Zap className="w-5 h-5 mr-2" />
-              Book Free Strategy Call
+              Book a Demo
             </Button>
             <Button
               variant="outlinePurple"
-              onClick={scrollToContact}
+              onClick={() => window.location.href = '/recruiter-auth'}
               className="rounded-full px-8 py-6 text-lg"
             >
-              Contact Us
+              See How It Works
             </Button>
           </div>
         </div>

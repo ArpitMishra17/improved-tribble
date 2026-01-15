@@ -438,6 +438,11 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_content_free_used BOOLEAN DEFAULT FALSE;`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_onboarded_at TIMESTAMP;`);
 
+  // Users table: Profile completion tracking
+  console.log('  Adding profile completion columns to users table...');
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_prompt_snooze_until TIMESTAMP;`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_completed_at TIMESTAMP;`);
+
   // Jobs table: JD digest caching
   await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS jd_digest JSONB;`);
   await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS jd_digest_version INTEGER DEFAULT 1;`);
@@ -702,6 +707,13 @@ export async function ensureAtsSchema(): Promise<void> {
     UPDATE users SET role = 'super_admin' WHERE role = 'admin';
   `);
 
+  // Migration: Update admin username to email format for login compatibility
+  console.log('  Updating admin username to email format...');
+  await db.execute(sql`
+    UPDATE users SET username = 'admin@vantahire.local'
+    WHERE username = 'admin' AND role = 'super_admin';
+  `);
+
   // Operations Command Center: Add rejection_reason column to applications
   console.log('  Adding rejection_reason column to applications table...');
   await db.execute(sql`
@@ -709,6 +721,12 @@ export async function ensureAtsSchema(): Promise<void> {
   `);
   await db.execute(sql`
     CREATE INDEX IF NOT EXISTS applications_rejection_reason_idx ON applications(rejection_reason);
+  `);
+
+  // WhatsApp consent: Add whatsapp_consent column to applications
+  console.log('  Adding whatsapp_consent column to applications table...');
+  await db.execute(sql`
+    ALTER TABLE applications ADD COLUMN IF NOT EXISTS whatsapp_consent BOOLEAN NOT NULL DEFAULT TRUE;
   `);
 
   // Operations Command Center: Create automation_events table for tracking automation activity
@@ -775,8 +793,178 @@ export async function ensureAtsSchema(): Promise<void> {
   console.log('  Adding recruiter profile columns to user_profiles table...');
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS display_name TEXT;`);
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS company TEXT;`);
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS phone TEXT;`);
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT;`);
   await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE;`);
+
+  // URL Security: Add publicId column for non-enumerable recruiter URLs
+  console.log('  Adding publicId column to user_profiles table...');
+  await db.execute(sql`ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS public_id TEXT;`);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS user_profiles_public_id_idx ON user_profiles(public_id);`);
+
+  // WhatsApp Integration: Create WhatsApp templates table
+  console.log('  Creating whatsapp_templates table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS whatsapp_templates (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      meta_template_name TEXT NOT NULL UNIQUE,
+      meta_template_id TEXT,
+      language TEXT NOT NULL DEFAULT 'en',
+      template_type TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'UTILITY',
+      body_template TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      rejection_reason TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // WhatsApp Integration: Create indexes for whatsapp_templates
+  console.log('  Creating whatsapp_templates indexes...');
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS whatsapp_templates_type_idx ON whatsapp_templates(template_type);
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS whatsapp_templates_status_idx ON whatsapp_templates(status);
+  `);
+
+  // WhatsApp Integration: Create WhatsApp audit log table
+  console.log('  Creating whatsapp_audit_log table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS whatsapp_audit_log (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER REFERENCES applications(id) ON DELETE CASCADE,
+      template_id INTEGER REFERENCES whatsapp_templates(id),
+      template_type TEXT,
+      recipient_phone TEXT NOT NULL,
+      message_id TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      error_code TEXT,
+      error_message TEXT,
+      template_variables JSONB,
+      sent_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      delivered_at TIMESTAMP,
+      read_at TIMESTAMP,
+      sent_by INTEGER REFERENCES users(id)
+    );
+  `);
+
+  // WhatsApp Integration: Create indexes for whatsapp_audit_log
+  console.log('  Creating whatsapp_audit_log indexes...');
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS whatsapp_audit_log_application_id_idx ON whatsapp_audit_log(application_id);
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS whatsapp_audit_log_status_idx ON whatsapp_audit_log(status);
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS whatsapp_audit_log_message_id_idx ON whatsapp_audit_log(message_id);
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS whatsapp_audit_log_sent_at_idx ON whatsapp_audit_log(sent_at);
+  `);
+
+  // Hiring Manager Invitations: Create table for inviting hiring managers
+  console.log('  Creating hiring_manager_invitations table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS hiring_manager_invitations (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      name TEXT,
+      token TEXT NOT NULL,
+      invited_by INTEGER NOT NULL REFERENCES users(id),
+      inviter_name TEXT,
+      expires_at TIMESTAMP NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      accepted_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Hiring Manager Invitations: Create indexes
+  console.log('  Creating hiring_manager_invitations indexes...');
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS hm_invitations_email_idx ON hiring_manager_invitations(email);`);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS hm_invitations_token_idx ON hiring_manager_invitations(token);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS hm_invitations_invited_by_idx ON hiring_manager_invitations(invited_by);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS hm_invitations_status_idx ON hiring_manager_invitations(status);`);
+
+  // Job Recruiters: Many-to-many table for co-recruiters on jobs
+  console.log('  Creating job_recruiters table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS job_recruiters (
+      id SERIAL PRIMARY KEY,
+      job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      recruiter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      added_by INTEGER REFERENCES users(id),
+      added_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Job Recruiters: Create indexes
+  console.log('  Creating job_recruiters indexes...');
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS job_recruiter_unique_idx ON job_recruiters(job_id, recruiter_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS job_recruiters_job_idx ON job_recruiters(job_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS job_recruiters_recruiter_idx ON job_recruiters(recruiter_id);`);
+
+  // Co-Recruiter Invitations: Invite recruiters to collaborate on jobs
+  console.log('  Creating co_recruiter_invitations table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS co_recruiter_invitations (
+      id SERIAL PRIMARY KEY,
+      job_id INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      token TEXT NOT NULL,
+      invited_by INTEGER NOT NULL REFERENCES users(id),
+      inviter_name TEXT,
+      job_title TEXT,
+      expires_at TIMESTAMP NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      accepted_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `);
+
+  // Co-Recruiter Invitations: Create indexes
+  console.log('  Creating co_recruiter_invitations indexes...');
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS co_recruiter_invite_token_idx ON co_recruiter_invitations(token);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS co_recruiter_invite_job_email_idx ON co_recruiter_invitations(job_id, email);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS co_recruiter_invite_status_idx ON co_recruiter_invitations(status);`);
+
+  // AI Fit Jobs: Async job processing for AI fit scoring
+  console.log('  Creating ai_fit_jobs table...');
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS ai_fit_jobs (
+      id SERIAL PRIMARY KEY,
+      bull_job_id TEXT NOT NULL,
+      queue_name TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      application_id INTEGER REFERENCES applications(id),
+      application_ids INTEGER[],
+      status TEXT NOT NULL DEFAULT 'pending',
+      progress INTEGER DEFAULT 0,
+      processed_count INTEGER DEFAULT 0,
+      total_count INTEGER,
+      result JSONB,
+      error TEXT,
+      error_code TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP
+    );
+  `);
+
+  // AI Fit Jobs: Create indexes
+  console.log('  Creating ai_fit_jobs indexes...');
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS ai_fit_jobs_bull_job_id_idx ON ai_fit_jobs(bull_job_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_fit_jobs_user_status_idx ON ai_fit_jobs(user_id, status);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_fit_jobs_application_id_idx ON ai_fit_jobs(application_id);`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS ai_fit_jobs_created_at_idx ON ai_fit_jobs(created_at);`);
+
+  // Client Shortlists: Add missing columns for existing tables
+  console.log('  Adding missing columns to client_shortlists table...');
+  await db.execute(sql`ALTER TABLE client_shortlists ADD COLUMN IF NOT EXISTS title TEXT;`);
+  await db.execute(sql`ALTER TABLE client_shortlists ADD COLUMN IF NOT EXISTS message TEXT;`);
 
   });
 

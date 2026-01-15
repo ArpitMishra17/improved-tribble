@@ -12,7 +12,7 @@ import type { Express, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { storage } from './storage';
 import { requireAuth, requireRole } from './auth';
-import { insertJobSchema, applications, applicationStageHistory, jobs, pipelineStages, users } from '@shared/schema';
+import { insertJobSchema, applications, applicationStageHistory, jobs, pipelineStages, users, jobRecruiters } from '@shared/schema';
 import { getHiringMetrics } from './lib/analyticsHelper';
 import {
   analyzeJobDescription,
@@ -24,7 +24,33 @@ import {
 import { aiAnalysisRateLimit, jobPostingRateLimit } from './rateLimit';
 import type { CsrfMiddleware } from './types/routes';
 import { db } from './db';
-import { and, eq, gte, lte, inArray } from 'drizzle-orm';
+import { and, eq, gte, lte, inArray, or } from 'drizzle-orm';
+
+/** Check if a string is a numeric ID */
+function isNumericId(id: string): boolean {
+  return /^\d+$/.test(id);
+}
+
+/**
+ * Parse job identifier from URL parameter.
+ * Supports: numeric ID, pure slug, or legacy id-slug format (e.g., "123-senior-developer")
+ */
+function parseJobIdentifier(param: string): { type: 'id' | 'slug'; value: string | number } {
+  // Check for pure numeric ID
+  if (/^\d+$/.test(param)) {
+    return { type: 'id', value: Number(param) };
+  }
+
+  // Check for legacy id-slug format (e.g., "123-senior-developer")
+  const idSlugMatch = param.match(/^(\d+)-(.+)$/);
+  if (idSlugMatch) {
+    // For backwards compatibility, use the numeric ID for lookup
+    return { type: 'id', value: Number(idSlugMatch[1]) };
+  }
+
+  // Treat as pure slug
+  return { type: 'slug', value: param };
+}
 
 /**
  * Register all job-related routes
@@ -115,35 +141,75 @@ export function registerJobsRoutes(
         res.status(400).json({ error: 'Missing ID parameter' });
         return;
       }
-      const jobId = Number(idParam);
-      if (!Number.isFinite(jobId) || jobId <= 0 || !Number.isInteger(jobId)) {
-        res.status(400).json({ error: 'Invalid ID parameter' });
-        return;
+
+      // Support numeric ID, pure slug, and legacy id-slug format
+      const parsed = parseJobIdentifier(idParam);
+      let job: Awaited<ReturnType<typeof storage.getJobWithRecruiter>>;
+
+      if (parsed.type === 'id') {
+        const jobId = parsed.value as number;
+        if (!Number.isFinite(jobId) || jobId <= 0) {
+          res.status(400).json({ error: 'Invalid ID parameter' });
+          return;
+        }
+        job = await storage.getJobWithRecruiter(jobId);
+      } else {
+        // Lookup by pure slug
+        job = await storage.getJobBySlug(parsed.value as string);
       }
 
-      const job = await storage.getJobWithRecruiter(jobId);
       if (!job) {
         res.status(404).json({ error: 'Job not found' });
         return;
       }
 
-      // Increment view count for analytics
-      await storage.incrementJobViews(jobId);
+      // Check if job is expired or inactive
+      const isExpired = job.expiresAt && new Date(job.expiresAt) < new Date();
+      const isInactive = !job.isActive || job.status !== 'approved';
 
-      // Build recruiter display name (handle missing names gracefully)
-      let postedBy: string | undefined;
-      if (job.recruiter) {
-        const { firstName, lastName } = job.recruiter;
-        if (firstName || lastName) {
-          postedBy = [firstName, lastName].filter(Boolean).join(' ');
-        }
+      // For expired/inactive jobs, return 410 Gone with job info for SEO transition
+      if (isExpired || isInactive) {
+        res.status(410).json({
+          error: 'Job is no longer available',
+          code: isExpired ? 'EXPIRED' : 'INACTIVE',
+          job: {
+            id: job.id,
+            title: job.title,
+            slug: job.slug,
+            expiresAt: job.expiresAt,
+            isActive: job.isActive,
+            status: job.status,
+          },
+        });
+        return;
       }
 
-      // Return job with optional postedByName field
+      // Increment view count for analytics
+      await storage.incrementJobViews(job.id);
+
+      // Build recruiter display name (handle missing names gracefully)
+      let postedByName: string | undefined;
+      let isRecruiterProfilePublic = false;
+      let recruiterPublicId: string | null = null;
+      if (job.recruiter) {
+        const { firstName, lastName, isProfilePublic, publicId } = job.recruiter;
+        if (firstName || lastName) {
+          postedByName = [firstName, lastName].filter(Boolean).join(' ');
+        }
+        isRecruiterProfilePublic = isProfilePublic ?? false;
+        recruiterPublicId = publicId;
+      }
+
+      // Return job with recruiter info for profile linking and client data for JSON-LD
       res.json({
         ...job,
-        postedByName: postedBy,
+        postedByName,
+        postedById: recruiterPublicId || job.postedBy, // Prefer publicId for links
+        isRecruiterProfilePublic, // Only show link if profile is public
+        clientName: job.client?.name || null, // For JSON-LD hiringOrganization
+        clientDomain: job.client?.domain || null, // For JSON-LD sameAs
         recruiter: undefined, // Don't expose raw recruiter object
+        client: undefined, // Don't expose raw client object
       });
       return;
     } catch (error) {
@@ -172,15 +238,24 @@ export function registerJobsRoutes(
         return;
       }
 
-      // Non-admins can only edit their own jobs
-      if (req.user!.role !== 'super_admin' && existingJob.postedBy !== req.user!.id) {
+      // Verify user has access (primary recruiter, co-recruiter, or super_admin)
+      const hasAccess = await storage.isRecruiterOnJob(existingJob.id, req.user!.id);
+      if (!hasAccess) {
         res.status(403).json({ error: 'Access denied' });
         return;
       }
 
       // Validate and extract allowed fields
-      const { title, description, location, type, skills } = req.body;
-      const updates: Partial<{ title: string; description: string; location: string; type: string; skills: string[] }> = {};
+      const { title, description, location, type, skills, hiringManagerId, clientId } = req.body;
+      const updates: Partial<{
+        title: string;
+        description: string;
+        location: string;
+        type: string;
+        skills: string[];
+        hiringManagerId: number | null;
+        clientId: number | null;
+      }> = {};
 
       if (title !== undefined) {
         if (typeof title !== 'string' || title.trim().length === 0) {
@@ -223,6 +298,28 @@ export function registerJobsRoutes(
         updates.skills = skills.filter((s): s is string => typeof s === 'string').map(s => s.trim()).filter(Boolean);
       }
 
+      if (hiringManagerId !== undefined) {
+        if (hiringManagerId === null) {
+          updates.hiringManagerId = null;
+        } else if (Number.isInteger(hiringManagerId) && hiringManagerId > 0) {
+          updates.hiringManagerId = hiringManagerId;
+        } else {
+          res.status(400).json({ error: 'hiringManagerId must be a positive integer or null' });
+          return;
+        }
+      }
+
+      if (clientId !== undefined) {
+        if (clientId === null) {
+          updates.clientId = null;
+        } else if (Number.isInteger(clientId) && clientId > 0) {
+          updates.clientId = clientId;
+        } else {
+          res.status(400).json({ error: 'clientId must be a positive integer or null' });
+          return;
+        }
+      }
+
       if (Object.keys(updates).length === 0) {
         res.status(400).json({ error: 'No valid fields to update' });
         return;
@@ -255,10 +352,16 @@ export function registerJobsRoutes(
         return;
       }
 
-      // Verify job exists
+      // Verify job exists and user has access
       const job = await storage.getJob(jobId);
       if (!job) {
         res.status(404).json({ error: 'Job not found' });
+        return;
+      }
+
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: 'Access denied' });
         return;
       }
 
@@ -299,6 +402,13 @@ export function registerJobsRoutes(
 
       if (typeof isActive !== 'boolean') {
         res.status(400).json({ error: 'isActive must be a boolean' });
+        return;
+      }
+
+      // Verify user has access to this job
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: 'Access denied' });
         return;
       }
 
@@ -440,13 +550,11 @@ export function registerJobsRoutes(
         return;
       }
 
-      // Verify ownership if not admin
-      if (req.user!.role !== 'super_admin') {
-        const job = await storage.getJob(jobId);
-        if (!job || job.postedBy !== req.user!.id) {
-          res.status(403).json({ error: "Access denied" });
-          return;
-        }
+      // Verify user has access (primary recruiter, co-recruiter, or super_admin)
+      const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+      if (!hasAccess) {
+        res.status(403).json({ error: "Access denied" });
+        return;
       }
 
       const analytics = await storage.getJobAnalytics(jobId);
@@ -567,7 +675,11 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applications.appliedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applications.appliedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        whereClauses.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let appsQuery = db
         .select({
@@ -643,7 +755,11 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applications.appliedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applications.appliedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        whereClauses.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let sourceQuery = db
         .select({
@@ -737,7 +853,11 @@ export function registerJobsRoutes(
       if (parsedStart) whereClauses.push(gte(applicationStageHistory.changedAt, parsedStart));
       if (parsedEnd) whereClauses.push(lte(applicationStageHistory.changedAt, parsedEnd));
       if (parsedJobId) whereClauses.push(eq(applications.jobId, parsedJobId));
-      if (req.user!.role !== 'super_admin') whereClauses.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        whereClauses.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let historyQuery = db
         .select({
@@ -845,10 +965,14 @@ export function registerJobsRoutes(
         if (!Number.isNaN(idNum) && idNum > 0) parsedJobId = idNum;
       }
 
-      // Scoped jobs for current user (recruiter sees own jobs only)
+      // Scoped jobs for current user (recruiter sees own or co-recruited jobs)
       const jobFilters: any[] = [];
       if (parsedJobId) jobFilters.push(eq(jobs.id, parsedJobId));
-      if (req.user!.role !== 'super_admin') jobFilters.push(eq(jobs.postedBy, req.user!.id));
+      if (req.user!.role !== 'super_admin') {
+        // Include jobs where user is primary OR co-recruiter
+        const coRecruiterJobIds = db.select({ id: jobRecruiters.jobId }).from(jobRecruiters).where(eq(jobRecruiters.recruiterId, req.user!.id));
+        jobFilters.push(or(eq(jobs.postedBy, req.user!.id), inArray(jobs.id, coRecruiterJobIds)));
+      }
 
       let jobsQuery = db
         .select({

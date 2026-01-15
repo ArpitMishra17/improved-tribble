@@ -173,6 +173,31 @@ export function TourProvider({ children }: TourProviderProps) {
         return;
       }
 
+      // Handle TARGET_NOT_FOUND - skip to next step gracefully
+      if (type === EVENTS.TARGET_NOT_FOUND) {
+        console.warn(`Tour target not found for step ${index}, skipping...`);
+        const nextIndex = index + 1;
+        if (nextIndex < steps.length) {
+          const nextStep = steps[nextIndex];
+          // Check if we need to navigate to a different route
+          if (nextStep && nextStep.route && location !== nextStep.route) {
+            setIsRunning(false);
+            setPendingRoute(nextStep.route);
+            setStepIndex(nextIndex);
+            setLocation(nextStep.route);
+          } else {
+            setStepIndex(nextIndex);
+          }
+        } else {
+          // No more steps, finish tour
+          if (currentTourId) {
+            markTourCompleted(currentTourId);
+          }
+          stopTour();
+        }
+        return;
+      }
+
       // Handle step changes
       if (type === EVENTS.STEP_AFTER) {
         const nextIndex = index + (action === ACTIONS.PREV ? -1 : 1);

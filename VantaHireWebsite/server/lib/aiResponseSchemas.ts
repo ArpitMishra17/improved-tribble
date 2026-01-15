@@ -44,6 +44,7 @@ export const JobAnalysisResponseSchema = z.object({
   bias_flags: z.array(z.string()).default([]),
   seo_keywords: z.array(z.string()).default([]),
   suggestions: z.array(z.string()).default([]),
+  rewrite: z.string().default(''),
 });
 export type JobAnalysisResponse = z.infer<typeof JobAnalysisResponseSchema>;
 

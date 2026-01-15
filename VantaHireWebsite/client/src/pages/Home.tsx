@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import PainPoints from "@/components/PainPoints";
 import Services from "@/components/Services";
 import Stats from "@/components/Stats";
+import SocialProof from "@/components/SocialProof";
 import Cta from "@/components/Cta";
 import Footer from "@/components/Footer";
 
@@ -34,8 +36,10 @@ const Home = () => {
       <div className="relative z-10">
         <Header />
         <Hero />
+        <PainPoints />
         <Services />
         <Stats />
+        <SocialProof />
         <Cta />
         <Footer />
       </div>

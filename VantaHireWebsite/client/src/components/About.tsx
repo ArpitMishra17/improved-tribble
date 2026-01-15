@@ -59,24 +59,24 @@ const About = () => {
   const tabContents = [
     <div key="story" className="space-y-4">
       <p className="text-lg leading-relaxed">
-        Born in 2025 from seasoned TA professionals who've built hiring engines at Adobe, Ericsson, Cloudera,
-        and Cradlepoint, VantaHire combines 20+ years of recruiting expertise with responsible AI technology.
+        We've been in your shoes. Our founders spent years building hiring teams at Adobe, Ericsson, Cloudera,
+        and Cradlepoint—and got tired of the same broken processes.
       </p>
       <p className="text-lg leading-relaxed">
-        We specialize in <span className="text-[#FF5BA8] font-semibold">IT, Telecom, Automotive, Fintech, and Healthcare</span>—industries
-        where finding the right talent fast makes or breaks business outcomes.
+        So we built VantaHire: <span className="text-[#FF5BA8] font-semibold">AI + human expertise</span>, working together
+        to make hiring faster, fairer, and actually enjoyable.
       </p>
     </div>,
     <div key="approach" className="space-y-4">
       <p className="text-lg leading-relaxed font-semibold text-white">
-        The VantaHire Difference:
+        What makes us different:
       </p>
       <ul className="space-y-3 mt-4">
         {[
-          "AI-Powered Matching: Our bias-aware algorithms surface candidates traditional searches miss, while human recruiters validate every match.",
-          "≈40% Faster Hiring: Streamlined workflows and pre-qualified candidates mean you close roles in weeks, not months.",
-          "60% Fewer Mis-Hires: Better matching = better retention. Our candidates stay longer and perform better.",
-          "Fairness First: Built-in bias detection ensures diverse, qualified candidate pools for every role."
+          "Smart AI, not magic: Our algorithms surface candidates you'd miss, while humans validate every match.",
+          "Speed that doesn't sacrifice quality: Close roles in weeks, not months—without cutting corners.",
+          "Fewer regrettable hires: Better matching = better retention. Our candidates stick around.",
+          "Fairness built-in: Bias detection ensures diverse, qualified candidate pools every time."
         ].map((item, i) => (
           <li key={i} className="flex items-start">
             <Check className="h-5 w-5 text-[#7B38FB] mr-2 mt-1 flex-shrink-0" />
@@ -87,14 +87,14 @@ const About = () => {
     </div>,
     <div key="impact" className="space-y-4">
       <p className="text-lg leading-relaxed">
-        <span className="font-semibold text-white">2,500+ successful placements.</span> <span className="font-semibold text-white">96% client satisfaction.</span> <span className="font-semibold text-white">20+ years of expertise.</span>
+        <span className="font-semibold text-white">2,500+ placements.</span> <span className="font-semibold text-white">96% satisfaction.</span> <span className="font-semibold text-white">20+ years of expertise.</span>
       </p>
       <p className="text-lg leading-relaxed">
-        From early-stage startups needing their first engineering hire to enterprises scaling teams of 50+,
-        we've consistently delivered talent that drives business growth.
+        From scrappy startups hiring their first engineer to enterprises scaling teams of 50+,
+        we've helped teams find the people who actually move the needle.
       </p>
       <p className="text-lg leading-relaxed text-white/90 italic">
-        "We don't just fill roles—we build talent ecosystems that fuel your long-term success."
+        "We cut our time-to-hire significantly. VantaHire just works."
       </p>
     </div>
   ];

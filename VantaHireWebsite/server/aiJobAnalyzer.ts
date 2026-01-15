@@ -21,13 +21,14 @@ export interface JobAnalysisResult {
   bias_flags: string[];
   seo_keywords: string[];
   suggestions: string[];
+  rewrite: string;
   model_version: string;
 }
 
 export async function analyzeJobDescription(title: string, description: string): Promise<JobAnalysisResult> {
   try {
     const client = getGroqClient();
-    const prompt = `Evaluate the following job description for clarity, inclusion, and SEO optimization. Provide specific, actionable feedback.
+    const prompt = `Evaluate the following job description for clarity, inclusion, and SEO optimization. Provide specific, actionable feedback AND a fully rewritten, optimized version.
 
 Job Title: ${title}
 Job Description: ${description}
@@ -40,11 +41,20 @@ Analyze and return a JSON object with:
 - bias_flags (array): Specific biased terms or phrases found
 - seo_keywords (array): Important missing keywords that should be added
 - suggestions (array): Specific improvement recommendations
+- rewrite (string): A complete, optimized rewrite of the job description that addresses all identified issues and maximizes clarity, inclusion, and SEO
 
 Focus on:
 1. Clarity: Clear requirements, structured information, professional tone
 2. Inclusion: Gender-neutral language, avoiding age/culture bias, accessible language
 3. SEO: Industry keywords, location terms, skill-specific terminology
+
+For the rewrite:
+- Preserve ALL original job requirements, responsibilities, and qualifications
+- Structure with clear sections: About the Role, Responsibilities, Requirements, Nice-to-Have, Benefits (if mentioned)
+- Use gender-neutral language throughout (they/them, "you will", avoid gendered terms)
+- Include relevant industry keywords naturally
+- Make it scannable with bullet points
+- Keep professional but engaging tone
 
 Return only valid JSON without any additional text.`;
 
@@ -61,7 +71,7 @@ Return only valid JSON without any additional text.`;
         }
       ],
       response_format: { type: "json_object" },
-      max_tokens: 1000,
+      max_tokens: 2000,
       temperature: 0.3
     });
 
@@ -76,6 +86,7 @@ Return only valid JSON without any additional text.`;
       bias_flags: result.bias_flags ?? [],
       seo_keywords: result.seo_keywords ?? [],
       suggestions: result.suggestions ?? [],
+      rewrite: result.rewrite ?? '',
       model_version: "llama-3.3-70b-versatile"
     };
 

@@ -59,29 +59,46 @@ export const tourConfigs: TourConfig[] = [
     roles: ["super_admin", "recruiter"],
     steps: [
       {
-        target: '[data-tour="applications-filters"]',
-        content: "Powerful filters help you find exactly who you're looking for. Filter by job, application status, pipeline stage, date range, or combine multiple filters. Your filter selections persist across sessions.",
+        target: '[data-tour="applications-list"]',
+        content: "View all applications across your jobs in one place. Each row shows candidate details, current stage, and application date. Click any row to see the full candidate profile.",
         disableBeacon: true,
         route: "/applications",
         tourId: "applications-management",
       },
       {
-        target: '[data-tour="applications-list"]',
-        content: "Each application row shows candidate details, current stage, AI match score, and time in pipeline. Click any row to open the full candidate profile with resume preview, notes, and action buttons.",
+        target: '[data-tour="applications-filters"]',
+        content: "Powerful filters help you find exactly who you're looking for. Filter by job, application status, pipeline stage, or date range. Combine multiple filters to narrow your search.",
         route: "/applications",
         tourId: "applications-management",
       },
+    ],
+  },
+  {
+    id: "job-applications",
+    title: "Job Applications Overview",
+    description: "Manage candidates for this specific job",
+    roles: ["super_admin", "recruiter", "hiring_manager"],
+    steps: [
       {
-        target: '[data-tour="kanban-toggle"]',
-        content: "Switch to Kanban board view for a visual pipeline. Drag and drop candidates between stages, see stage counts at a glance, and identify bottlenecks where candidates are piling up.",
-        route: "/applications",
-        tourId: "applications-management",
+        target: '[data-tour="job-context"]',
+        content: "You're viewing applications for this specific job. The navigation tabs let you switch between Candidates, Job Details, Analytics, and Settings for this position.",
+        disableBeacon: true,
+        tourId: "job-applications",
+      },
+      {
+        target: '[data-tour="applications-filters"]',
+        content: "Filter and sort candidates by stage, status, date applied, or AI match score. Use these controls to focus on the candidates that need your attention most.",
+        tourId: "job-applications",
+      },
+      {
+        target: '[data-tour="kanban-board"]',
+        content: "Drag candidates between pipeline stages to update their status. Each column shows the count of candidates at that stage. Click any candidate card to view their full profile.",
+        tourId: "job-applications",
       },
       {
         target: '[data-tour="bulk-actions"]',
-        content: "Select multiple candidates using checkboxes for bulk actions - move to next stage, send emails, add tags, or reject with a single click. Perfect for processing high-volume applications.",
-        route: "/applications",
-        tourId: "applications-management",
+        content: "Select multiple candidates with checkboxes, then use bulk actions to email, move stages, schedule interviews, or create shortlists for client review.",
+        tourId: "job-applications",
       },
     ],
   },
@@ -223,6 +240,51 @@ export const tourConfigs: TourConfig[] = [
         content: "Track recruiter and hiring manager performance: response times, candidates processed, and interview-to-hire ratios. Identify bottlenecks and coaching opportunities.",
         route: "/analytics",
         tourId: "analytics-reporting",
+      },
+    ],
+  },
+  {
+    id: "co-recruiter-collaboration",
+    title: "Co-Recruiter Collaboration",
+    description: "Invite teammates to collaborate on job postings",
+    roles: ["super_admin", "recruiter"],
+    steps: [
+      {
+        target: '[data-tour="co-recruiter-panel"]',
+        content: "The Co-Recruiters panel lets you invite colleagues to collaborate on this job posting. Co-recruiters get full access to view applications, update candidate stages, and manage the hiring process alongside you.",
+        disableBeacon: true,
+        tourId: "co-recruiter-collaboration",
+      },
+      {
+        target: '[data-tour="co-recruiter-invite-btn"]',
+        content: "Click 'Invite' to add a co-recruiter. Enter their email - if they already have an account, they're added instantly. Otherwise, they'll receive an email invitation to join and collaborate.",
+        tourId: "co-recruiter-collaboration",
+      },
+      {
+        target: '[data-tour="co-recruiter-list"]',
+        content: "Active co-recruiters are listed here with their role. The primary recruiter (job owner) is marked with a crown. You can remove co-recruiters at any time - they'll lose access to this job's applications.",
+        tourId: "co-recruiter-collaboration",
+      },
+    ],
+  },
+  {
+    id: "hiring-manager-invitations",
+    title: "Hiring Manager Invitations",
+    description: "Invite hiring managers to review candidates",
+    roles: ["super_admin", "recruiter"],
+    steps: [
+      {
+        target: '[data-tour="invite-hiring-manager-btn"]',
+        content: "Invite hiring managers to collaborate on candidate reviews. They'll receive an email with a registration link to create their account and access the hiring manager portal.",
+        disableBeacon: true,
+        route: "/recruiter-dashboard",
+        tourId: "hiring-manager-invitations",
+      },
+      {
+        target: '[data-tour="dashboard-metrics"]',
+        content: "Once hiring managers join, they can review candidates, provide feedback, and help make hiring decisions. You'll see their activity reflected in your dashboard metrics and pipeline progress.",
+        route: "/recruiter-dashboard",
+        tourId: "hiring-manager-invitations",
       },
     ],
   },
@@ -403,6 +465,84 @@ export const tourConfigs: TourConfig[] = [
       },
     ],
   },
+
+  // ==================== QUICK START TOURS ====================
+  // Goal-based mini-tours for first-time users
+  {
+    id: "quick-post-job",
+    title: "Post Your First Job",
+    description: "Create and publish a job posting in minutes",
+    roles: ["super_admin", "recruiter"],
+    steps: [
+      {
+        target: '[data-tour="post-job-button"]',
+        content: "Click here to create a new job posting. You'll enter the job title, description, requirements, and salary range. Jobs go to admin approval before going live.",
+        disableBeacon: true,
+        route: "/my-jobs",
+        tourId: "quick-post-job",
+      },
+    ],
+  },
+  {
+    id: "quick-review-applications",
+    title: "Review Applications",
+    description: "See and manage your candidate pipeline",
+    roles: ["super_admin", "recruiter"],
+    steps: [
+      {
+        target: '[data-tour="jobs-list"]',
+        content: "Click any job to view its applications. You'll see all candidates in a Kanban board where you can drag them through your pipeline stages.",
+        disableBeacon: true,
+        route: "/my-jobs",
+        tourId: "quick-review-applications",
+      },
+    ],
+  },
+  {
+    id: "quick-invite-team",
+    title: "Invite Team Members",
+    description: "Add hiring managers to collaborate",
+    roles: ["super_admin", "recruiter"],
+    steps: [
+      {
+        target: '[data-tour="invite-hiring-manager-btn"]',
+        content: "Invite hiring managers to review candidates and provide feedback. Enter their email and they'll receive an invitation to join your team.",
+        disableBeacon: true,
+        route: "/recruiter-dashboard",
+        tourId: "quick-invite-team",
+      },
+    ],
+  },
+  {
+    id: "quick-find-jobs",
+    title: "Find Jobs",
+    description: "Browse and apply to open positions",
+    roles: ["candidate"],
+    steps: [
+      {
+        target: '[data-tour="job-search"]',
+        content: "Browse all open positions here. Use filters to narrow by location, job type, or keywords. Click any job to see details and apply.",
+        disableBeacon: true,
+        route: "/jobs",
+        tourId: "quick-find-jobs",
+      },
+    ],
+  },
+  {
+    id: "quick-track-applications",
+    title: "Track Applications",
+    description: "See the status of your applications",
+    roles: ["candidate"],
+    steps: [
+      {
+        target: '[data-tour="my-applications"]',
+        content: "View all your submitted applications here. Each card shows the current status - whether it's under review, you have an interview scheduled, or a decision has been made.",
+        disableBeacon: true,
+        route: "/my-dashboard",
+        tourId: "quick-track-applications",
+      },
+    ],
+  },
 ];
 
 // Get full tour (all steps for user's role)
@@ -448,6 +588,41 @@ export function getTourById(tourId: string, userRole?: UserRole): TourStep[] {
 // Get available tours for a role
 export function getAvailableTours(userRole?: UserRole): TourConfig[] {
   return tourConfigs.filter((config) => {
+    if (config.roles && userRole && !config.roles.includes(userRole)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+// Quick start tour IDs
+const QUICK_START_TOUR_IDS = [
+  "quick-post-job",
+  "quick-review-applications",
+  "quick-invite-team",
+  "quick-find-jobs",
+  "quick-track-applications",
+];
+
+// Get quick start tours for a role (single-step goal-based tours)
+export function getQuickStartTours(userRole?: UserRole): TourConfig[] {
+  return tourConfigs.filter((config) => {
+    if (!QUICK_START_TOUR_IDS.includes(config.id)) {
+      return false;
+    }
+    if (config.roles && userRole && !config.roles.includes(userRole)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+// Get full tours (excluding quick start tours)
+export function getFullTours(userRole?: UserRole): TourConfig[] {
+  return tourConfigs.filter((config) => {
+    if (QUICK_START_TOUR_IDS.includes(config.id)) {
+      return false;
+    }
     if (config.roles && userRole && !config.roles.includes(userRole)) {
       return false;
     }

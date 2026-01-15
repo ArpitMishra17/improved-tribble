@@ -278,6 +278,287 @@ Get jobs posted by the current user. **Requires authentication.**
 }
 ```
 
+## Co-Recruiter Endpoints
+
+Co-recruiters allow multiple recruiters to collaborate on the same job posting. Co-recruiters have full access to view applications, update candidate statuses, and manage the hiring process for the shared job.
+
+### GET /jobs/:jobId/co-recruiters
+Get all co-recruiters for a job. **Requires authentication and access to the job.**
+
+**Response:**
+```json
+{
+  "coRecruiters": [
+    {
+      "id": 1,
+      "jobId": 123,
+      "recruiterId": 456,
+      "addedBy": 789,
+      "addedAt": "2024-01-15T10:30:00.000Z",
+      "recruiter": {
+        "id": 456,
+        "firstName": "Jane",
+        "lastName": "Smith",
+        "email": "jane@example.com"
+      }
+    }
+  ],
+  "pendingInvitations": [
+    {
+      "id": 1,
+      "email": "pending@example.com",
+      "name": "John Doe",
+      "expiresAt": "2024-01-22T10:30:00.000Z",
+      "createdAt": "2024-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+### POST /jobs/:jobId/co-recruiters/invite
+Invite a recruiter to collaborate on a job. **Requires authentication and ownership of the job.**
+
+If the invited email belongs to an existing recruiter account, they are added immediately. Otherwise, an email invitation is sent.
+
+**Request Body:**
+```json
+{
+  "email": "recruiter@example.com",
+  "name": "John Doe"
+}
+```
+
+**Response (existing user added):**
+```json
+{
+  "message": "Co-recruiter added successfully",
+  "coRecruiter": {
+    "id": 1,
+    "jobId": 123,
+    "recruiterId": 456,
+    "addedBy": 789,
+    "addedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Response (invitation sent):**
+```json
+{
+  "message": "Invitation sent successfully",
+  "invitation": {
+    "id": 1,
+    "email": "recruiter@example.com",
+    "expiresAt": "2024-01-22T10:30:00.000Z"
+  }
+}
+```
+
+### DELETE /jobs/:jobId/co-recruiters/:recruiterId
+Remove a co-recruiter from a job. **Requires authentication and ownership of the job.**
+
+**Response:**
+```json
+{
+  "message": "Co-recruiter removed successfully"
+}
+```
+
+### DELETE /co-recruiter-invitations/:id
+Cancel a pending co-recruiter invitation. **Requires authentication and ownership of the associated job.**
+
+**Response:**
+```json
+{
+  "message": "Invitation cancelled"
+}
+```
+
+### GET /co-recruiter-invitations/validate/:token
+Validate a co-recruiter invitation token. **Public endpoint (no authentication required).**
+
+This endpoint allows users to check if an invitation is valid before accepting it.
+
+**Response (valid invitation):**
+```json
+{
+  "valid": true,
+  "invitation": {
+    "email": "invitee@example.com",
+    "inviterName": "Jane Smith",
+    "jobTitle": "Senior Frontend Developer",
+    "jobId": 123,
+    "expiresAt": "2024-01-22T10:30:00.000Z"
+  }
+}
+```
+
+**Response (invalid token format):**
+```json
+{
+  "valid": false,
+  "error": "Invalid token format"
+}
+```
+*HTTP Status: 400*
+
+**Response (token not found or expired):**
+```json
+{
+  "valid": false,
+  "error": "Invitation not found or expired"
+}
+```
+*HTTP Status: 404*
+
+### POST /co-recruiter-invitations/:token/accept
+Accept a co-recruiter invitation. **Requires authentication as a recruiter.**
+
+The authenticated user must have a recruiter role, and their email should match the invitation (though this is not strictly enforced for flexibility).
+
+**Response:**
+```json
+{
+  "message": "Invitation accepted successfully",
+  "coRecruiter": {
+    "id": 1,
+    "jobId": 123,
+    "recruiterId": 456,
+    "addedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+**Response (invalid token):**
+```json
+{
+  "error": "Invalid or expired invitation"
+}
+```
+*HTTP Status: 400*
+
+## Hiring Manager Invitation Endpoints
+
+Hiring managers are invited by recruiters to review candidates for specific positions. Unlike co-recruiters who have full job management access, hiring managers focus on candidate evaluation and feedback.
+
+### POST /hiring-manager-invitations
+Create and send a hiring manager invitation. **Requires recruiter or admin role.**
+
+Sends an email invitation with a registration link. If the email already belongs to an existing user, a helpful notification is sent instead.
+
+**Request Body:**
+```json
+{
+  "email": "manager@example.com",
+  "name": "John Smith"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Invitation sent successfully.",
+  "invitation": {
+    "id": 1,
+    "email": "manager@example.com",
+    "name": "John Smith",
+    "status": "pending",
+    "expiresAt": "2024-01-22T10:30:00.000Z",
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### GET /hiring-manager-invitations
+List pending hiring manager invitations. **Requires recruiter or admin role.**
+
+Super admins see all invitations. Recruiters see only invitations they sent.
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "email": "manager@example.com",
+    "name": "John Smith",
+    "status": "pending",
+    "expiresAt": "2024-01-22T10:30:00.000Z",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "inviterName": "Jane Recruiter"
+  }
+]
+```
+
+### DELETE /hiring-manager-invitations/:id
+Cancel a pending invitation. **Requires recruiter or admin role.**
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Invitation cancelled"
+}
+```
+
+### GET /hiring-manager-invitations/validate/:token
+Validate an invitation token. **Public endpoint (no authentication required).**
+
+Used by the registration page to verify the invitation before showing the registration form.
+
+**Response (valid invitation):**
+```json
+{
+  "valid": true,
+  "email": "manager@example.com",
+  "name": "John Smith"
+}
+```
+
+**Response (invalid token format):**
+```json
+{
+  "valid": false,
+  "error": "Invalid token format"
+}
+```
+*HTTP Status: 400*
+
+**Response (token not found):**
+```json
+{
+  "valid": false,
+  "error": "Invitation not found"
+}
+```
+*HTTP Status: 404*
+
+**Response (expired or used):**
+```json
+{
+  "valid": false,
+  "error": "Invitation has expired"
+}
+```
+*HTTP Status: 410*
+
+### Registration with Invitation Token
+
+To complete hiring manager registration, use the standard registration endpoint with the invitation token:
+
+**POST /register**
+```json
+{
+  "username": "manager@example.com",
+  "password": "SecurePassword123!",
+  "firstName": "John",
+  "lastName": "Smith",
+  "invitationToken": "abc123...64-char-hex-token"
+}
+```
+
+The invitation token sets the user's role to `hiring_manager` and marks the invitation as accepted.
+
 ## Application Endpoints
 
 ### POST /jobs/:id/apply
@@ -337,6 +618,14 @@ Get applications for a specific job. **Requires recruiter or admin role.**
 
 ### GET /my-applications
 Get applications submitted by the current user.
+
+**Application Claiming:**
+This endpoint automatically claims any unclaimed applications that match the user's email. This handles the case where a candidate:
+1. Applies to jobs as a guest (without an account)
+2. Later registers with the same email
+3. The applications are automatically linked to their account
+
+The claiming uses a race-condition-safe update (`WHERE userId IS NULL`) to prevent conflicts.
 
 **Response:**
 ```json
@@ -584,10 +873,10 @@ Analyze job description for optimization. **Requires recruiter or admin role.**
 **Response:**
 ```json
 {
-  "clarity_score": 8.5,
-  "inclusion_score": 7.2,
-  "seo_score": 6.8,
-  "overall_score": 7.5,
+  "clarity_score": 85,
+  "inclusion_score": 92,
+  "seo_score": 78,
+  "overall_score": 85,
   "bias_flags": [
     "Consider using 'experienced' instead of 'ninja' or 'rockstar'"
   ],
@@ -601,7 +890,9 @@ Analyze job description for optimization. **Requires recruiter or admin role.**
     "Include information about company culture",
     "Specify remote work options"
   ],
-  "model_version": "1.0"
+  "rewrite": "About the Role:\nWe are looking for a Senior Frontend Developer to build high-quality user experiences.\n\nResponsibilities:\n- Build and maintain React features with TypeScript.\n- Collaborate with design and product to deliver accessible UI.\n\nRequirements:\n- 4+ years of frontend development experience.\n- Strong React and TypeScript skills.",
+  "model_version": "llama-3.3-70b-versatile",
+  "analysis_timestamp": "2025-06-09T02:00:00.000Z"
 }
 ```
 
@@ -631,6 +922,154 @@ Generate optimization score for job posting. **Requires recruiter or admin role.
     "Add more inclusive language",
     "Optimize for search keywords"
   ]
+}
+```
+
+## Async AI Queue Endpoints
+
+The async queue endpoints allow for background processing of AI fit scoring operations, with progress tracking and job management. These endpoints require `AI_QUEUE_ENABLED=true` environment variable.
+
+### POST /api/ai/match/queue
+Enqueue a single fit computation (async). **Requires candidate role.**
+
+**Request Body:**
+```json
+{
+  "applicationId": 123
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "jobId": 456,
+  "statusUrl": "/api/ai/match/jobs/456",
+  "totalCount": 1
+}
+```
+
+**Response (Cached - 200 OK):**
+```json
+{
+  "cached": true,
+  "fit": {
+    "score": 85,
+    "label": "Strong",
+    "reasons": ["Skills match well", "Experience aligned"],
+    "computedAt": "2025-01-01T00:00:00.000Z"
+  }
+}
+```
+
+**Error Codes:**
+- `QUOTA_EXCEEDED` - Monthly fit computation quota exhausted
+- `PENDING_LIMIT` - Too many pending analyses
+- `RATE_LIMIT` - Too many requests, please wait
+
+### POST /api/ai/match/batch/queue
+Enqueue batch fit computation (async, max 50). **Requires candidate role.**
+
+**Request Body:**
+```json
+{
+  "applicationIds": [123, 124, 125, 126, 127]
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "jobId": 789,
+  "statusUrl": "/api/ai/match/jobs/789",
+  "totalCount": 5,
+  "cachedCount": 2
+}
+```
+
+**Response (All Cached - 200 OK):**
+```json
+{
+  "cached": true,
+  "results": [
+    { "applicationId": 123, "fit": { "score": 85, "label": "Strong", "cached": true } },
+    { "applicationId": 124, "fit": { "score": 72, "label": "Good", "cached": true } }
+  ],
+  "summary": { "total": 2, "cached": 2, "stale": 0 }
+}
+```
+
+**Error Codes:**
+- `QUOTA_EXCEEDED` - Not enough analyses left (includes `remaining` and `staleCount`)
+- `MAX_EXCEEDED` - Batch size exceeds maximum (50)
+- `PENDING_LIMIT` - Existing batch job still processing
+- `RATE_LIMIT` - Too many requests, please wait
+
+### GET /api/ai/match/jobs/:id
+Get job status (enforces user ownership). **Requires candidate role.**
+
+**Response:**
+```json
+{
+  "id": 456,
+  "status": "active",
+  "progress": 60,
+  "processedCount": 3,
+  "totalCount": 5,
+  "result": null,
+  "error": null,
+  "errorCode": null,
+  "createdAt": "2025-01-01T00:00:00.000Z",
+  "startedAt": "2025-01-01T00:00:05.000Z",
+  "completedAt": null
+}
+```
+
+**Status Values:**
+- `pending` - Job queued, not yet started
+- `active` - Job is being processed
+- `completed` - Job finished successfully
+- `failed` - Job failed with error
+- `cancelled` - Job was cancelled by user
+
+### GET /api/ai/match/jobs
+List user's pending/active jobs (for resume-on-return). **Requires candidate role.**
+
+**Response:**
+```json
+{
+  "jobs": [
+    {
+      "id": 456,
+      "status": "active",
+      "progress": 60,
+      "processedCount": 3,
+      "totalCount": 5,
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "queueName": "ai:batch"
+    }
+  ]
+}
+```
+
+### DELETE /api/ai/match/jobs/:id
+Cancel pending/active job (enforces user ownership). **Requires candidate role + CSRF token.**
+
+**Response:**
+```json
+{
+  "cancelled": true
+}
+```
+
+### GET /api/admin/ai/queue-health
+Get queue health metrics. **Requires super_admin role.**
+
+**Response:**
+```json
+{
+  "interactive": { "waiting": 2, "active": 1, "completed": 150, "failed": 3 },
+  "batch": { "waiting": 0, "active": 1, "completed": 45, "failed": 1 },
+  "redis": { "connected": true, "latencyMs": 5 }
 }
 ```
 
@@ -914,7 +1353,31 @@ GET /test-email
 
 ## Changelog
 
-### v1.0.0 (Current)
+### v1.2.0 (Current)
+- Async AI Queue for fit scoring
+  - BullMQ-based job queue with ioredis
+  - Batch processing (up to 50 applications at once)
+  - Server-side chunking for large batches
+  - Progress tracking and resume-on-return
+  - Quota-aware with user-friendly messaging
+  - Job cancellation support
+  - Admin queue health monitoring
+- Weekly cleanup of old AI fit jobs (30+ days)
+
+### v1.1.0
+- Co-recruiter collaboration feature
+  - Invite multiple recruiters to collaborate on job postings
+  - Email-based invitation system with token validation
+  - Template-based emails for invitations and notifications
+  - Full application access for co-recruiters
+- Hiring manager invitation system
+  - Invite hiring managers via email to review candidates
+  - Secure token-based registration flow
+  - Role-based access for candidate evaluation
+- Enhanced audit logging for email notifications
+- Improved redirect handling in recruiter authentication
+
+### v1.0.0
 - Initial API release
 - Authentication and user management
 - Job posting and application system

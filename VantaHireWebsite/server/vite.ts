@@ -4,6 +4,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
+import { storage } from "./storage";
+import { generateJobPostingSchema } from "./seoUtils";
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -78,6 +80,32 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
+/**
+ * Inject JSON-LD structured data into HTML for SEO
+ */
+function injectJsonLd(html: string, jsonLd: object): string {
+  const script = `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>`;
+  // Inject before </head> for early discovery by crawlers
+  return html.replace('</head>', `${script}\n</head>`);
+}
+
+/**
+ * Parse job identifier from URL path (supports slug, id, or legacy id-slug format)
+ */
+function parseJobIdentifier(param: string): { type: 'id' | 'slug'; value: string | number } {
+  // Pure numeric ID
+  if (/^\d+$/.test(param)) {
+    return { type: 'id', value: Number(param) };
+  }
+  // Legacy format: id-slug (e.g., "123-senior-engineer")
+  const idSlugMatch = param.match(/^(\d+)-(.+)$/);
+  if (idSlugMatch) {
+    return { type: 'id', value: Number(idSlugMatch[1]) };
+  }
+  // Pure slug
+  return { type: 'slug', value: param };
+}
+
 export function serveStatic(app: Express) {
   // Compute dirname in ESM
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -115,6 +143,63 @@ export function serveStatic(app: Express) {
       }
     }
   }));
+
+  // Server-side JSON-LD injection for job detail pages
+  // This ensures Googlebot sees structured data without executing JavaScript
+  app.get('/jobs/:param', async (req, res, next) => {
+    try {
+      const { param } = req.params;
+      const identifier = parseJobIdentifier(param);
+
+      // Fetch job data
+      let job;
+      if (identifier.type === 'id') {
+        job = await storage.getJobWithRecruiter(identifier.value as number);
+      } else {
+        job = await storage.getJobBySlug(identifier.value as string);
+      }
+
+      // If job not found or inactive/expired, fall through to SPA (which will show 404/410)
+      if (!job || !job.isActive || job.status !== 'approved') {
+        return next();
+      }
+
+      // Read the index.html template
+      const indexPath = path.resolve(distPath, "index.html");
+      let html = await fs.promises.readFile(indexPath, "utf-8");
+
+      // Generate JSON-LD
+      const baseUrl = process.env.BASE_URL || 'https://www.vantahire.com';
+      const jsonLd = generateJobPostingSchema({
+        id: job.id,
+        title: job.title,
+        description: job.description,
+        location: job.location,
+        type: job.type,
+        skills: job.skills as string[] | null,
+        clientName: job.client?.name ?? null,
+        clientDomain: job.client?.domain ?? null,
+        createdAt: job.createdAt,
+        deadline: job.deadline,
+        expiresAt: job.expiresAt,
+        slug: job.slug,
+      }, baseUrl);
+
+      // Only inject if JSON-LD generation succeeded
+      if (jsonLd) {
+        html = injectJsonLd(html, jsonLd);
+      }
+
+      // Serve the modified HTML
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'no-store, must-revalidate');
+      res.send(html);
+    } catch (error) {
+      console.error('[SSR JSON-LD] Error injecting job schema:', error);
+      // Fall through to regular SPA serving on error
+      next();
+    }
+  });
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {

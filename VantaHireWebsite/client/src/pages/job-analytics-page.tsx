@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Redirect } from "wouter";
-import { ArrowLeft, Eye, MousePointer, TrendingUp, Users, Clock, CheckCircle, XCircle, Sparkles, Calendar, AlertTriangle, Bell, ExternalLink } from "lucide-react";
+import { ArrowLeft, Eye, MousePointer, TrendingUp, Users, Clock, CheckCircle, XCircle, Sparkles, Calendar, AlertTriangle, Bell, ExternalLink, Send, ThumbsUp, Pause, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,27 @@ interface StaleCandidatesSummary {
 interface AnalyticsNudges {
   jobsNeedingAttention: JobHealthSummary[];
   staleCandidates: StaleCandidatesSummary[];
+}
+
+interface ClientFeedbackAnalytics {
+  totalShortlists: number;
+  totalCandidatesSent: number;
+  totalFeedback: number;
+  feedbackBreakdown: {
+    advance: number;
+    hold: number;
+    reject: number;
+  };
+  shortlists: {
+    id: number;
+    title: string | null;
+    status: string;
+    createdAt: string;
+    expiresAt: string | null;
+    candidateCount: number;
+    feedbackCount: number;
+    fullUrl: string;
+  }[];
 }
 
 const COLORS = {
@@ -121,6 +142,17 @@ export default function JobAnalyticsPage() {
       if (!response.ok) throw new Error("Failed to fetch nudges");
       return response.json();
     },
+  });
+
+  // Fetch client feedback analytics
+  const { data: clientAnalytics } = useQuery<ClientFeedbackAnalytics>({
+    queryKey: ["/api/jobs", jobId, "client-feedback-analytics"],
+    queryFn: async () => {
+      const response = await fetch(`/api/jobs/${jobId}/client-feedback-analytics`, { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch client feedback analytics");
+      return response.json();
+    },
+    enabled: !!jobId,
   });
 
   // Filter nudges for current job
@@ -582,6 +614,177 @@ export default function JobAnalyticsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Client Feedback Analytics */}
+          {clientAnalytics && clientAnalytics.totalShortlists > 0 && (
+            <Card className="shadow-sm mt-6">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <Users className="h-5 w-5 text-primary" />
+                  Client Feedback
+                </CardTitle>
+                <CardDescription>Shortlists shared with clients and their feedback</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-center mb-2">
+                      <Send className="h-5 w-5 text-info" />
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{clientAnalytics.totalCandidatesSent}</p>
+                    <p className="text-xs text-muted-foreground">Sent to Clients</p>
+                  </div>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-center mb-2">
+                      <ThumbsUp className="h-5 w-5 text-success" />
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{clientAnalytics.feedbackBreakdown.advance}</p>
+                    <p className="text-xs text-muted-foreground">Advanced</p>
+                  </div>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-center mb-2">
+                      <Pause className="h-5 w-5 text-warning" />
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{clientAnalytics.feedbackBreakdown.hold}</p>
+                    <p className="text-xs text-muted-foreground">On Hold</p>
+                  </div>
+                  <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <div className="flex items-center justify-center mb-2">
+                      <ThumbsDown className="h-5 w-5 text-destructive" />
+                    </div>
+                    <p className="text-2xl font-bold text-foreground">{clientAnalytics.feedbackBreakdown.reject}</p>
+                    <p className="text-xs text-muted-foreground">Rejected</p>
+                  </div>
+                </div>
+
+                {/* Feedback Breakdown Chart */}
+                {clientAnalytics.totalFeedback > 0 && (
+                  <div className="grid md:grid-cols-2 gap-6 mb-6">
+                    <div className="h-48">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: "Advanced", value: clientAnalytics.feedbackBreakdown.advance, color: COLORS.strong },
+                              { name: "On Hold", value: clientAnalytics.feedbackBreakdown.hold, color: COLORS.fair },
+                              { name: "Rejected", value: clientAnalytics.feedbackBreakdown.reject, color: COLORS.weak },
+                            ].filter(d => d.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={40}
+                            outerRadius={70}
+                            paddingAngle={2}
+                            dataKey="value"
+                          >
+                            {[
+                              { color: COLORS.strong },
+                              { color: COLORS.fair },
+                              { color: COLORS.weak },
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "white",
+                              border: "1px solid #e2e8f0",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-col justify-center space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.strong }} />
+                          <span className="text-sm text-foreground">Advanced</span>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {clientAnalytics.feedbackBreakdown.advance} ({clientAnalytics.totalFeedback > 0 ? Math.round((clientAnalytics.feedbackBreakdown.advance / clientAnalytics.totalFeedback) * 100) : 0}%)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.fair }} />
+                          <span className="text-sm text-foreground">On Hold</span>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {clientAnalytics.feedbackBreakdown.hold} ({clientAnalytics.totalFeedback > 0 ? Math.round((clientAnalytics.feedbackBreakdown.hold / clientAnalytics.totalFeedback) * 100) : 0}%)
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.weak }} />
+                          <span className="text-sm text-foreground">Rejected</span>
+                        </div>
+                        <span className="text-sm font-medium text-foreground">
+                          {clientAnalytics.feedbackBreakdown.reject} ({clientAnalytics.totalFeedback > 0 ? Math.round((clientAnalytics.feedbackBreakdown.reject / clientAnalytics.totalFeedback) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Shortlists List */}
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-medium text-foreground mb-3">Shortlists ({clientAnalytics.totalShortlists})</h4>
+                  <div className="space-y-2">
+                    {clientAnalytics.shortlists.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-border rounded-md p-3 bg-muted/30"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground truncate">
+                              {s.title || job.title}
+                            </span>
+                            <Badge className="text-xs bg-muted text-foreground border-border">
+                              {s.candidateCount} candidate{s.candidateCount === 1 ? "" : "s"}
+                            </Badge>
+                            {s.feedbackCount > 0 && (
+                              <Badge className="text-xs bg-primary/10 text-primary border-primary/30">
+                                {s.feedbackCount} feedback
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Created {new Date(s.createdAt).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                            {s.expiresAt && (
+                              <> · Expires {new Date(s.expiresAt).toLocaleDateString(undefined, {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}</>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {s.status}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(s.fullUrl, "_blank")}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Open Link
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Job Performance */}
           {job.analytics && (

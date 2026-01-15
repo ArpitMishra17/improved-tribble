@@ -43,7 +43,10 @@ export function TourLauncher() {
   const handleStartFullTour = () => {
     setShowWelcomePrompt(false);
     dismissFirstVisitTour();
-    startTour();
+    setIsMenuOpen(false);
+    setTimeout(() => {
+      startTour();
+    }, 100);
   };
 
   const handleDismissWelcome = () => {
@@ -52,8 +55,12 @@ export function TourLauncher() {
   };
 
   const handleStartSpecificTour = (tourId: string) => {
+    // Close menu first, then start tour after a brief delay
+    // This prevents the dropdown from interfering with the tour
     setIsMenuOpen(false);
-    startTour(tourId);
+    setTimeout(() => {
+      startTour(tourId);
+    }, 100);
   };
 
   const completedCount = completedTours.length;
@@ -129,14 +136,16 @@ export function TourLauncher() {
         <DropdownMenuTrigger asChild>
           <Button
             className={cn(
-              "fixed bottom-6 right-6 z-[9998] rounded-full w-12 h-12 p-0 shadow-lg transition-all duration-300",
+              "fixed bottom-6 right-6 z-[9998] rounded-full px-4 h-11 shadow-lg transition-all duration-300",
               "bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600",
               "border border-primary/30 hover:border-primary/50",
-              "hover:scale-110 hover:shadow-purple-500/30 hover:shadow-xl"
+              "hover:scale-105 hover:shadow-purple-500/30 hover:shadow-xl",
+              "flex items-center gap-2"
             )}
             aria-label="Open help guide"
           >
-            <HelpCircle className="h-5 w-5 text-white" />
+            <HelpCircle className="h-4 w-4 text-white" />
+            <span className="text-white text-sm font-medium">Help</span>
           </Button>
         </DropdownMenuTrigger>
 

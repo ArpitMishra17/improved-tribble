@@ -1,5 +1,5 @@
 import { useDraggable } from "@dnd-kit/core";
-import { GripVertical, Mail, Phone, Star, MoreHorizontal, ArrowRight, Calendar, Download, FileText } from "lucide-react";
+import { GripVertical, Mail, Phone, Star, MoreHorizontal, ArrowRight, Calendar, Download, FileText, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +17,11 @@ import {
 import { Application, PipelineStage } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
+// Extended Application type that includes client feedback count
+type ApplicationWithFeedback = Application & { clientFeedbackCount?: number };
+
 export interface ApplicationCardProps {
-  application: Application;
+  application: ApplicationWithFeedback;
   isSelected: boolean;
   onToggleSelect: (id: number) => void;
   onOpenDetails: (application: Application) => void;
@@ -227,6 +230,15 @@ export function ApplicationCard({
                     className="text-xs border-success/30 bg-success/10 text-success-foreground"
                   >
                     Interview
+                  </Badge>
+                )}
+                {(application.clientFeedbackCount ?? 0) > 0 && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs border-primary/30 bg-primary/10 text-primary"
+                  >
+                    <Users className="h-3 w-3 mr-1" />
+                    Client Feedback
                   </Badge>
                 )}
               </div>

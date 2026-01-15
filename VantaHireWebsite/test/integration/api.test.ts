@@ -208,6 +208,11 @@ maybeDescribe('API Integration Tests', () => {
         .send(validJobData);
 
       expect([200, 401, 403, 429]).toContain(response.status);
+
+      if (response.status === 200) {
+        expect(response.body).toHaveProperty('rewrite');
+        expect(typeof response.body.rewrite).toBe('string');
+      }
     });
 
     it('handles invalid AI analysis input', async () => {

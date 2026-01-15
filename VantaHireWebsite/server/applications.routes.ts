@@ -13,12 +13,13 @@
 
 import type { Express, Request, Response, NextFunction } from 'express';
 import type { Multer } from 'multer';
-import { sql, eq, and } from 'drizzle-orm';
+import { sql, eq, and, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from './db';
 import { storage } from './storage';
 import { requireAuth, requireRole } from './auth';
 import { calculateAiCost } from './lib/aiMatchingEngine';
+import { syncProfileCompletionStatus } from './lib/profileCompletion';
 import {
   insertApplicationSchema,
   recruiterAddApplicationSchema,
@@ -32,18 +33,21 @@ import {
   applicationFeedback,
 } from '@shared/schema';
 import { uploadToGCS, getSignedDownloadUrl, downloadFromGCS } from './gcs-storage';
-import { getEmailService } from './simpleEmailService';
 import {
-  sendStatusUpdateEmail,
-  sendInterviewInvitation,
-  sendApplicationReceivedEmail,
-  sendOfferEmail,
-  sendRejectionEmail,
-} from './emailTemplateService';
+  sendStatusUpdateNotification,
+  sendInterviewInvitationNotification,
+  sendApplicationReceivedNotification,
+  sendOfferNotification,
+  sendRejectionNotification,
+} from './notificationService';
+import { notifyRecruitersNewApplication } from './emailTemplateService';
 import { generateInterviewICS, getICSFilename } from './lib/icsGenerator';
 import { extractResumeText, validateResumeText } from './lib/resumeExtractor';
 import { isAIEnabled, generateCandidateSummary } from './aiJobAnalyzer';
-import { applicationRateLimit, recruiterAddRateLimit, aiAnalysisRateLimit } from './rateLimit';
+import { checkCircuitBreaker } from './lib/aiMatchingEngine';
+import { applicationRateLimit, recruiterAddRateLimit, aiAnalysisRateLimit, type RateLimitInfo } from './rateLimit';
+import { isQueueAvailable, enqueueSummaryBatch, removeJob, QUEUES } from './lib/aiQueue';
+import { randomUUID } from 'crypto';
 import type { CsrfMiddleware } from './types/routes';
 
 // Base URL for email links
@@ -124,6 +128,7 @@ export function registerApplicationsRoutes(
       // Upload resume to Google Cloud Storage or use placeholder if not configured
       let resumeUrl = 'placeholder-resume.pdf';
       let resumeRecordId: number | null = null;
+      let resumeCountForCompletion: number | null = null;
       if (req.file) {
         try {
           resumeUrl = await uploadToGCS(req.file.buffer, req.file.originalname);
@@ -141,6 +146,7 @@ export function registerApplicationsRoutes(
             where: eq(candidateResumes.userId, req.user.id),
             columns: { id: true, isDefault: true },
           });
+          resumeCountForCompletion = existingResumes.length;
 
           if (existingResumes.length < 3) {
             const extraction = await extractResumeText(req.file.buffer);
@@ -157,6 +163,7 @@ export function registerApplicationsRoutes(
                 })
                 .returning();
               resumeRecordId = resume.id;
+              resumeCountForCompletion = existingResumes.length + 1;
             }
           }
         } catch (resumeErr) {
@@ -194,6 +201,10 @@ export function registerApplicationsRoutes(
         }),
       });
 
+      if (req.user?.id && resumeCountForCompletion !== null) {
+        await syncProfileCompletionStatus(req.user, { resumeCount: resumeCountForCompletion });
+      }
+
       // Log initial stage assignment to history table (if a default stage was applied)
       if (initialStageId !== null) {
         await db.insert(applicationStageHistory).values({
@@ -205,63 +216,30 @@ export function registerApplicationsRoutes(
         });
       }
 
-      // Fire-and-forget: candidate confirmation (if enabled)
-      const autoEmails = process.env.EMAIL_AUTOMATION_ENABLED === 'true' || process.env.EMAIL_AUTOMATION_ENABLED === '1';
-      if (autoEmails) {
-        sendApplicationReceivedEmail(application.id).catch(err => console.error('Application received email error:', err));
+      // Fire-and-forget: candidate confirmation via email and WhatsApp (if enabled)
+      const autoNotifications = process.env.EMAIL_AUTOMATION_ENABLED === 'true' || process.env.EMAIL_AUTOMATION_ENABLED === '1' || process.env.NOTIFICATION_AUTOMATION_ENABLED === 'true';
+      if (autoNotifications) {
+        sendApplicationReceivedNotification(application.id).catch(err => console.error('Application received notification error:', err));
       }
 
-      // Send notification email to recruiter (if enabled)
+      // Send notification email to all recruiters on this job (if enabled)
       try {
         const shouldNotifyRecruiter = await storage.isAutomationEnabled('notify_recruiter_new_application');
         if (shouldNotifyRecruiter) {
-          const emailService = await getEmailService();
-          if (emailService) {
-            // Get the recruiter's email from job.postedBy (username is the email)
-            const recruiter = await storage.getUser(job.postedBy);
-            if (recruiter?.username) {
-              const applicationUrl = `${BASE_URL}/jobs/${job.id}/applications`;
-              const resumeUrl = `${BASE_URL}/api/applications/${application.id}/resume`;
-
-              await emailService.sendEmail({
-                to: recruiter.username,
-                subject: `New Application: ${application.name} applied for ${job.title}`,
-                html: `
-                  <h2>New Application Received</h2>
-                  <p>A new candidate has applied for your job posting.</p>
-
-                  <h3>Candidate Details</h3>
-                  <ul>
-                    <li><strong>Name:</strong> ${application.name}</li>
-                    <li><strong>Email:</strong> ${application.email}</li>
-                    <li><strong>Phone:</strong> ${application.phone || 'Not provided'}</li>
-                  </ul>
-
-                  <h3>Job Details</h3>
-                  <ul>
-                    <li><strong>Position:</strong> ${job.title}</li>
-                    <li><strong>Location:</strong> ${job.location}</li>
-                  </ul>
-
-                  ${application.coverLetter ? `<h3>Cover Letter</h3><p>${application.coverLetter}</p>` : ''}
-
-                  <p style="margin-top: 20px;">
-                    <a href="${applicationUrl}" style="background-color: #7B38FB; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                      View Application
-                    </a>
-                    &nbsp;&nbsp;
-                    <a href="${resumeUrl}" style="background-color: #6b7280; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                      Download Resume
-                    </a>
-                  </p>
-
-                  <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
-                    This is an automated notification from VantaHire ATS.
-                  </p>
-                `,
-              });
+          notifyRecruitersNewApplication(
+            application.id,
+            job.id,
+            {
+              name: application.name,
+              email: application.email,
+              phone: application.phone,
+              coverLetter: application.coverLetter,
+            },
+            {
+              title: job.title,
+              location: job.location,
             }
-          }
+          ).catch(err => console.error('Failed to send recruiter notification:', err));
         }
       } catch (emailError) {
         console.error('Failed to send recruiter notification:', emailError);
@@ -309,14 +287,15 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        // Permission guard: Verify job ownership (recruiters must own job, admins bypass)
+        // Permission guard: Verify job access (primary recruiter, co-recruiter, or admin)
         const job = await storage.getJob(jobId);
         if (!job) {
           res.status(404).json({ error: 'Job not found' });
           return;
         }
 
-        if (req.user!.role === 'recruiter' && job.postedBy !== req.user!.id) {
+        const hasAccess = await storage.isRecruiterOnJob(jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: 'Access denied: You can only add candidates to your own jobs' });
           return;
         }
@@ -553,17 +532,17 @@ export function registerApplicationsRoutes(
             // Use atomic method for interview + stage update (prevents partial state)
             await storage.scheduleInterviewWithStage(appId, interviewFields, stageUpdateParams);
 
-            // Fire-and-forget interview invite (if automation enabled)
-            const autoEmails = process.env.EMAIL_AUTOMATION_ENABLED === "true" || process.env.EMAIL_AUTOMATION_ENABLED === "1";
-            if (autoEmails) {
+            // Fire-and-forget interview invite via email and WhatsApp (if automation enabled)
+            const autoNotifications = process.env.EMAIL_AUTOMATION_ENABLED === "true" || process.env.EMAIL_AUTOMATION_ENABLED === "1" || process.env.NOTIFICATION_AUTOMATION_ENABLED === "true";
+            if (autoNotifications) {
               const dateStr = slotDate.toISOString();
               const timeLabel = timeRangeLabel ?? "";
-              sendInterviewInvitation(appId, {
+              sendInterviewInvitationNotification(appId, {
                 date: dateStr,
                 time: timeLabel,
                 location,
               }).catch((err) =>
-                console.error("Bulk interview email error:", err)
+                console.error("Bulk interview notification error:", err)
               );
             }
 
@@ -609,7 +588,18 @@ export function registerApplicationsRoutes(
       }
 
       const applicationsList = await storage.getApplicationsByJob(jobId);
-      res.json(applicationsList);
+
+      // Get client feedback counts for all applications
+      const appIds = applicationsList.map(app => app.id);
+      const feedbackCounts = await storage.getClientFeedbackCountsByApplicationIds(appIds);
+
+      // Merge feedback counts into applications
+      const applicationsWithFeedback = applicationsList.map(app => ({
+        ...app,
+        clientFeedbackCount: feedbackCounts[app.id] || 0,
+      }));
+
+      res.json(applicationsWithFeedback);
       return;
     } catch (error) {
       next(error);
@@ -683,8 +673,9 @@ export function registerApplicationsRoutes(
       if (role === 'super_admin') {
         // allowed
       } else if (role === 'recruiter') {
-        const job = await storage.getJob(appRecord.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(appRecord.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: 'Access denied' });
           return;
         }
@@ -888,16 +879,16 @@ export function registerApplicationsRoutes(
 
       await storage.updateApplicationStage(appId, stageId, req.user!.id, notes);
 
-      // Fire-and-forget: automated status email (if enabled)
-      const autoEmails = process.env.EMAIL_AUTOMATION_ENABLED === 'true' || process.env.EMAIL_AUTOMATION_ENABLED === '1';
-      if (autoEmails && targetStage.name) {
+      // Fire-and-forget: automated status notification via email and WhatsApp (if enabled)
+      const autoNotifications = process.env.EMAIL_AUTOMATION_ENABLED === 'true' || process.env.EMAIL_AUTOMATION_ENABLED === '1' || process.env.NOTIFICATION_AUTOMATION_ENABLED === 'true';
+      if (autoNotifications && targetStage.name) {
         const stageName = targetStage.name.toLowerCase();
         if (stageName.includes('offer') || stageName.includes('hired')) {
-          sendOfferEmail(appId).catch(err => console.error('Offer email error:', err));
+          sendOfferNotification(appId).catch(err => console.error('Offer notification error:', err));
         } else if (stageName.includes('reject')) {
-          sendRejectionEmail(appId).catch(err => console.error('Rejection email error:', err));
+          sendRejectionNotification(appId).catch(err => console.error('Rejection notification error:', err));
         } else {
-          sendStatusUpdateEmail(appId, targetStage.name).catch(err => console.error('Status email error:', err));
+          sendStatusUpdateNotification(appId, targetStage.name).catch(err => console.error('Status notification error:', err));
         }
       }
 
@@ -1043,9 +1034,9 @@ export function registerApplicationsRoutes(
         ...(notes !== undefined && { notes })
       });
 
-      const autoEmails = process.env.EMAIL_AUTOMATION_ENABLED === 'true' || process.env.EMAIL_AUTOMATION_ENABLED === '1';
-      if (autoEmails && date && time && location) {
-        sendInterviewInvitation(appId, { date, time, location }).catch(err => console.error('Interview email error:', err));
+      const autoNotifications = process.env.EMAIL_AUTOMATION_ENABLED === 'true' || process.env.EMAIL_AUTOMATION_ENABLED === '1' || process.env.NOTIFICATION_AUTOMATION_ENABLED === 'true';
+      if (autoNotifications && date && time && location) {
+        sendInterviewInvitationNotification(appId, { date, time, location }).catch(err => console.error('Interview notification error:', err));
       }
 
       res.json(updated);
@@ -1265,6 +1256,379 @@ export function registerApplicationsRoutes(
     }
   });
 
+  // ============= BULK AI SUMMARY GENERATION =============
+
+  // Environment configuration for AI summary limits
+  const AI_SUMMARY_DAILY_LIMIT = parseInt(process.env.AI_ANALYSIS_RATE_LIMIT || '20', 10);
+  const AI_SUMMARY_BATCH_MAX = parseInt(process.env.AI_SUMMARY_BATCH_MAX || '50', 10);
+  const AI_QUEUE_ENABLED = process.env.AI_QUEUE_ENABLED === 'true';
+
+  /**
+   * GET /api/ai/summary/limit-status
+   * Returns the recruiter's daily AI summary usage limits
+   */
+  app.get(
+    "/api/ai/summary/limit-status",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+
+        // Get start of current day (local time)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
+
+        // Count AI summary usage today
+        const dailyUsage = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(userAiUsage)
+          .where(
+            and(
+              eq(userAiUsage.userId, userId),
+              eq(userAiUsage.kind, 'summary'),
+              sql`${userAiUsage.computedAt} >= ${startOfDay}`,
+              sql`${userAiUsage.computedAt} < ${endOfDay}`
+            )
+          );
+
+        const dailyUsed = dailyUsage[0]?.count || 0;
+        const dailyRemaining = Math.max(0, AI_SUMMARY_DAILY_LIMIT - dailyUsed);
+
+        // Check circuit breaker status (includes AI enabled + budget check)
+        const circuitBreaker = await checkCircuitBreaker();
+        const budgetAllowed = isAIEnabled() && circuitBreaker.allowed;
+
+        // Effective remaining is the minimum of daily remaining and budget
+        const effectiveRemaining = budgetAllowed ? dailyRemaining : 0;
+
+        res.json({
+          dailyLimit: AI_SUMMARY_DAILY_LIMIT,
+          dailyUsed,
+          dailyRemaining,
+          dailyResetAt: endOfDay.toISOString(),
+          budgetAllowed,
+          budgetSpent: circuitBreaker.dailySpent,
+          budgetLimit: circuitBreaker.dailyBudget,
+          effectiveRemaining,
+          maxBatchSize: AI_SUMMARY_BATCH_MAX,
+        });
+      } catch (error) {
+        console.error('[AI Summary Limit Status] Error:', error);
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * POST /api/applications/bulk/ai-summary/queue
+   * Queue bulk AI summary generation for selected applications
+   */
+  app.post(
+    "/api/applications/bulk/ai-summary/queue",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    csrfProtection,
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+
+        // Validate request body
+        const bodySchema = z.object({
+          applicationIds: z.array(z.number().int().positive()).min(1),
+          regenerate: z.boolean().optional().default(false),
+        });
+
+        const validation = bodySchema.safeParse(req.body);
+        if (!validation.success) {
+          res.status(400).json({
+            error: 'Validation error',
+            details: validation.error.errors,
+          });
+          return;
+        }
+
+        let { applicationIds, regenerate } = validation.data;
+        applicationIds = [...new Set(applicationIds)]; // Deduplicate
+
+        // Check max batch size
+        if (applicationIds.length > AI_SUMMARY_BATCH_MAX) {
+          res.status(400).json({
+            error: `Please select ${AI_SUMMARY_BATCH_MAX} or fewer candidates.`,
+            errorCode: 'MAX_EXCEEDED',
+            max: AI_SUMMARY_BATCH_MAX,
+            selected: applicationIds.length,
+          });
+          return;
+        }
+
+        // Check if queue is available
+        if (!AI_QUEUE_ENABLED || !isQueueAvailable()) {
+          res.status(503).json({
+            error: 'Queue service unavailable. Please try again later.',
+            errorCode: 'QUEUE_UNAVAILABLE',
+          });
+          return;
+        }
+
+        // Check AI service availability and circuit breaker
+        if (!isAIEnabled()) {
+          res.status(503).json({
+            error: 'AI service is temporarily unavailable.',
+            errorCode: 'AI_UNAVAILABLE',
+          });
+          return;
+        }
+
+        // Check circuit breaker (budget check)
+        const circuitBreaker = await checkCircuitBreaker();
+        if (!circuitBreaker.allowed) {
+          res.status(503).json({
+            error: 'AI service budget exhausted. Please try again tomorrow.',
+            errorCode: 'BUDGET_EXHAUSTED',
+            budgetSpent: circuitBreaker.dailySpent,
+            budgetLimit: circuitBreaker.dailyBudget,
+          });
+          return;
+        }
+
+        // Get daily usage to check rate limit (local day)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
+
+        const dailyUsage = await db
+          .select({ count: sql<number>`COUNT(*)::int` })
+          .from(userAiUsage)
+          .where(
+            and(
+              eq(userAiUsage.userId, userId),
+              eq(userAiUsage.kind, 'summary'),
+              sql`${userAiUsage.computedAt} >= ${startOfDay}`,
+              sql`${userAiUsage.computedAt} < ${endOfDay}`
+            )
+          );
+
+        const dailyUsed = dailyUsage[0]?.count || 0;
+        const dailyRemaining = Math.max(0, AI_SUMMARY_DAILY_LIMIT - dailyUsed);
+
+        // Fetch applications and check ownership (recruiter must own the job)
+        const apps = await db.query.applications.findMany({
+          where: inArray(applications.id, applicationIds),
+          with: { job: true },
+        });
+
+        // Filter to applications the recruiter has access to
+        type AppWithJob = typeof apps[number];
+        const accessibleApps: AppWithJob[] = [];
+        for (const app of apps) {
+          const hasAccess = await storage.isRecruiterOnJob(app.jobId, userId);
+          if (hasAccess) {
+            accessibleApps.push(app);
+          }
+        }
+
+        if (accessibleApps.length === 0) {
+          res.status(404).json({ error: 'No accessible applications found' });
+          return;
+        }
+
+        // Filter to applications that need summaries (unless regenerate is true)
+        const appsNeedingSummary = regenerate
+          ? accessibleApps
+          : accessibleApps.filter((app: AppWithJob) => !app.aiSummary);
+
+        // If all already have summaries and regenerate is false
+        if (appsNeedingSummary.length === 0) {
+          res.status(200).json({
+            cached: true,
+            message: 'All selected candidates already have AI summaries.',
+            totalCount: 0,
+          });
+          return;
+        }
+
+        // Check rate limit against applications needing summaries
+        if (appsNeedingSummary.length > dailyRemaining) {
+          res.status(403).json({
+            error: `You have only ${dailyRemaining} analyses left today. Select fewer candidates.`,
+            errorCode: 'RATE_LIMIT_EXCEEDED',
+            remaining: dailyRemaining,
+            requested: appsNeedingSummary.length,
+          });
+          return;
+        }
+
+        // Check for existing pending job
+        const pendingJobs = await storage.getUserAiFitJobs(userId, ['pending', 'active']);
+        const pendingSummaryJob = pendingJobs.find(j => j.queueName === QUEUES.BATCH && j.bullJobId.startsWith('summary-'));
+        if (pendingSummaryJob) {
+          res.status(429).json({
+            error: 'You have a summary job in progress. Please wait for it to complete.',
+            errorCode: 'PENDING_LIMIT',
+            existingJobId: pendingSummaryJob.id,
+          });
+          return;
+        }
+
+        // Create DB job
+        const appIdsToProcess = appsNeedingSummary.map(app => app.id);
+        const dbJob = await storage.createAiFitJob({
+          bullJobId: `pending-${randomUUID()}`,
+          queueName: QUEUES.BATCH,
+          userId,
+          applicationIds: appIdsToProcess,
+          totalCount: appIdsToProcess.length,
+          result: {
+            results: [],
+            summary: {
+              total: appIdsToProcess.length,
+              succeeded: 0,
+              skipped: accessibleApps.length - appsNeedingSummary.length,
+              errors: 0,
+            },
+          },
+        });
+
+        // Enqueue the job
+        try {
+          const bullJobId = await enqueueSummaryBatch({
+            applicationIds: appIdsToProcess,
+            recruiterId: userId,
+            dbJobId: dbJob.id,
+            regenerate,
+            jobType: 'summary',
+          });
+          await storage.updateAiFitJobBullId(dbJob.id, bullJobId);
+        } catch (enqueueError) {
+          // Mark job as failed if enqueue fails
+          await storage.updateAiFitJobStatus(dbJob.id, 'failed', {
+            completedAt: new Date(),
+            error: enqueueError instanceof Error ? enqueueError.message : 'Enqueue failed',
+            errorCode: 'ENQUEUE_FAILED',
+          });
+          throw enqueueError;
+        }
+
+        res.status(202).json({
+          jobId: dbJob.id,
+          statusUrl: `/api/ai/summary/jobs/${dbJob.id}`,
+          totalCount: appIdsToProcess.length,
+          skippedCount: accessibleApps.length - appsNeedingSummary.length,
+        });
+      } catch (error) {
+        console.error('[AI Summary Queue] Error:', error);
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * GET /api/ai/summary/jobs/:id
+   * Get status of a summary batch job
+   */
+  app.get(
+    "/api/ai/summary/jobs/:id",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+        const idParam = req.params.id;
+        if (!idParam) {
+          res.status(400).json({ error: 'Missing job ID' });
+          return;
+        }
+        const jobId = parseInt(idParam, 10);
+
+        if (isNaN(jobId)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        const job = await storage.getAiFitJobForUser(jobId, userId);
+        if (!job) {
+          res.status(404).json({ error: 'Job not found' });
+          return;
+        }
+
+        res.json({
+          id: job.id,
+          status: job.status,
+          progress: job.progress,
+          processedCount: job.processedCount,
+          totalCount: job.totalCount,
+          result: job.result,
+          error: job.error,
+          errorCode: job.errorCode,
+          createdAt: job.createdAt,
+          startedAt: job.startedAt,
+          completedAt: job.completedAt,
+        });
+      } catch (error) {
+        console.error('[AI Summary Job Status] Error:', error);
+        next(error);
+      }
+    }
+  );
+
+  /**
+   * DELETE /api/ai/summary/jobs/:id
+   * Cancel a pending/active summary batch job
+   */
+  app.delete(
+    "/api/ai/summary/jobs/:id",
+    requireAuth,
+    requireRole(['recruiter', 'super_admin']),
+    csrfProtection,
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      try {
+        const userId = req.user!.id;
+        const idParam = req.params.id;
+        if (!idParam) {
+          res.status(400).json({ error: 'Missing job ID' });
+          return;
+        }
+        const jobId = parseInt(idParam, 10);
+
+        if (isNaN(jobId)) {
+          res.status(400).json({ error: 'Invalid job ID' });
+          return;
+        }
+
+        const job = await storage.getAiFitJobForUser(jobId, userId);
+        if (!job) {
+          res.status(404).json({ error: 'Job not found' });
+          return;
+        }
+
+        if (job.status !== 'pending' && job.status !== 'active') {
+          res.status(400).json({ error: 'Job cannot be cancelled', status: job.status });
+          return;
+        }
+
+        // Remove from BullMQ
+        const queueName = job.queueName as typeof QUEUES[keyof typeof QUEUES];
+        await removeJob(queueName, job.bullJobId);
+
+        // Update DB status
+        const cancelled = await storage.cancelAiFitJob(jobId, userId);
+        if (!cancelled) {
+          res.status(400).json({ error: 'Failed to cancel job' });
+          return;
+        }
+
+        res.json({ cancelled: true });
+      } catch (error) {
+        console.error('[AI Summary Job Cancel] Error:', error);
+        next(error);
+      }
+    }
+  );
+
   // ============= APPLICATION FEEDBACK =============
 
   // Get feedback for an application
@@ -1410,8 +1774,9 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        const job = await storage.getJob(application.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(application.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: "Access denied" });
           return;
         }
@@ -1453,16 +1818,18 @@ export function registerApplicationsRoutes(
           applicationIds.map(id => storage.getApplication(parseInt(id)))
         );
 
-        const jobIds = applicationsList
-          .filter(app => app)
-          .map(app => app!.jobId);
+        const jobIds = Array.from(new Set(
+          applicationsList
+            .filter(app => app)
+            .map(app => app!.jobId)
+        ));
 
-        const jobs = await Promise.all(
-          jobIds.map(id => storage.getJob(id))
+        // Check access to each unique job (includes co-recruiters)
+        const accessChecks = await Promise.all(
+          jobIds.map(jobId => storage.isRecruiterOnJob(jobId, req.user!.id))
         );
 
-        const unauthorizedJob = jobs.find(job => !job || job.postedBy !== req.user!.id);
-        if (unauthorizedJob) {
+        if (accessChecks.includes(false)) {
           res.status(403).json({ error: "Access denied to one or more applications" });
           return;
         }
@@ -1507,8 +1874,9 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        const job = await storage.getJob(application.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(application.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: "Access denied" });
           return;
         }
@@ -1550,8 +1918,9 @@ export function registerApplicationsRoutes(
           return;
         }
 
-        const job = await storage.getJob(application.jobId);
-        if (!job || job.postedBy !== req.user!.id) {
+        // Use isRecruiterOnJob to check access (includes co-recruiters)
+        const hasAccess = await storage.isRecruiterOnJob(application.jobId, req.user!.id);
+        if (!hasAccess) {
           res.status(403).json({ error: "Access denied" });
           return;
         }
@@ -1571,64 +1940,33 @@ export function registerApplicationsRoutes(
     }
   });
 
-  // ============= CANDIDATE DASHBOARD & PROFILE ROUTES =============
+  // ============= CANDIDATE DASHBOARD ROUTES =============
+  // Note: Profile routes (GET/POST/PATCH /api/profile) are in profile.routes.ts
 
-  // Get user profile
-  app.get("/api/profile", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const profile = await storage.getUserProfile(req.user!.id);
-      res.json(profile || null);
-      return;
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Create or update user profile
-  app.post("/api/profile", csrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const profileData = req.body;
-      const existingProfile = await storage.getUserProfile(req.user!.id);
-
-      let profile;
-      if (existingProfile) {
-        profile = await storage.updateUserProfile(req.user!.id, profileData);
-      } else {
-        profile = await storage.createUserProfile({
-          ...profileData,
-          userId: req.user!.id
-        });
-      }
-
-      res.json(profile);
-      return;
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Update user profile
-  app.patch("/api/profile", csrfProtection, requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const profileData = req.body;
-      const profile = await storage.updateUserProfile(req.user!.id, profileData);
-
-      if (!profile) {
-        res.status(404).json({ error: "Profile not found" });
-        return;
-      }
-
-      res.json(profile);
-      return;
-    } catch (error) {
-      next(error);
-    }
-  });
-
-  // Get user's applications (bound to userId)
+  // Get user's applications (bound to userId, with email fallback for unclaimed applications)
   app.get("/api/my-applications", requireAuth, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const applicationsList = await storage.getApplicationsByUserId(req.user!.id);
+      // Pass user's email to also find unclaimed applications that match by email
+      const applicationsList = await storage.getApplicationsByUserId(req.user!.id, req.user!.username);
+
+      // Claim-on-read: if any applications were found by email but not yet claimed, claim them now
+      // This ensures subsequent actions (withdraw, etc.) work properly
+      const unclaimedIds = applicationsList
+        .filter(app => app.userId === null || app.userId === undefined)
+        .map(app => app.id);
+
+      if (unclaimedIds.length > 0) {
+        await db
+          .update(applications)
+          .set({ userId: req.user!.id })
+          .where(
+            and(
+              inArray(applications.id, unclaimedIds),
+              sql`${applications.userId} IS NULL`
+            )
+          );
+      }
+
       res.json(applicationsList);
       return;
     } catch (error) {
