@@ -421,7 +421,7 @@ export default function JobsPage() {
             <div className="grid gap-6 mb-8">
               {sortedJobs.map((job) => {
                 const salaryDisplay = formatSalary(job.salaryMin, job.salaryMax, job.salaryPeriod);
-                
+
                 return (
                   <Card
                     key={job.id}
@@ -471,8 +471,8 @@ export default function JobsPage() {
                             )}
                           </CardDescription>
                         </div>
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className="bg-primary/20 text-primary border-primary/30"
                         >
                           {job.type.replace('-', ' ')}
@@ -483,7 +483,7 @@ export default function JobsPage() {
                       <p className="text-muted-foreground/50 mb-4 line-clamp-3">
                         {job.description.substring(0, 200)}...
                       </p>
-                      
+
                       <div className="flex justify-between items-center">
                         {job.deadline && (
                           <p className="text-sm text-muted-foreground">

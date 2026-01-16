@@ -826,6 +826,19 @@ export class DatabaseStorage implements IStorage {
         whereConditions.push(eq(jobs.status, filters.status));
     }
 
+    if (filters.skills && filters.skills.length > 0) {
+      // Check if job skills array contains any of the filter skills
+      // Using OR conditions to check each skill individually
+      // Also ensure skills column is not null
+      const skillConditions = filters.skills.map(skill =>
+        sql`${jobs.skills} IS NOT NULL AND ${skill} = ANY(${jobs.skills})`
+      );
+      const skillsOr = or(...skillConditions);
+      if (skillsOr) {
+        whereConditions.push(skillsOr);
+      }
+    }
+
     const whereClause = whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0];
 
     const [jobResults, totalResults] = await Promise.all([
