@@ -82,15 +82,4 @@ export async function seedDefaultWhatsAppTemplates() {
   console.log('✅ WhatsApp templates seeded\n');
 }
 
-// Allow running directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedDefaultWhatsAppTemplates()
-    .then(() => {
-      console.log('Done!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('Error seeding WhatsApp templates:', error);
-      process.exit(1);
-    });
-}
+
