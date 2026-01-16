@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star, Share2, Bookmark, Sparkles, DollarSign, AlertTriangle, RotateCcw, History } from "lucide-react";
+import { MapPin, Clock, Calendar, Users, FileText, Upload, Briefcase, Star, Share2, Bookmark, Sparkles, AlertTriangle, RotateCcw, History, IndianRupee, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -467,15 +467,90 @@ export default function JobDetailsPage() {
                     <CardContent>
                       <div className="flex flex-wrap gap-2">
                         {job.skills.map((skill, index) => (
-                          <Badge 
-                            key={index} 
-                            variant="outline" 
-                            className="border-primary/30 text-primary bg-primary/10"
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="border-destructive/30 text-destructive bg-destructive/10"
                           >
                             {skill}
                           </Badge>
                         ))}
                       </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Good to Have Skills */}
+                {job.goodToHaveSkills && job.goodToHaveSkills.length > 0 && (
+                  <Card className="bg-muted/50 backdrop-blur-sm border-border premium-card">
+                    <CardHeader>
+                      <CardTitle className="text-foreground flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-[#7B38FB]" />
+                        Good to Have Skills
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {job.goodToHaveSkills.map((skill, index) => (
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="border-green-500/30 text-green-600 bg-green-500/10"
+                          >
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Salary */}
+                {(job.salaryMin || job.salaryMax) && (
+                  <Card className="bg-muted/50 backdrop-blur-sm border-border premium-card">
+                    <CardHeader>
+                      <CardTitle className="text-foreground flex items-center gap-2">
+                        <IndianRupee className="h-5 w-5 text-[#7B38FB]" />
+                        Compensation
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-2xl font-bold text-foreground">
+                        {job.salaryMin && job.salaryMax
+                          ? `₹${job.salaryMin.toLocaleString('en-IN')} - ₹${job.salaryMax.toLocaleString('en-IN')}`
+                          : job.salaryMin
+                          ? `₹${job.salaryMin.toLocaleString('en-IN')}+`
+                          : `Up to ₹${job.salaryMax?.toLocaleString('en-IN')}`}
+                        <span className="text-sm font-normal text-muted-foreground ml-2">
+                          {job.salaryPeriod === 'per_month' ? '/month' : '/year'}
+                        </span>
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Education & Experience */}
+                {(job.educationRequirement || job.experienceYears) && (
+                  <Card className="bg-muted/50 backdrop-blur-sm border-border premium-card">
+                    <CardHeader>
+                      <CardTitle className="text-foreground flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5 text-[#7B38FB]" />
+                        Requirements
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {job.educationRequirement && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Education</p>
+                          <p className="text-foreground font-medium">{job.educationRequirement}</p>
+                        </div>
+                      )}
+                      {job.experienceYears && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Experience</p>
+                          <p className="text-foreground font-medium">{job.experienceYears}+ years</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}

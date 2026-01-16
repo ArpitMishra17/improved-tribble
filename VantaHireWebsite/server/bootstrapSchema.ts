@@ -966,6 +966,15 @@ export async function ensureAtsSchema(): Promise<void> {
   await db.execute(sql`ALTER TABLE client_shortlists ADD COLUMN IF NOT EXISTS title TEXT;`);
   await db.execute(sql`ALTER TABLE client_shortlists ADD COLUMN IF NOT EXISTS message TEXT;`);
 
+  // Structured Job Requirements: Add salary, skills, education, experience columns
+  console.log('  Adding structured job requirement columns to jobs table...');
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary_min INTEGER;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary_max INTEGER;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary_period TEXT;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS good_to_have_skills TEXT[];`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS education_requirement TEXT;`);
+  await db.execute(sql`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS experience_years INTEGER;`);
+
   });
 
   console.log('✅ ATS schema ready');

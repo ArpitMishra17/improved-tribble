@@ -201,6 +201,103 @@ export class MetaWhatsAppService implements WhatsAppService {
   }
 }
 
+/**
+ * AiSensy WhatsApp Service
+ * Uses AiSensy API to send WhatsApp messages
+ * API Docs: https://docs.aisensy.com/
+ */
+export class AiSensyWhatsAppService implements WhatsAppService {
+  private apiKey: string;
+  private endpoint = 'https://backend.aisensy.com/campaign/t1/api/v2';
+
+  constructor(opts: { apiKey: string }) {
+    this.apiKey = opts.apiKey;
+  }
+
+  async sendTemplateMessage(opts: {
+    to: string;
+    templateName: string;
+    languageCode: string;
+    parameters: string[];
+  }): Promise<WhatsAppSendResult> {
+    const formatted = formatToE164(opts.to, getDefaultCountry());
+
+    if (!formatted) {
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_PHONE',
+          message: `Invalid phone number: ${opts.to}`,
+        },
+      };
+    }
+
+    // AiSensy requires userName - extract from first parameter (candidate_name)
+    const userName = opts.parameters[0] || 'User';
+
+    const body = {
+      apiKey: this.apiKey,
+      campaignName: opts.templateName, // templateName maps to campaignName in AiSensy
+      destination: formatted, // AiSensy expects number with + prefix
+      userName: userName,
+      templateParams: opts.parameters,
+    };
+
+    try {
+      const response = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json() as {
+        status?: string;
+        message?: string;
+        id?: string;
+        error?: string;
+      };
+
+      if (!response.ok || data.status === 'error') {
+        console.error('[WhatsApp AiSensy] API error:', data);
+        return {
+          success: false,
+          error: {
+            code: String(response.status),
+            message: data.message || data.error || 'Unknown error',
+          },
+        };
+      }
+
+      const messageId = data.id || `aisensy-${Date.now()}`;
+      console.log(`[WhatsApp AiSensy] Message sent successfully: ${messageId}`);
+
+      return {
+        success: true,
+        messageId,
+      };
+    } catch (error: any) {
+      console.error('[WhatsApp AiSensy] Network error:', error);
+      return {
+        success: false,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error?.message || 'Network error',
+        },
+      };
+    }
+  }
+
+  validatePhoneNumber(phone: string): { valid: boolean; formatted: string | null } {
+    const formatted = formatToE164(phone, getDefaultCountry());
+    return {
+      valid: formatted !== null,
+      formatted,
+    };
+  }
+}
+
 // Singleton instance
 let whatsappServiceInstance: WhatsAppService | null = null;
 
@@ -241,6 +338,21 @@ export async function getWhatsAppService(): Promise<WhatsAppService | null> {
       phoneNumberId,
       apiVersion,
     });
+    return whatsappServiceInstance;
+  }
+
+  if (provider === 'aisensy') {
+    const apiKey = process.env.AISENSY_API_KEY;
+
+    if (!apiKey) {
+      console.warn('[WhatsApp] AiSensy API key not configured. Falling back to test service.');
+      console.log('[WhatsApp] Using TestWhatsAppService (messages logged to console)');
+      whatsappServiceInstance = new TestWhatsAppService();
+      return whatsappServiceInstance;
+    }
+
+    console.log('[WhatsApp] Using AiSensyWhatsAppService');
+    whatsappServiceInstance = new AiSensyWhatsAppService({ apiKey });
     return whatsappServiceInstance;
   }
 

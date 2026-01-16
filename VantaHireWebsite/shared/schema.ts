@@ -79,6 +79,13 @@ export const jobs = pgTable("jobs", {
   // AI features
   jdDigest: jsonb("jd_digest"), // Cached job description digest for AI matching
   jdDigestVersion: integer("jd_digest_version").default(1),
+  // Structured job requirements
+  salaryMin: integer("salary_min"), // Minimum salary
+  salaryMax: integer("salary_max"), // Maximum salary
+  salaryPeriod: text("salary_period"), // 'per_month' | 'per_year'
+  goodToHaveSkills: text("good_to_have_skills").array(), // Nice-to-have skills (existing 'skills' field is for required skills)
+  educationRequirement: text("education_requirement"), // Education requirement
+  experienceYears: integer("experience_years"), // Preferred years of experience
 }, (table) => ({
   // Indexes for performance hotspots
   statusIdx: index("jobs_status_idx").on(table.status),
@@ -1037,6 +1044,12 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   deadline: true,
   clientId: true,
   hiringManagerId: true,
+  salaryMin: true,
+  salaryMax: true,
+  salaryPeriod: true,
+  goodToHaveSkills: true,
+  educationRequirement: true,
+  experienceYears: true,
 }).extend({
   title: z.string().min(1).max(100),
   location: z.string().min(1).max(100),
@@ -1046,6 +1059,12 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   deadline: z.string().transform(str => new Date(str)).optional(),
   clientId: z.number().int().positive().optional(),
   hiringManagerId: z.number().int().positive().optional(),
+  salaryMin: z.number().int().positive().optional(),
+  salaryMax: z.number().int().positive().optional(),
+  salaryPeriod: z.enum(["per_month", "per_year"]).optional(),
+  goodToHaveSkills: z.array(z.string().min(1).max(50)).max(20).optional(),
+  educationRequirement: z.string().max(500).optional(),
+  experienceYears: z.number().int().min(0).max(50).optional(),
 });
 
 export const insertApplicationSchema = createInsertSchema(applications).pick({
