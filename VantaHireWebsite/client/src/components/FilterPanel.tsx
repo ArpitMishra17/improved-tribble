@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, MapPin, Filter, Briefcase, X, SlidersHorizontal, DollarSign } from "lucide-react";
+import { Search, MapPin, Filter, Briefcase, X, SlidersHorizontal, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,7 +110,7 @@ function FilterContent({
       {/* Salary Range */}
       <div className="space-y-2">
         <Label className="text-sm font-medium flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary" />
+          <IndianRupee className="h-4 w-4 text-primary" />
           Salary Range
         </Label>
         <div className="flex items-center gap-2">

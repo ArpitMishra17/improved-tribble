@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
 import { Helmet } from "react-helmet-async";
-import { Search, MapPin, Clock, Filter, Briefcase, ArrowUpDown, X, User, DollarSign } from "lucide-react";
+import { Search, MapPin, Clock, Filter, Briefcase, ArrowUpDown, X, User, IndianRupee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -209,9 +209,9 @@ export default function JobsPage() {
 
   const formatSalary = (min?: number | null, max?: number | null, period?: string | null) => {
     if (!min && !max) return null;
-    const currency = "$";
+    const currency = "₹";
     const p = period === "per_year" ? "/yr" : period === "per_month" ? "/mo" : "";
-    
+
     if (min && max) return `${currency}${min.toLocaleString()} - ${currency}${max.toLocaleString()}${p}`;
     if (min) return `From ${currency}${min.toLocaleString()}${p}`;
     if (max) return `Up to ${currency}${max.toLocaleString()}${p}`;
@@ -246,7 +246,7 @@ export default function JobsPage() {
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxIiBjeT0iMSIgcj0iMSIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] opacity-10"></div>
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[100px] animate-pulse-slow"></div>
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-info/10 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '1.2s' }}></div>
-        
+
         <div className={`container mx-auto px-4 py-8 relative z-10 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
           {/* Premium Header */}
           <div className="text-center mb-12 pt-16">
@@ -443,8 +443,8 @@ export default function JobsPage() {
                               {job.location}
                             </span>
                             {salaryDisplay && (
-                              <span className="flex items-center gap-1 text-primary">
-                                <DollarSign className="h-4 w-4" />
+                              <span className="flex items-center gap-1">
+                                {/*<IndianRupee className="h-4 w-4" />*/}
                                 {salaryDisplay}
                               </span>
                             )}
@@ -515,7 +515,7 @@ export default function JobsPage() {
                 >
                   Previous
                 </Button>
-                
+
                 <div className="flex items-center gap-2">
                   {Array.from({ length: Math.min(5, data.pagination.totalPages) }, (_, i) => {
                     const pageNum = i + 1;
