@@ -1070,6 +1070,21 @@ export function registerSignalRoutes(app: Express, csrfProtection: any) {
         return;
       }
       const response = await findContact(signalTenantId, signalCandidateId);
+
+      if (response.success && response.emails && response.emails.length > 0) {
+        const cs = (candidate.candidateSummary as any) || {};
+        if (!cs.candidate) cs.candidate = {};
+        if (!cs.candidate.searchMeta) cs.candidate.searchMeta = {};
+        if (!cs.candidate.searchMeta.crustdata) cs.candidate.searchMeta.crustdata = {};
+        if (!cs.candidate.searchMeta.crustdata.contact) cs.candidate.searchMeta.crustdata.contact = {};
+
+        cs.candidate.searchMeta.crustdata.contact.has_personal_email = true;
+        cs.candidate.searchMeta.crustdata.emails = response.emails;
+
+        await db.update(jobSourcedCandidates)
+          .set({ candidateSummary: cs })
+          .where(eq(jobSourcedCandidates.id, candidateId));
+      }
       res.json(response);
     } catch (error) {
       next(error);

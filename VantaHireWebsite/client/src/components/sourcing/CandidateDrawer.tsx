@@ -325,8 +325,17 @@ export function CandidateDrawer({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] text-muted-foreground uppercase font-bold">Email Address</p>
-                  {(contactFlags as any)?.has_business_email || (contactFlags as any)?.has_personal_email ? (
-                    <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200 text-xs">
+                  {(c.crustdata as any)?.emails?.length > 0 ? (
+                    <div className="mt-1 flex flex-col gap-1">
+                      {(c.crustdata as any).emails.map((email: string, i: number) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/50 px-2 py-1 rounded w-fit">
+                          {email}
+                          <Badge variant="outline" className="h-4 px-1 text-[9px] bg-green-50 text-green-700 border-green-200 ml-1">Verified</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (contactFlags as any)?.has_business_email || (contactFlags as any)?.has_personal_email ? (
+                    <Badge variant="outline" className="mt-1 bg-green-50 text-green-700 border-green-200 text-xs w-fit">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Available via Enrichment
                     </Badge>
@@ -339,7 +348,7 @@ export function CandidateDrawer({
                         disabled={contactPending}
                         onClick={() => findContact({ candidateId: c.id, jobId: c.jobId })}
                       >
-                        {contactPending ? "Finding..." : "Find Professional Email"}
+                        {contactPending ? "Finding..." : "Find Personal Email"}
                       </Button>
                     </div>
                   )}

@@ -617,6 +617,32 @@ export function useFindContact() {
     },
     onSuccess: (data, variables) => {
       if (data.emails && data.emails.length > 0) {
+        queryClient.setQueryData<SourcedCandidatesResponse>(
+          ["/api/jobs", variables.jobId, "sourced-candidates"],
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              candidates: old.candidates.map((c) => {
+                if (c.id === variables.candidateId) {
+                  const crustdata = c.crustdata || {};
+                  return {
+                    ...c,
+                    crustdata: {
+                      ...crustdata,
+                      emails: data.emails,
+                      contact: {
+                        ...(crustdata.contact || {}),
+                        has_personal_email: true,
+                      }
+                    }
+                  };
+                }
+                return c;
+              }),
+            };
+          }
+        );
         queryClient.invalidateQueries({
           queryKey: ["/api/jobs", variables.jobId, "sourced-candidates"],
         });
