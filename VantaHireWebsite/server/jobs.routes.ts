@@ -159,6 +159,7 @@ export function registerJobsRoutes(
         goodToHaveSkills: extractedResult.extracted.niceToHaveSkills,
         experienceYears: extractedResult.extracted.experienceYears ?? req.body.experienceYears,
       });
+      // const mappedDescriptions = getMappedJobDescriptions(rawDescription, optimizedDescription);
       const job = await storage.createJob({
         ...jobData,
         postedBy: req.user!.id,
@@ -1305,8 +1306,8 @@ export function registerJobsRoutes(
       const reviewStageIdsResolved = explicitReviewIds.length
         ? explicitReviewIds
         : stages
-            .filter((s: typeof stages[number]) => s.name.toLowerCase().includes('review'))
-            .map((s: typeof stages[number]) => s.id);
+          .filter((s: typeof stages[number]) => s.name.toLowerCase().includes('review'))
+          .map((s: typeof stages[number]) => s.id);
 
       if (reviewStageIdsResolved.length === 0) {
         res.json({ averageDays: null, waitingCount: 0, sampleSize: 0, buckets: [] });

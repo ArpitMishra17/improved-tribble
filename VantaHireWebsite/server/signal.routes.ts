@@ -1206,16 +1206,8 @@ export function registerSignalRoutes(app: Express, csrfProtection: any) {
         .where(eq(jobSourcedCandidates.id, candidateId));
 
       const response = await findContact(signalTenantId, signalCandidateId);
-      const emails = normalizeResolvedEmails(response.emails);
-      await persistResolvedCandidateContact(
-        candidateId,
-        emails,
-        emails.length > 0 ? 'resolved' : 'not_found',
-      );
 
-      // Also persist the found emails onto the candidate profile so the
-      // CandidateDrawer (which reads crustdata.emails) shows them after refresh.
-      if (emails.length > 0) {
+      if (response.success && response.emails && response.emails.length > 0) {
         const cs = (candidate.candidateSummary as any) || {};
         if (!cs.candidate) cs.candidate = {};
         if (!cs.candidate.searchMeta) cs.candidate.searchMeta = {};
@@ -1223,13 +1215,12 @@ export function registerSignalRoutes(app: Express, csrfProtection: any) {
         if (!cs.candidate.searchMeta.crustdata.contact) cs.candidate.searchMeta.crustdata.contact = {};
 
         cs.candidate.searchMeta.crustdata.contact.has_personal_email = true;
-        cs.candidate.searchMeta.crustdata.emails = emails;
+        cs.candidate.searchMeta.crustdata.emails = response.emails;
 
         await db.update(jobSourcedCandidates)
           .set({ candidateSummary: cs })
           .where(eq(jobSourcedCandidates.id, candidateId));
       }
-
       res.json(response);
     } catch (error) {
       const candidateId = parseInt(req.params.candidateId || '', 10);
