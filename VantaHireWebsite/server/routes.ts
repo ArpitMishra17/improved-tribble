@@ -34,9 +34,11 @@ import { registerAdminSubscriptionRoutes } from "./admin-subscription.routes";
 import { registerCashfreeWebhook } from "./webhooks/cashfree.webhook";
 import { registerSignalWebhook } from "./webhooks/signal.webhook";
 import { registerSignalRoutes } from "./signal.routes";
+import { registerColdOutreachRoutes } from "./coldOutreach.routes";
 import { registerCandidateSemanticRoutes } from "./candidates.semantic.routes";
 import { registerRecruiterDashboardRoutes } from "./recruiterDashboard.routes";
 import { isExpectedDisconnectError } from "./monitoring";
+import { ensureAtsSchema } from "./bootstrapSchema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup security middleware with environment-aware CSP
@@ -131,6 +133,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ status: "ok" });
   });
 
+  // Local dev helper: force ATS schema bootstrap in the running app process
+  app.post("/api/dev/ensure-ats-schema", async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (process.env.NODE_ENV === "production") {
+        res.status(404).json({ error: "Not found" });
+        return;
+      }
+      await ensureAtsSchema();
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Platform healthcheck endpoints (Railway, k8s, etc.)
   app.get("/healthz", (_req, res) => {
     res.status(200).send("ok");
@@ -180,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: 50000, // Google sitemap limit
       });
 
-      const baseUrl = (process.env.BASE_URL || 'https://vantahire.com').replace(/\/$/, '');
+      const baseUrl = (process.env.BASE_URL || 'https://ealana.com').replace(/\/$/, '');
       const sitemapXML = generateJobsSitemapXML(activeJobs, baseUrl);
 
       res.header('Content-Type', 'application/xml');
@@ -497,6 +513,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Signal sourcing routes (recruiter-facing, with CSRF)
   registerSignalRoutes(app, doubleCsrfProtection);
+
+  // Register cold outreach routes for shortlisted sourced candidates
+  registerColdOutreachRoutes(app, doubleCsrfProtection);
 
   // Register candidate semantic search routes (ActiveKG-powered, with CSRF)
   registerCandidateSemanticRoutes(app, doubleCsrfProtection);

@@ -1,6 +1,7 @@
 // @charset "utf-8"
-import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const TABS = ["Outreach", "Pipeline", "Schedule", "Feedback"] as const;
 type TabName = (typeof TABS)[number];
@@ -156,10 +157,40 @@ const TAB_CONTENT: Record<TabName, () => JSX.Element> = {
 
 export function FlowPanel() {
   const [activeTab, setActiveTab] = useState<TabName>("Outreach");
+  const [hintTab, setHintTab] = useState<TabName | null>(null);
   const Content = TAB_CONTENT[activeTab];
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(rootRef, { once: true, amount: 0.4 });
+  const interactedRef = useRef(false);
+  const timersRef = useRef<number[]>([]);
+
+  function selectTab(tab: TabName) {
+    interactedRef.current = true;
+    setHintTab(null);
+    setActiveTab(tab);
+  }
+
+  // Auto-demo: Outreach is shown by default, then pulse the next tab (Pipeline)
+  // to show the tabs are interactive. Cancelled on any user interaction.
+  useEffect(() => {
+    if (!inView) return;
+    const t = window.setTimeout(() => {
+      if (interactedRef.current) return;
+      setHintTab("Pipeline");
+    }, 1400);
+    timersRef.current.push(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView]);
+
+  useEffect(() => () => {
+    timersRef.current.forEach((id) => window.clearTimeout(id));
+    timersRef.current = [];
+  }, []);
 
   return (
     <motion.div
+      ref={rootRef}
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -176,26 +207,31 @@ export function FlowPanel() {
       <div style={{ display: "flex", borderBottom: "1px solid rgba(0,0,0,0.07)", background: "#EDEEF2" }}>
         {TABS.map((tab, index) => {
           const isActive = activeTab === tab;
+          const isHint = hintTab === tab;
           return (
-            <button
+            <motion.button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => selectTab(tab)}
+              animate={isHint
+                ? { boxShadow: ["inset 0 0 0 0 rgba(245,200,66,0.5)", "inset 0 0 0 2px rgba(245,200,66,0.5)", "inset 0 0 0 0 rgba(245,200,66,0.5)"] }
+                : { boxShadow: "inset 0 0 0 0 rgba(245,200,66,0)" }}
+              transition={isHint ? { duration: 1.5, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
               style={{
                 flex: 1,
                 textAlign: "center",
                 padding: "10px 6px",
                 fontFamily: "var(--font-mono, monospace)",
                 fontSize: "0.6rem",
-                color: isActive ? "#F5C842" : "#9CA3AF",
-                background: isActive ? "rgba(245,200,66,0.06)" : "transparent",
+                color: isActive ? "#F5C842" : isHint ? "#C79A1E" : "#9CA3AF",
+                background: isActive ? "rgba(245,200,66,0.06)" : isHint ? "rgba(245,200,66,0.04)" : "transparent",
                 borderBottom: isActive ? "2px solid #F5C842" : "2px solid transparent",
                 borderRight: index < TABS.length - 1 ? "1px solid rgba(0,0,0,0.07)" : "none",
                 cursor: "pointer",
-                transition: "all 0.2s",
+                transition: "color 0.2s, background 0.2s",
               }}
             >
               {tab}
-            </button>
+            </motion.button>
           );
         })}
       </div>
@@ -210,9 +246,10 @@ export function FlowPanel() {
 }
 
 export default function FlowFeature() {
+  const isMobile = useIsMobile();
   return (
-    <section style={{ padding: "120px 4rem" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "center" }}>
+    <section style={{ padding: isMobile ? "72px 1.25rem" : "120px 4rem" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? "1.5rem" : "5rem", alignItems: "center" }}>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}

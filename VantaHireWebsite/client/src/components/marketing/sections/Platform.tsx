@@ -1,6 +1,7 @@
 // @charset "utf-8"
 import { useRef, useState, type ReactNode } from "react";
 import { motion, useMotionValueEvent, useScroll, useTransform, type MotionValue } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const mono = { fontFamily: "'JetBrains Mono',monospace" };
 const body = { fontFamily: "'DM Sans',sans-serif" };
@@ -94,11 +95,14 @@ function FlowCard({ active }: { active: boolean }) {
 }
 
 function AnimatedBeam({ progress, color }: { progress: MotionValue<number>; color: string }) {
-  const dashOffset = useTransform(progress, [0, 1], [120, 0]);
-  const dotOpacity = useTransform(progress, [0.7, 1], [0, 1]);
+  // pathLength normalization → the line draws linearly across the full 0→1
+  // progress range (instead of finishing halfway like a fixed dash array does),
+  // so it tracks the scroll tightly.
+  const dashOffset = useTransform(progress, [0, 1], [1, 0]);
+  const dotOpacity = useTransform(progress, [0.8, 1], [0, 1]);
   return (
     <svg width="60" height="60" viewBox="0 0 60 60" fill="none" style={{ flexShrink: 0, alignSelf: "center" }}>
-      <motion.path d="M0 30 Q30 30 60 30" stroke={color} strokeWidth="1.5" opacity="0.7" strokeDasharray="120" style={{ strokeDashoffset: dashOffset }} fill="none" />
+      <motion.path d="M0 30 Q30 30 60 30" stroke={color} strokeWidth="1.5" opacity="0.7" pathLength={1} strokeDasharray="1" style={{ strokeDashoffset: dashOffset }} fill="none" />
       <motion.circle cx="54" cy="30" r="3" fill={color} style={{ opacity: dotOpacity }} />
     </svg>
   );
@@ -112,13 +116,16 @@ function ActiveCard({ progress, threshold, children }: { progress: MotionValue<n
 
 export default function Platform() {
   const sectionRef = useRef<HTMLElement | null>(null);
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start 0.8", "end 0.3"] });
-  const beam1Progress = useTransform(scrollYProgress, [0, 0.4], [0, 1]);
-  const beam2Progress = useTransform(scrollYProgress, [0.45, 0.85], [0, 1]);
+  const isMobile = useIsMobile();
+  // Tighter window so progress tracks scroll directly and both beams finish
+  // while the cards are still comfortably in view (not after scrolling past).
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start 0.85", "center 0.5"] });
+  const beam1Progress = useTransform(scrollYProgress, [0.15, 0.45], [0, 1]);
+  const beam2Progress = useTransform(scrollYProgress, [0.5, 0.8], [0, 1]);
 
   return (
-    <section ref={sectionRef} style={{ padding: "120px 0" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", paddingLeft: "4rem", paddingRight: "4rem" }}>
+    <section ref={sectionRef} style={{ padding: isMobile ? "72px 0" : "120px 0" }}>
+      <div style={{ maxWidth: 1100, margin: "0 auto", paddingLeft: isMobile ? "1.25rem" : "4rem", paddingRight: isMobile ? "1.25rem" : "4rem" }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <span style={{ ...mono, fontSize: "0.62rem", letterSpacing: "0.14em", color: "#4B8EF0", textTransform: "uppercase" }}>One Platform</span>
         </div>
@@ -127,16 +134,16 @@ export default function Platform() {
           Three layers. <em>One right hire.</em>
         </motion.h2>
 
-        <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }} style={{ ...body, fontSize: "1rem", color: "#8891AA", fontWeight: 300, maxWidth: 560, margin: "0 auto 5rem", lineHeight: 1.75, textAlign: "center" }}>
+        <motion.p initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.15 }} style={{ ...body, fontSize: isMobile ? "0.98rem" : "1rem", color: "#8891AA", fontWeight: 300, maxWidth: 560, margin: `0 auto ${isMobile ? "2rem" : "5rem"}`, lineHeight: 1.75, textAlign: "center" }}>
           Discover, Memory, and Flow work together — so every search, every decision, and every outreach happens in one place.
         </motion.p>
 
-        <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.8 }} style={{ display: "flex", alignItems: "stretch" }}>
-          <ActiveCard progress={scrollYProgress} threshold={0.15}>{(active) => <DiscoverCard active={active} />}</ActiveCard>
-          <AnimatedBeam progress={beam1Progress} color="#4B8EF0" />
+        <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-60px" }} transition={{ duration: 0.8 }} style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "stretch", gap: isMobile ? 12 : 0 }}>
+          <ActiveCard progress={scrollYProgress} threshold={0.1}>{(active) => <DiscoverCard active={active} />}</ActiveCard>
+          {!isMobile ? <AnimatedBeam progress={beam1Progress} color="#4B8EF0" /> : null}
           <ActiveCard progress={scrollYProgress} threshold={0.45}>{(active) => <MemoryCard active={active} />}</ActiveCard>
-          <AnimatedBeam progress={beam2Progress} color="#34D17A" />
-          <ActiveCard progress={scrollYProgress} threshold={0.75}>{(active) => <FlowCard active={active} />}</ActiveCard>
+          {!isMobile ? <AnimatedBeam progress={beam2Progress} color="#34D17A" /> : null}
+          <ActiveCard progress={scrollYProgress} threshold={0.8}>{(active) => <FlowCard active={active} />}</ActiveCard>
         </motion.div>
 
         <motion.p initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }} style={{ fontFamily: "'Outfit', sans-serif", fontStyle: "italic", fontSize: "1.3rem", color: "#8891AA", textAlign: "center", marginTop: "3rem" }}>

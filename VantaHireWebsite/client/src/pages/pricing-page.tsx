@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/use-auth";
 import { useOrganization } from "@/hooks/use-organization";
@@ -60,10 +61,13 @@ export default function PricingPage() {
   const [, setLocation] = useLocation();
   const [isVisible, setIsVisible] = useState(false);
 
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [seats, setSeats] = useState(1);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const comparisonScrollRef = useRef<HTMLDivElement | null>(null);
+  const [comparisonScrollProgress, setComparisonScrollProgress] = useState(0);
 
   // Public checkout fields (for non-logged-in users)
   const [email, setEmail] = useState('');
@@ -98,7 +102,7 @@ export default function PricingPage() {
 
   const formatMetric = (value?: number | null) => {
     if (typeof value !== "number" || value <= 0) {
-      return "â€”";
+      return "-";
     }
     return String(value);
   };
@@ -139,6 +143,29 @@ export default function PricingPage() {
   });
 
   useEffect(() => { setIsVisible(true); }, []);
+
+  useEffect(() => {
+    const container = comparisonScrollRef.current;
+    if (!container) return;
+
+    const updateProgress = () => {
+      const maxScroll = container.scrollWidth - container.clientWidth;
+      if (maxScroll <= 0) {
+        setComparisonScrollProgress(0);
+        return;
+      }
+      setComparisonScrollProgress(container.scrollLeft / maxScroll);
+    };
+
+    updateProgress();
+    container.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+
+    return () => {
+      container.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("resize", updateProgress);
+    };
+  }, [comparisonRows.length]);
 
   const handleSelectPro = () => {
     if (!proPlan) return;
@@ -265,7 +292,7 @@ export default function PricingPage() {
   const isCheckoutPending = publicCheckout.isPending || createOrgCheckout.isPending || createCheckout.isPending;
 
   const handleContactSales = () => {
-    window.location.href = 'mailto:sales@ealana.com?subject=ealana%20Business%20Plan%20Inquiry';
+    window.location.href = 'mailto:info@ealana.com?subject=ealana%20Business%20Plan%20Inquiry';
   };
 
   const renderFeatureValue = (value: boolean | string) => {
@@ -297,7 +324,7 @@ export default function PricingPage() {
           <HomepageNav />
 
           {/* Hero */}
-          <div className="relative pt-[140px] px-12 pb-20 text-center max-w-[1100px] mx-auto animate-hr-fade-up max-md:pt-[100px] max-md:px-5 max-md:pb-12">
+          <div className="relative mx-auto max-w-[1100px] animate-hr-fade-up px-5 pb-14 pt-[96px] text-center sm:px-8 md:px-12 md:pb-20 md:pt-[140px]">
             <div
               className="pointer-events-none absolute left-1/2 top-0 h-[420px] w-[760px] -translate-x-1/2"
               style={{
@@ -327,11 +354,11 @@ export default function PricingPage() {
 
           {/* Pricing Cards */}
           <div
-            className="grid grid-cols-3 gap-5 max-w-[1100px] mx-auto mb-[100px] px-12 max-lg:gap-4 max-lg:px-8 max-md:grid-cols-1 max-md:max-w-[420px] max-md:px-5 max-md:gap-6"
+            className="mx-auto mb-16 grid max-w-[1100px] grid-cols-1 gap-7 px-5 sm:px-8 md:mb-[100px] md:px-10 lg:grid-cols-3 lg:gap-5 lg:px-12"
             style={{ animation: 'hr-fade-up 0.9s ease-out 0.15s both' }}
           >
             {/* Free Plan */}
-            <div className={`${marketingCard} py-8 px-7 flex flex-col relative transition-all duration-300 hover:border-white/20 hover:-translate-y-1`}>
+            <div className={`${marketingCard} relative flex flex-col px-5 py-7 transition-all duration-300 hover:border-white/20 hover:-translate-y-1 sm:px-7 sm:py-8`}>
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 shrink-0" style={{ background: 'rgba(255,255,255,0.05)' }}>
                 <Users size={18} style={{ color: '#8891AA' }} />
               </div>
@@ -355,13 +382,13 @@ export default function PricingPage() {
                 <button className={planBtnSecondary} disabled>Current Plan</button>
               ) : (
                 <button className={planBtnSecondary} onClick={() => setLocation('/recruiter-auth')}>
-                  Get Started
+                  Get Started -&gt;
                 </button>
               )}
             </div>
 
             {/* Growth Plan */}
-            <div className="rounded-[26px] py-8 px-7 flex flex-col relative transition-all duration-300 max-md:-order-1 hover:-translate-y-1"
+            <div className="relative flex flex-col rounded-[26px] px-5 py-7 transition-all duration-300 hover:-translate-y-1 sm:px-7 sm:py-8"
               style={{
                 background: "linear-gradient(180deg, rgba(75,142,240,0.18) 0%, rgba(17,19,38,0.96) 24%, rgba(13,15,30,0.98) 100%)",
                 border: "1px solid rgba(75,142,240,0.4)",
@@ -400,7 +427,7 @@ export default function PricingPage() {
             </div>
 
             {/* Enterprise Plan */}
-            <div className={`${marketingCard} py-8 px-7 flex flex-col relative transition-all duration-300 hover:border-white/20 hover:-translate-y-1`}>
+            <div className={`${marketingCard} relative flex flex-col px-5 py-7 transition-all duration-300 hover:border-white/20 hover:-translate-y-1 sm:px-7 sm:py-8`}>
               <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4 shrink-0" style={{ background: 'rgba(255,255,255,0.05)' }}>
                 <Building2 size={18} style={{ color: '#8891AA' }} />
               </div>
@@ -429,35 +456,93 @@ export default function PricingPage() {
             <div></div>
             <div>
               <div
-                className="max-w-[1100px] mx-auto mb-[100px] px-12 max-md:px-5 max-md:overflow-x-auto"
+                className="mx-auto mb-16 max-w-[1100px] px-5 sm:px-8 md:mb-[100px] md:px-12"
                 style={{ animation: 'hr-fade-up 0.9s ease-out 0.3s both' }}
               >
                 <h2 className="font-display text-[clamp(2.2rem,4vw,3.2rem)] font-medium leading-[1.1] tracking-[-0.025em] mb-10 text-e-text text-center">Compare plans side by side</h2>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="w-full border border-white/10 rounded-[24px] overflow-hidden border-separate max-md:min-w-[560px] bg-[rgba(255,255,255,0.03)] backdrop-blur-xl" style={{ borderSpacing: 0 }}>
-                    <thead>
-                      <tr>
-                        <th className="py-4 px-5 text-left font-mono text-[0.72rem] font-semibold tracking-[0.06em] uppercase text-e-text3 bg-white/[0.05] border-b border-white/8">Feature</th>
-                        <th className="py-4 px-5 font-ui text-[0.82rem] font-semibold text-e-text text-center bg-white/[0.05] border-b border-white/8">Free</th>
-                        <th className="py-4 px-5 font-ui text-[0.82rem] font-semibold text-e-blue text-center bg-[rgba(75,142,240,0.09)] border-b border-white/8">Growth</th>
-                        <th className="py-4 px-5 font-ui text-[0.82rem] font-semibold text-e-text text-center bg-white/[0.05] border-b border-white/8">Enterprise</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {comparisonRows.map((feature, idx) => {
-                        const isLast = idx === comparisonRows.length - 1;
-                        const borderClass = isLast ? '' : 'border-b border-white/8';
-                        return (
-                          <tr key={feature.name} className="group">
-                            <td className={`py-3 px-5 text-[0.85rem] text-e-text font-normal text-left bg-[rgba(255,255,255,0.02)] ${borderClass} group-hover:bg-white/[0.04]`}>{feature.name}</td>
-                            <td className={`py-3 px-5 text-[0.85rem] text-e-text2 text-center bg-[rgba(255,255,255,0.02)] ${borderClass} group-hover:bg-white/[0.04]`}>{renderFeatureValue(feature.free)}</td>
-                            <td className={`py-3 px-5 text-[0.85rem] text-e-text2 text-center bg-[rgba(75,142,240,0.04)] ${borderClass} group-hover:bg-[rgba(75,142,240,0.08)]`}>{renderFeatureValue(feature.pro)}</td>
-                            <td className={`py-3 px-5 text-[0.85rem] text-e-text2 text-center bg-[rgba(255,255,255,0.02)] ${borderClass} group-hover:bg-white/[0.04]`}>{renderFeatureValue(feature.business)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+
+                {/* Tablet / desktop: scrollable comparison table */}
+                <div className="hidden md:block">
+                  <div className="mb-3 hidden items-center justify-between gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-[0.78rem] text-e-text2 md:flex lg:hidden">
+                    <span>Swipe sideways to compare all plan columns.</span>
+                    <span className="font-mono text-[0.72rem] uppercase tracking-[0.12em] text-e-blue">Scroll</span>
+                  </div>
+                  <div className="max-w-full rounded-[28px] border border-white/10 bg-[rgba(255,255,255,0.03)] shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+                    <div
+                      ref={comparisonScrollRef}
+                      className="pricing-table-scroll max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain rounded-[28px] pb-4 [touch-action:pan-x]"
+                      style={{ WebkitOverflowScrolling: "touch" }}
+                    >
+                    <div className="min-w-[640px] w-full">
+                    <table className="w-full border-separate bg-transparent backdrop-blur-xl" style={{ borderSpacing: 0 }}>
+                      <thead>
+                        <tr>
+                          <th className="sticky left-0 z-[1] py-4 px-4 text-left font-mono text-[0.72rem] font-semibold tracking-[0.06em] uppercase text-e-text3 bg-[rgba(15,18,30,0.96)] border-b border-white/8 md:px-5">Feature</th>
+                          <th className="py-4 px-4 font-ui text-[0.82rem] font-semibold text-e-text text-center bg-white/[0.05] border-b border-white/8 md:px-5">Free</th>
+                          <th className="py-4 px-4 font-ui text-[0.82rem] font-semibold text-e-blue text-center bg-[rgba(75,142,240,0.09)] border-b border-white/8 md:px-5">Growth</th>
+                          <th className="py-4 px-4 font-ui text-[0.82rem] font-semibold text-e-text text-center bg-white/[0.05] border-b border-white/8 md:px-5">Enterprise</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {comparisonRows.map((feature, idx) => {
+                          const isLast = idx === comparisonRows.length - 1;
+                          const borderClass = isLast ? '' : 'border-b border-white/8';
+                          return (
+                            <tr key={feature.name} className="group">
+                              <td className={`sticky left-0 z-[1] py-3 px-4 text-[0.85rem] text-e-text font-normal text-left bg-[rgba(15,18,30,0.96)] ${borderClass} group-hover:bg-[rgba(24,28,42,0.98)] md:px-5`}>{feature.name}</td>
+                              <td className={`py-3 px-4 text-[0.85rem] text-e-text2 text-center bg-[rgba(255,255,255,0.02)] ${borderClass} group-hover:bg-white/[0.04] md:px-5`}>{renderFeatureValue(feature.free)}</td>
+                              <td className={`py-3 px-4 text-[0.85rem] text-e-text2 text-center bg-[rgba(75,142,240,0.04)] ${borderClass} group-hover:bg-[rgba(75,142,240,0.08)] md:px-5`}>{renderFeatureValue(feature.pro)}</td>
+                              <td className={`py-3 px-4 text-[0.85rem] text-e-text2 text-center bg-[rgba(255,255,255,0.02)] ${borderClass} group-hover:bg-white/[0.04] md:px-5`}>{renderFeatureValue(feature.business)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    </div>
+                    </div>
+                    <div className="border-t border-white/8 px-4 py-3 lg:hidden">
+                      <div className="h-2 rounded-full bg-white/10 cursor-pointer overflow-hidden">
+                        <div
+                          className="h-2 rounded-full bg-[linear-gradient(90deg,#4B8EF0_0%,#34D17A_100%)] transition-all duration-150"
+                          style={{
+                            width: `${Math.round(
+                              (comparisonScrollRef.current
+                                ? (comparisonScrollRef.current.clientWidth / comparisonScrollRef.current.scrollWidth) * 100
+                                : 33)
+                            )}%`,
+                            marginLeft: `${comparisonScrollProgress * (100 - Math.round(
+                              comparisonScrollRef.current
+                                ? (comparisonScrollRef.current.clientWidth / comparisonScrollRef.current.scrollWidth) * 100
+                                : 33
+                            ))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile: stacked per-feature cards (no horizontal scroll) */}
+                <div className="flex flex-col gap-3 md:hidden">
+                  {comparisonRows.map((feature) => (
+                    <div key={feature.name} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                      <div className="font-ui text-[0.9rem] font-medium text-e-text mb-3 leading-snug">{feature.name}</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="flex flex-col items-center gap-1.5 rounded-xl bg-white/[0.03] px-2 py-3 text-center">
+                          <span className="font-mono text-[0.58rem] uppercase tracking-[0.08em] text-e-text3">Free</span>
+                          <span className="text-[0.8rem] text-e-text2 break-words">{renderFeatureValue(feature.free)}</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1.5 rounded-xl bg-[rgba(75,142,240,0.08)] border border-[rgba(75,142,240,0.18)] px-2 py-3 text-center">
+                          <span className="font-mono text-[0.58rem] uppercase tracking-[0.08em] text-e-blue">Growth</span>
+                          <span className="text-[0.8rem] text-e-text2 break-words">{renderFeatureValue(feature.pro)}</span>
+                        </div>
+                        <div className="flex flex-col items-center gap-1.5 rounded-xl bg-white/[0.03] px-2 py-3 text-center">
+                          <span className="font-mono text-[0.58rem] uppercase tracking-[0.08em] text-e-text3">Enterprise</span>
+                          <span className="text-[0.8rem] text-e-text2 break-words">{renderFeatureValue(feature.business)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -469,15 +554,25 @@ export default function PricingPage() {
             <div></div>
             <div>
               <div
-                className="max-w-[720px] mx-auto mb-[100px] px-12 max-md:px-5"
+                className="mx-auto mb-16 max-w-[720px] px-5 sm:px-8 md:mb-[100px] md:px-12"
                 style={{ animation: 'hr-fade-up 0.9s ease-out 0.4s both' }}
               >
                 <div className={`${sectionLabel} text-center text-e-blue`}>FAQ</div>
                 <h2 className="font-display text-[clamp(2.2rem,4vw,3.2rem)] font-medium leading-[1.1] tracking-[-0.025em] mb-10 text-e-text text-center">Pricing questions, answered.</h2>
                 {faqs.map((faq, i) => (
-                  <div key={i} className={`${marketingCard} py-6 px-7 mb-3 transition-all duration-200 hover:border-white/20`}>
-                    <h3 className="font-display text-base font-medium text-e-text mb-2">{faq.question}</h3>
-                    <p className="text-[0.875rem] text-e-text2 leading-[1.8]">{faq.answer}</p>
+                  <div key={i} className={`${marketingCard} mb-3 transition-all duration-200 hover:border-white/20 overflow-hidden`}>
+                    <button
+                      className="w-full flex items-center justify-between gap-3 py-5 px-5 text-left cursor-pointer bg-transparent border-none sm:gap-4 sm:px-7"
+                      onClick={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                    >
+                      <h3 className="font-display text-[0.95rem] font-medium text-e-text leading-snug sm:text-base">{faq.question}</h3>
+                      <span className="text-e-text3 shrink-0 transition-transform duration-200" style={{ transform: openFaqIndex === i ? "rotate(45deg)" : "rotate(0deg)", fontSize: "1.4rem", lineHeight: 1 }}>+</span>
+                    </button>
+                    {openFaqIndex === i && (
+                      <div className="px-5 pb-5 sm:px-7">
+                        <p className="text-[0.875rem] text-e-text2 leading-[1.8]">{faq.answer}</p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -489,7 +584,7 @@ export default function PricingPage() {
           <div className="grid grid-cols-[28px_1fr_28px] max-md:grid-cols-[0px_1fr_0px]">
             <div></div>
             <div>
-              <div className="text-center py-20 px-12 pb-[100px] border-t border-white/8 max-md:py-[60px] max-md:px-5">
+              <div className="border-t border-white/8 px-5 py-[60px] pb-16 text-center sm:px-8 md:px-12 md:py-20 md:pb-[100px]">
                 <div className={`${sectionLabel} text-e-blue`}>Get Started</div>
                 <h2 className="font-display text-[clamp(2.2rem,4vw,3.2rem)] font-medium leading-[1.1] tracking-[-0.025em] mb-4 text-e-text max-w-[480px] mx-auto">Start hiring with<br />the right plan.</h2>
                 <p className="text-base leading-[1.8] text-e-text2 max-w-[520px] mx-auto text-center mb-9">

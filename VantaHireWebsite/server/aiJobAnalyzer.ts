@@ -192,6 +192,35 @@ export interface EmailDraftResult {
   };
 }
 
+export interface ColdOutreachDraftInput {
+  job: {
+    title: string;
+    description: string;
+    location?: string | null;
+    salaryMin?: number | null;
+    salaryMax?: number | null;
+    salaryPeriod?: string | null;
+    requirements?: string[];
+    companyName: string;
+    publicJobUrl: string;
+  };
+  candidate: {
+    name: string;
+    headline?: string | null;
+    summary?: string | null;
+    currentRole?: string | null;
+    skills?: string[];
+    location?: string | null;
+  };
+  recruiter: {
+    name: string;
+    email: string;
+  };
+  campaignRound: 1 | 2 | 3;
+  roundPrompt: string;
+  extraContext?: string;
+}
+
 export async function generateEmailDraft(
   templateSubject: string,
   templateBody: string,
@@ -271,6 +300,96 @@ Return only valid JSON.`;
       throw new Error(`AI email draft unavailable: ${error.message}`);
     }
     throw new Error('AI email draft failed');
+  }
+}
+
+export async function generateColdOutreachDraft(
+  input: ColdOutreachDraftInput,
+): Promise<EmailDraftResult> {
+  try {
+    const client = getGroqClient();
+
+    const prompt = `You are writing a personalized cold outreach email to a sourced candidate for a job opening.
+
+Job:
+- Title: ${input.job.title}
+- Company: ${input.job.companyName}
+- Location: ${input.job.location ?? 'Not specified'}
+- Salary: ${input.job.salaryMin != null || input.job.salaryMax != null
+    ? `${input.job.salaryMin ?? 'N/A'} - ${input.job.salaryMax ?? 'N/A'} ${input.job.salaryPeriod ?? ''}`.trim()
+    : 'Not specified'}
+- Requirements: ${(input.job.requirements ?? []).slice(0, 8).join(', ') || 'Not specified'}
+- Description: ${input.job.description}
+- Application URL: ${input.job.publicJobUrl}
+
+Candidate:
+- Name: ${input.candidate.name}
+- Headline: ${input.candidate.headline ?? 'Not provided'}
+- Current role: ${input.candidate.currentRole ?? 'Not provided'}
+- Location: ${input.candidate.location ?? 'Not provided'}
+- Skills: ${(input.candidate.skills ?? []).slice(0, 10).join(', ') || 'Not provided'}
+- Summary: ${input.candidate.summary ?? 'Not provided'}
+
+Recruiter:
+- Name: ${input.recruiter.name}
+- Email: ${input.recruiter.email}
+
+Campaign round: ${input.campaignRound}
+Round objective: ${input.roundPrompt}
+Extra context: ${input.extraContext?.trim() || 'None'}
+
+Instructions:
+1. Personalize the opening with one concrete candidate detail.
+2. Mention the job title and company.
+3. Explain why the role may be relevant.
+4. The body must be valid HTML only. Use simple tags like <p>, <strong>, <ul>, <li>, and <a>.
+5. Keep the body between 90 and 170 words.
+6. End with a clear CTA that asks them to reply or apply using the provided application URL.
+7. Do not include <html>, <body>, or markdown fences.
+8. Subject line must be concrete and 35-60 characters.
+9. If Extra context is provided, you must clearly incorporate it into the subject or body, not ignore it.
+10. When Extra context contains exact wording, names, or special notes from the recruiter, preserve those details naturally in the email.
+
+Return valid JSON only with:
+- subject
+- body`;
+
+    const response = await client.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert recruiter writing concise personalized cold outreach emails in valid JSON only. The body field must be an HTML fragment.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 700,
+      temperature: 0.6,
+    });
+
+    const responseText = response.choices[0]?.message.content || '{}';
+    const result = safeParseAiResponse(EmailDraftResponseSchema, responseText, 'cold-outreach-draft');
+    const usage = response.usage;
+
+    return {
+      subject: result.subject ?? '',
+      body: result.body ?? '',
+      model_version: 'llama-3.3-70b-versatile',
+      tokensUsed: {
+        input: usage?.prompt_tokens || 0,
+        output: usage?.completion_tokens || 0,
+      },
+    };
+  } catch (error) {
+    console.error('Groq API error during cold outreach draft generation:', error);
+    if (error instanceof Error) {
+      throw new Error(`AI cold outreach draft unavailable: ${error.message}`);
+    }
+    throw new Error('AI cold outreach draft failed');
   }
 }
 
